@@ -125,11 +125,10 @@ Vol. II is the second volume in the list.
 |---|---|---|---|---|---|---|---|---|---|---|
 | Letter | A | B | C | D | E | **G** | **H** | **J** | **K** | **L** |
 
-Notice the skipped letters: F is the fullscreen key, and I, N and O are never
-used, so Vol. VI is **G**, not F. This table is also written at the top of
+Notice the skipped letters: F, N, P and S are keyboard shortcuts (fullscreen,
+next, previous, shuffle), and I and O are never used (they look like 1 and 0), so
+Vol. VI is **G**, not F. This table is also written at the top of
 `tracks.js`. Moving a song up or down the list changes its code.
-(Letters F, N, I and O are skipped: F and N are keyboard shortcuts, and I and O
-look like 1 and 0 from across the rink.)
 
 **Adding a whole new album (volume):** add a line inside the `volumes = [` list:
 
@@ -214,15 +213,28 @@ INSERT COIN -> START. The queue starts empty (the house rotation fills the gap).
 
 ## How it behaves
 
-- **START** begins with the house rotation (random songs, never repeating any of
-  the last 5). It does **not** start automatically, so you can test volume first.
+- **START** begins with the house rotation. It does **not** start automatically,
+  so you can test volume first.
 - **Pick a song** by clicking its strip in **The Rack**, or by typing its code on
   the on-screen keypad (letter, number, then **SELECT**), or on your keyboard
   (for example `B`, `1`, `Enter`). The chosen song joins **UP NEXT**.
 - UP NEXT plays **first in, first out**. Use the arrows to move a song up and the
   cross to remove one.
 - When UP NEXT is empty, the **house rotation** picks the next song itself, so the
-  rink is never silent.
+  rink is never silent. The **SHUFFLE** button chooses how:
+  - **SHUFFLE: ON** (the default): a shuffled deck. **Every song plays once before
+    any song repeats**, and a song never comes round again within 5 plays, even
+    when the deck is reshuffled. Songs you pick yourself count as played.
+  - **SHUFFLE: OFF**: plays in the order the songs are listed in `tracks.js`,
+    then starts again at the top.
+
+  UP NEXT always shows which song the house will play next. Your choice is
+  remembered on that laptop.
+- **SKIP** (or **N** / the right arrow) plays the next song straight away.
+- **BACK** (or **P** / the left arrow): more than 3 seconds into a song it starts
+  that song again; press it within the first 3 seconds (or twice) to go to the
+  song that played before. The song you left goes to the **top of UP NEXT**, so
+  SKIP brings you straight back to it. The machine remembers the last 50 songs.
 - **Credits** are for show. The machine never refuses a song; with no credits it
   says **FREE PLAY**.
 - After **60 seconds** with nobody touching anything, the machine runs a light
@@ -234,14 +246,16 @@ INSERT COIN -> START. The queue starts empty (the house rotation fills the gap).
 | Key | Does |
 |---|---|
 | **Space** | Play / pause (and START the first time) |
-| **N** | Next song |
+| **N** or **Right arrow** | Next song |
+| **P** or **Left arrow** | Back: restart this song, or press again for the previous one |
+| **S** | Shuffle on / off |
 | **F** | Fullscreen on / off |
 | **Up / Down arrows** | Music volume up / down |
 | **A-Z, 0-9, Enter** | Type a selection code, e.g. `B` `1` `Enter` |
 | **Backspace / Esc** | Delete / clear the typed code |
 | **?** | Show the key list again (it hides after a few seconds) |
 
-Laptop **media keys** (play / pause / next) work too.
+Laptop **media keys** (play / pause / next / previous) work too.
 
 ### LIGHTS: FULL / CALM
 
@@ -293,7 +307,8 @@ Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
 sub-path):
 
 - `npm test` - 56 tests, all passing (queue, codes, `tracks.js` validation,
-  house rotation, copy pools, audio maths, lights switch, CSS safety rules).
+  house rotation and shuffle deck, in-order mode, copy pools, audio maths,
+  lights switch, CSS safety rules).
 - Boot, INSERT COIN, selection by keyboard / keypad / strip, UP NEXT, house
   rotation, record changer frames, now-playing readouts, idle attract mode.
 - Natural song change: about 40 ms between songs. Skip: about 1.2-1.4 s (the

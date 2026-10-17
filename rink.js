@@ -35,7 +35,7 @@ document.addEventListener('visibilitychange', () => {
 export const wakeLockActive = () => Boolean(wakeLock);
 
 /* ---------------- Media Session ---------------- */
-export function setupMediaSession({ onPlay, onPause, onNext }) {
+export function setupMediaSession({ onPlay, onPause, onNext, onPrevious }) {
   if (!('mediaSession' in navigator)) return;
   const set = (action, fn) => {
     try { navigator.mediaSession.setActionHandler(action, fn); } catch { /* unsupported action */ }
@@ -43,6 +43,7 @@ export function setupMediaSession({ onPlay, onPause, onNext }) {
   set('play', onPlay);
   set('pause', onPause);
   set('nexttrack', onNext);
+  if (onPrevious) set('previoustrack', onPrevious);
 }
 
 export function updateMediaSession(track, volume, playing) {

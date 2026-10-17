@@ -40,7 +40,7 @@
    ============================================================ */
 
 export const volumes = [
-  // All ten covers. The letter comes from this ORDER (F, I, N and O are skipped,
+  // All ten covers. The letter comes from this ORDER (F, I, N, O, P and S are skipped,
   // see "How the codes work" in the README):
   //   Vol. I = A    Vol. II = B    Vol. III = C    Vol. IV = D    Vol. V = E
   //   Vol. VI = G   Vol. VII = H   Vol. VIII = J   Vol. IX = K    Vol. X = L

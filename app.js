@@ -11,8 +11,8 @@
    any of them can fail without the music noticing.
    ============================================================ */
 import { buildLibrary, parseCode, findTrackByCode } from './codes.js';
-import { enqueue, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
-import { RECENT_LIMIT, pickHouseTrack, pushRecent } from './rotation.js';
+import { enqueue, enqueueFront, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
+import { RECENT_LIMIT, pickShuffle, pickInOrder, pushRecent } from './rotation.js';
 import {
   ATTRACT_LINES, ANNOUNCER_QUIPS, TICKER_LINES, OUT_OF_ORDER_LINES,
   createRotator, composeTicker,
@@ -40,6 +40,9 @@ const LOAD_LEAD_SEC = 1.5;
 const SKIP_SPEED = 1.8;           // the changer works faster on a skip
 const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light show
 const STORE_VOL = 'sn-volumes';
+const STORE_SHUFFLE = 'sn-shuffle';
+const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
+const HISTORY_LIMIT = 50;
 
 /* ------------------------------------------------------------
    Load tracks.js without letting a typo in it take the site down.
@@ -78,6 +81,10 @@ async function main() {
   let queue = [];
   let recent = [];
   let houseNext = null;
+  let shuffle = true;              // SHUFFLE on = shuffled deck; off = play in tracks.js order
+  try { shuffle = localStorage.getItem(STORE_SHUFFLE) !== 'off'; } catch { /* storage blocked - default on */ }
+  let bag = [];                    // songs already played in the current shuffled deck
+  let history = [];                // songs started, oldest first (for BACK)
   let nowId = null;
   let phase = 'idle';              // idle | playing | paused | changing
   let started = false;             // has the coin been inserted?
@@ -137,7 +144,7 @@ async function main() {
     setTimeout(() => {
       renderQueued = false;
       ui.updateStrips({ nowId, queue });
-      ui.renderQueue(queue, houseNext);
+      ui.renderQueue(queue, houseNext, shuffle ? 'HOUSE SHUFFLE' : 'HOUSE IN ORDER');
       const playText = phase === 'playing' ? 'PAUSE' : phase === 'paused' ? 'RESUME' : phase === 'changing' ? 'PAUSE' : 'START';
       $('btn-play-text').textContent = playText;
       $('btn-play').classList.toggle('is-playing', phase === 'playing');
@@ -155,9 +162,20 @@ async function main() {
   /* ---------------- choosing what plays next ---------------- */
   const playableIds = () => library.tracks.filter((t) => getStatus(t.id).state !== 'missing').map((t) => t.id);
 
+  /* The house rotation's choice: from the shuffled deck, or the next song in order. */
+  function pickHouse() {
+    const ids = playableIds();
+    if (shuffle) {
+      const pick = pickShuffle({ playableIds: ids, bag, recent, rng: Math.random });
+      bag = pick.bag;                 // may have been emptied for a fresh deck
+      return pick.id;
+    }
+    return pickInOrder({ orderIds: library.tracks.map((t) => t.id), playableIds: ids, currentId: nowId });
+  }
+
   function ensureHouseNext() {
     if (houseNext && getStatus(houseNext).state !== 'missing') return houseNext;
-    houseNext = pickHouseTrack({ playableIds: playableIds(), recent, rng: Math.random });
+    houseNext = pickHouse();
     return houseNext;
   }
 
@@ -165,6 +183,7 @@ async function main() {
      lined up. Drop a pick that would now break the "never repeat the last 5" rule. */
   function revalidateHouseNext() {
     if (!houseNext) return;
+    if (!shuffle) { houseNext = null; return; }          // in order: always the song after this one
     const windowIds = recent.slice(-RECENT_LIMIT);
     const roomToAvoid = playableIds().length > RECENT_LIMIT;
     const tooRecent = roomToAvoid ? windowIds.includes(houseNext) : houseNext === recent[recent.length - 1];
@@ -216,6 +235,8 @@ async function main() {
     if (!track) return;
     nowId = id;
     recent = pushRecent(recent, id);
+    if (!bag.includes(id)) bag = [...bag, id];
+    history = [...history, id].slice(-HISTORY_LIMIT);
     revalidateHouseNext();
     phase = 'playing';
     mech.setPaused(false);
@@ -252,14 +273,10 @@ async function main() {
     setTimeout(() => startAudio(id, token), mech.loadMs(1));
   }
 
-  /* Skip: fade out, swap discs quickly, drop the needle. */
-  function skip() {
-    if (!player) return;
-    if (phase === 'idle') { playFromIdle(); return; }
+  /* Change to a chosen song right now: fade out, swap discs quickly, drop the needle. */
+  function changeTo(id) {
     const token = ++changeToken;
-    const id = pre.nextId || dequeueNext();
     pre = {};
-    if (!id) return;
     const wasPaused = phase === 'paused';
     phase = 'changing';
     player.fadeOut(wasPaused ? 20 : 220);
@@ -271,6 +288,60 @@ async function main() {
     setTimeout(() => { if (token === changeToken) showNow(id); }, ejectMs);
     setTimeout(() => startAudio(id, token), ejectMs + loadMs);
     scheduleRender();
+  }
+
+  /* SKIP / NEXT: the next song in the queue, or the house rotation's pick. */
+  function skip() {
+    if (!player) return;
+    if (phase === 'idle') { playFromIdle(); return; }
+    if (phase === 'changing') return;                    // the changer is already working
+    const id = pre.nextId || dequeueNext();
+    if (!id) return;
+    changeTo(id);
+  }
+
+  /* BACK: more than 3 s into a song it starts that song again; sooner (or press it
+     twice) it goes to the song played before. The song you leave goes to the top of
+     UP NEXT, so NEXT brings you straight back to it. */
+  function back() {
+    if (!player || phase === 'idle' || phase === 'changing') return;
+    const prevId = history.length >= 2 ? history[history.length - 2] : null;
+    const canGoBack = prevId && getStatus(prevId).state !== 'missing';
+    const elapsed = player.currentTime || 0;
+    if (elapsed > BACK_RESTART_SEC || !canGoBack) {
+      if (pre.ejectStarted) {                            // the changer already took the record away
+        history = history.slice(0, -1);
+        changeTo(nowId);
+      } else {
+        pre = {};
+        player.restart();
+        ui.setProgress(0, player.duration);
+        mech.setProgress(0);
+      }
+      say('SONG RESTARTED', 'good');
+      return;
+    }
+    if (pre.nextId) queue = enqueueFront(queue, pre.nextId).queue;   // keep anything already lined up
+    queue = enqueueFront(queue, nowId).queue;
+    history = history.slice(0, -2);
+    const title = trackById.get(prevId).title;
+    say(`BACK TO ${title.toUpperCase()}`, 'good');
+    changeTo(prevId);
+  }
+
+  function setShuffle(on, { quiet = false } = {}) {
+    shuffle = on;
+    try { localStorage.setItem(STORE_SHUFFLE, on ? 'on' : 'off'); } catch { /* fine */ }
+    bag = nowId ? [nowId] : [];
+    houseNext = null;
+    paintShuffle();
+    if (player) { refreshUpcoming(); scheduleRender(); ticker.restart(); }
+    if (!quiet) ui.toast(on ? 'SHUFFLE ON - EVERY SONG PLAYS BEFORE ANY REPEATS' : 'SHUFFLE OFF - PLAYING IN ORDER');
+  }
+  function paintShuffle() {
+    const b = $('btn-shuffle');
+    b.textContent = shuffle ? 'SHUFFLE: ON' : 'SHUFFLE: OFF';
+    b.setAttribute('aria-pressed', String(shuffle));
   }
 
   /* The current song finished by itself. */
@@ -472,6 +543,9 @@ async function main() {
   /* ---------------- operator controls ---------------- */
   $('btn-play').addEventListener('click', () => { noteInput(); togglePlay(); });
   $('btn-skip').addEventListener('click', () => { noteInput(); skip(); });
+  $('btn-back').addEventListener('click', () => { noteInput(); back(); });
+  $('btn-shuffle').addEventListener('click', () => { noteInput(); sfx.key(); setShuffle(!shuffle); });
+  paintShuffle();
 
   const savedVol = (() => {
     try { return JSON.parse(localStorage.getItem(STORE_VOL)) || {}; } catch { return {}; }
@@ -601,6 +675,11 @@ async function main() {
     }
     const key = e.key;
     if (key === ' ' || key === 'Spacebar') { e.preventDefault(); if (!e.repeat) togglePlay(); return; }
+    if ((key === 'ArrowLeft' || key === 'ArrowRight') && !onSlider && !(target.closest && target.closest('#rack'))) {
+      e.preventDefault();
+      if (!e.repeat) { if (key === 'ArrowLeft') back(); else skip(); }
+      return;
+    }
     if (key === 'ArrowUp' || key === 'ArrowDown') {
       if (onSlider) return;
       e.preventDefault();
@@ -617,6 +696,8 @@ async function main() {
     if (e.repeat) return;
     const upper = key.length === 1 ? key.toUpperCase() : '';
     if (upper === 'N') { skip(); return; }
+    if (upper === 'P') { back(); return; }
+    if (upper === 'S') { setShuffle(!shuffle); return; }
     if (upper === 'F') { toggleFullscreen(); return; }
     if (/^[A-Z]$/.test(upper) && codeLetters.has(upper)) { keyPressed(upper); return; }
     if (/^\d$/.test(upper)) { keyPressed(upper); }
@@ -736,6 +817,7 @@ async function main() {
         onPlay: () => { if (phase === 'paused') togglePlay(); else if (phase === 'idle') playFromIdle(); },
         onPause: () => { if (phase === 'playing') togglePlay(); },
         onNext: () => skip(),
+        onPrevious: () => back(),
       });
     } else {
       ui.toast('THIS BROWSER CANNOT PLAY AUDIO - TRY CHROME');

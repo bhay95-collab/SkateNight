@@ -673,7 +673,7 @@ body.on-attract .rig{ visibility:hidden; }
 .deck-faders{ gap:.9rem; }
 .deck-tools{ margin-left:auto; position:relative; }
 .fader{ display:grid; gap:.2rem; font:700 .58rem var(--font-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--dim); }
-input[type="range"]{ -webkit-appearance:none; appearance:none; width:7.4rem; height:1.4rem; margin:0; background:transparent; cursor:pointer; }
+input[type="range"]{ -webkit-appearance:none; appearance:none; width:6rem; height:1.4rem; margin:0; background:transparent; cursor:pointer; }
 input[type="range"]::-webkit-slider-runnable-track{ height:.5rem; border-radius:.3rem; background:var(--screen); box-shadow:var(--inset); }
 input[type="range"]::-webkit-slider-thumb{
   -webkit-appearance:none; width:.95rem; height:1.4rem; margin-top:-.45rem; border:0; border-radius:.28rem;
@@ -705,9 +705,9 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 /* ================= LEGEND, TOAST, MODAL ================= */
 .legend{
   position:fixed; z-index:30; left:50%; bottom:.3rem; transform:translate(-50%,.6rem);
-  display:flex; gap:.9rem; padding:.4rem .9rem; max-width:98vw; flex-wrap:nowrap; justify-content:center; white-space:nowrap;
+  display:flex; gap:.75rem; padding:.4rem .8rem; max-width:98vw; flex-wrap:nowrap; justify-content:center; white-space:nowrap;
   background:rgba(12,5,22,.94); border:1px solid var(--cab-edge); border-radius:.7rem; box-shadow:var(--drop);
-  font-size:.74rem; font-weight:700; color:var(--cream); opacity:0; pointer-events:none;
+  font-size:.7rem; font-weight:700; color:var(--cream); opacity:0; pointer-events:none;
   transition:opacity .4s ease, transform .4s var(--ease-out);
 }
 .legend.is-on{ opacity:1; transform:translate(-50%,0); }

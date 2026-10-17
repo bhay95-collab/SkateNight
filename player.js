@@ -157,6 +157,15 @@ export function createPlayer(handlers = {}) {
       });
     },
 
+    /* Start the current song again from the top (BACK pressed late in a song). */
+    restart() {
+      const deck = activeDeck();
+      if (!deck.trackId) return;
+      deck.tailArmed = false;
+      try { deck.audio.currentTime = 0; } catch { /* not seekable yet */ }
+      if (!deck.audio.paused) rampGain(deck, 1, 60);
+    },
+
     pause() {
       const deck = activeDeck();
       if (deck.audio.paused) return;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MAX_QUEUE, enqueue, cancelAt, moveUp, takeNext, dropIds } from '../queue.js';
+import { MAX_QUEUE, enqueue, enqueueFront, cancelAt, moveUp, takeNext, dropIds } from '../queue.js';
 
 test('enqueue is first-in first-out and never mutates the old queue', () => {
   const q0 = [];
@@ -48,4 +48,20 @@ test('moveUp swaps with the entry above; the top stays put', () => {
 test('dropIds removes tracks that turned out to be unplayable', () => {
   assert.deepEqual(dropIds(['a', 'b', 'c'], ['b']), ['a', 'c']);
   assert.deepEqual(dropIds(['a'], []), ['a']);
+});
+
+test('enqueueFront puts a song at the top (used by Back so Next returns to it)', () => {
+  assert.deepEqual(enqueueFront(['b', 'c'], 'a').queue, ['a', 'b', 'c']);
+  assert.equal(enqueueFront(['b', 'c'], 'a').ok, true);
+});
+
+test('enqueueFront moves a song that is already waiting instead of duplicating it', () => {
+  assert.deepEqual(enqueueFront(['a', 'b', 'c'], 'c').queue, ['c', 'a', 'b']);
+});
+
+test('enqueueFront on a full queue drops nothing and reports it', () => {
+  const full = Array.from({ length: MAX_QUEUE }, (_, i) => `t${i}`);
+  const r = enqueueFront(full, 'extra');
+  assert.equal(r.ok, false);
+  assert.equal(r.queue.length, MAX_QUEUE);
 });

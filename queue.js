@@ -16,6 +16,15 @@ export function enqueue(queue, id) {
   return { queue: [...queue, id], ok: true, reason: null };
 }
 
+/* Put a song at the very top (used by BACK, so NEXT returns to the song you
+   just left). A song already waiting is moved up rather than duplicated.
+   Returns { queue, ok, reason } like enqueue. */
+export function enqueueFront(queue, id) {
+  const without = queue.filter((x) => x !== id);
+  if (without.length >= MAX_QUEUE) return { queue: queue.slice(), ok: false, reason: 'full' };
+  return { queue: [id, ...without], ok: true, reason: null };
+}
+
 /* Take the song at the front. Returns { next, queue }; next is null if empty. */
 export function takeNext(queue) {
   if (queue.length === 0) return { next: null, queue: [] };

@@ -182,7 +182,7 @@ export function createUI({ library, getStatus, handlers }) {
 
   /* ---- up next ---- */
   const QUEUE_ROWS = 3;
-  function renderQueue(queue, houseNextId) {
+  function renderQueue(queue, houseNextId, modeLabel = 'HOUSE SHUFFLE') {
     const list = $('queue-list');
     list.replaceChildren();
     queue.slice(0, QUEUE_ROWS).forEach((id, i) => {
@@ -203,7 +203,7 @@ export function createUI({ library, getStatus, handlers }) {
     if (queue.length === 0) {
       const t = houseNextId ? trackById.get(houseNextId) : null;
       house.hidden = false;
-      house.replaceChildren(el('b', {}, 'HOUSE ROTATION'), t ? ` - NEXT: ${t.title}` : ' - PICK A SONG!');
+      house.replaceChildren(el('b', {}, modeLabel), t ? ` - NEXT: ${t.title}` : ' - PICK A SONG!');
     } else {
       house.hidden = true;
     }

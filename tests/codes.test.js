@@ -15,7 +15,8 @@ const vols = [
 ];
 
 test('code letters skip look-alikes and keyboard shortcut keys', () => {
-  for (const bad of ['F', 'N', 'I', 'O']) {
+  // F fullscreen, N next, P previous, S shuffle; I and O look like 1 and 0
+  for (const bad of ['F', 'N', 'I', 'O', 'P', 'S']) {
     assert.ok(!CODE_LETTERS.includes(bad), `${bad} must not be a code letter`);
   }
   assert.equal(new Set(CODE_LETTERS).size, CODE_LETTERS.length);

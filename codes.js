@@ -15,9 +15,9 @@
    ============================================================ */
 
 // Letters used for codes. Left out on purpose:
-//   F and N - they are keyboard shortcuts (Fullscreen, Next).
+//   F, N, P, S - keyboard shortcuts (Fullscreen, Next, Previous, Shuffle).
 //   I and O - from 10 metres away they look like the numbers 1 and 0.
-export const CODE_LETTERS = 'ABCDEGHJKLMPQRSTUVWXYZ';
+export const CODE_LETTERS = 'ABCDEGHJKLMQRTUVWXYZ';
 
 // The accent words Ben can write in tracks.js. Each one is a paint colour
 // sampled for the sleeve material (see the --sl-* tokens in styles.css).

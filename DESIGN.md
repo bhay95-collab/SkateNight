@@ -88,7 +88,7 @@ label and the volume code chips):
 ```
 
 > All ten covers (Vol. I-X) are in `covers/`; every sleeve colour was sampled
-> from them by eye. Volumes are lettered in list order, skipping F, I, N, O:
+> from them by eye. Volumes are lettered in list order, skipping F, I, N, O, P, S:
 > I=A II=B III=C IV=D V=E VI=G VII=H VIII=J IX=K X=L.
 
 **One accent per job, never swapped:** magenta means "act here / selected",
@@ -236,6 +236,21 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
 - A start-up failure shows "START-UP PROBLEM - PRESS F5" on the INSERT COIN
   screen rather than a dead page.
 
+## Playback controls: shuffle, skip, back
+
+- **Shuffle** (`rotation.js: pickShuffle`) is a shuffled deck: every playable song
+  plays once before any repeats, the last-5 rule still holds when the deck is
+  reshuffled, and songs picked from the queue count as played. Shuffle off uses
+  `pickInOrder`: the order of `tracks.js`, wrapping round. The choice is saved in
+  `localStorage` (`sn-shuffle`); the default is on.
+- **Skip** takes the queue head or the house pick. **Back** keeps a 50-song
+  history: after 3 s it restarts the song, before that it goes to the previous
+  song and puts the song it left at the top of UP NEXT (`enqueueFront`), so Skip
+  returns to it. Both are ignored while the record changer is mid-swap.
+- Shortcuts: Left / P back, Right / N next, S shuffle, F fullscreen, Space play /
+  pause. These letters (F N P S) are therefore never used as volume letters. The
+  laptop's previous-track media key is wired to Back.
+
 ## Sound
 
 Two separate volume paths: music and effects (`audio.js`). Both pass through a
@@ -277,7 +292,7 @@ deliberately tiny: volumes `{ id, title, cover, accent }` and tracks
 `{ id, title, volume, file }`. **Durations are never typed** - they are read
 from each MP3's metadata. **Codes are never typed** - the letter comes from the
 volume's position, the number from the track's position within its volume. The
-codes skip F and N (keyboard shortcuts) and I and O (they look like 1 and 0
+codes skip F, N, P, S (keyboard shortcuts) and I and O (they look like 1 and 0
 from 10 metres). Everything about reading and validating that file lives in
 `codes.js` and is unit-tested, including every way a hand edit can go wrong.
 
@@ -311,7 +326,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `tracks.js` | **The one file Ben edits** |
 | `codes.js` | Reads `tracks.js` into the library; generates selection codes |
 | `queue.js` | UP NEXT list (pure) |
-| `rotation.js` | House rotation - never repeat the last 5 (pure) |
+| `rotation.js` | House rotation: shuffled deck (every song once, never repeat the last 5) or in tracks.js order (pure) |
 | `copy.js` | All rotating text pools and the rotator (pure) |
 | `format.js` | LED clock formatting, volume curve (pure) |
 | `dsp.js` | Spectrum bands, loudness, envelope, beat gate (pure) |

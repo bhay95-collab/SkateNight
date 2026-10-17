@@ -164,8 +164,9 @@
 
   <footer class="deck" aria-label="Operator controls">
     <div class="deck-group">
+      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">&#9664; BACK</button>
       <button type="button" class="btn btn-gold" id="btn-play"><span id="btn-play-text">START</span></button>
-      <button type="button" class="btn btn-deck" id="btn-skip">SKIP <kbd>N</kbd></button>
+      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP &#9654;</button>
     </div>
 
     <div class="deck-group deck-faders">
@@ -174,7 +175,8 @@
     </div>
 
     <div class="deck-group deck-tools">
-      <button type="button" class="btn btn-deck" id="btn-fs">FULLSCREEN <kbd>F</kbd></button>
+      <button type="button" class="btn btn-deck" id="btn-shuffle" aria-pressed="true" title="Shuffle: every song plays once before any repeats (S). Off = play in the order of tracks.js">SHUFFLE: ON</button>
+      <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
       <button type="button" class="btn btn-deck" id="btn-lights" aria-pressed="false">LIGHTS: FULL</button>
       <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
       <div class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></div>
@@ -187,11 +189,13 @@
 <!-- keyboard legend: shows for a few seconds, press ? to bring it back -->
 <aside class="legend" id="legend" aria-label="Keyboard shortcuts">
   <span><kbd>Space</kbd> play / pause</span>
-  <span><kbd>N</kbd> next</span>
+  <span><kbd>&larr;</kbd><kbd>P</kbd> back</span>
+  <span><kbd>&rarr;</kbd><kbd>N</kbd> next</span>
+  <span><kbd>S</kbd> shuffle</span>
   <span><kbd>F</kbd> fullscreen</span>
   <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> volume</span>
-  <span><kbd>A</kbd><kbd>1</kbd><kbd>Enter</kbd> pick a song</span>
-  <span><kbd>?</kbd> show this</span>
+  <span><kbd>A</kbd><kbd>1</kbd><kbd>Enter</kbd> pick</span>
+  <span><kbd>?</kbd> keys</span>
 </aside>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
