@@ -47,14 +47,14 @@
   --gold-deep:#C28E00;
   --line:rgba(255,243,222,.14);
 
-  /* --- sleeve material only. Gold, rust, paper, sepia and ink are sampled from
-         the real RFAI covers (Vol. I-IV, X): mustard + orange-red stripes of
-         Vol. II, cream card, sepia photos, ink-black lettering. Teal and mauve
-         are the brief's accents for later volumes (V, IX); no cover uses them yet. --- */
+  /* --- sleeve material only, sampled from the real RFAI covers (Vol. I-X):
+         teal (V, VII, X), mauve (IV, IX), mustard (II, III, VI, VII), orange-red
+         (II), maroon (VI), cream card, sepia photos, ink-black lettering. --- */
   --sl-teal:#3E8F8A;
   --sl-mauve:#9B6A87;
   --sl-gold:#D09A25;
   --sl-rust:#C8461E;
+  --sl-wine:#7A1F2B;
   --sl-paper:#E2D8C6;
   --sl-sepia:#6D5036;
   --sl-ink:#1E1510;
@@ -79,6 +79,7 @@
 [data-accent="mauve"]{ --acc:var(--sl-mauve); --acc-ink:#FFF6FB; }
 [data-accent="gold"]{ --acc:var(--sl-gold); --acc-ink:#2A1C06; }
 [data-accent="rust"]{ --acc:var(--sl-rust); --acc-ink:#FFF6EE; }
+[data-accent="wine"]{ --acc:var(--sl-wine); --acc-ink:#FFF3DE; }
 [data-accent="paper"]{ --acc:var(--sl-paper); --acc-ink:#2A1C06; }
 [data-accent="sepia"]{ --acc:var(--sl-sepia); --acc-ink:#FFF3DE; }
 
@@ -451,14 +452,14 @@ body.on-attract .rig{ visibility:hidden; }
 
 /* ================= LEFT: rack + title strips ================= */
 .rack-panel{ display:flex; flex-direction:column; gap:.8rem; }
-.rack{ display:flex; gap:.3rem; align-items:flex-end; flex:0 0 auto; padding:.45rem .1rem .15rem; min-height:4.2rem; }
+.rack{ display:flex; flex-wrap:wrap; gap:.4rem .3rem; align-items:flex-end; flex:0 0 auto; padding:.4rem .1rem .15rem; min-height:3.6rem; }
 .rack-sleeve{
-  flex:1 1 0; min-width:2rem; max-width:3.9rem; padding:0; border:0; background:none; cursor:pointer; position:relative;
+  flex:0 1 calc(20% - .3rem); min-width:2rem; max-width:3.9rem; padding:0; border:0; background:none; cursor:pointer; position:relative;
   transition:transform .25s var(--ease-out);
 }
 .rack-sleeve .sleeve{ transition:box-shadow .2s ease; }
-.rack-sleeve:hover{ transform:translateY(-.2rem); }
-.rack-sleeve.is-open{ transform:translateY(-.35rem); }
+.rack-sleeve:hover{ transform:translateY(-.12rem); }
+.rack-sleeve.is-open{ transform:translateY(-.15rem); }
 .rack-sleeve.is-open .sleeve{ box-shadow:0 0 0 .16rem var(--magenta), 0 .25rem 0 rgba(0,0,0,.55), 0 0 1rem rgba(255,45,149,.55); }
 .rack-sleeve.is-spotlight{ transform:translateY(-.5rem) scale(1.08); }
 .rack-sleeve.is-spotlight .sleeve{ box-shadow:0 0 0 .14rem var(--cyan), 0 .25rem 0 rgba(0,0,0,.55), 0 0 1rem rgba(37,232,226,.55); }
@@ -631,11 +632,12 @@ body.on-attract .rig{ visibility:hidden; }
 .readout-msg[data-kind="bad"]{ color:var(--red); }
 .readout-msg[data-kind="good"]{ color:var(--cyan); }
 
-.keypad{ display:grid; grid-template-columns:auto minmax(0,1fr); gap:.5rem; flex:1; min-height:0; }
-.key-letters{ display:grid; grid-auto-flow:column; grid-template-rows:repeat(var(--letter-rows,4), 1fr); grid-auto-columns:2.1rem; gap:.25rem; }
-.key-digits{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(4,1fr); gap:.25rem; }
+.keypad{ display:grid; grid-template-columns:auto minmax(0,1fr); grid-template-rows:minmax(0,1fr); gap:.5rem; flex:1; min-height:0; }
+.key-letters, .key-digits{ min-height:0; }
+.key-letters{ display:grid; grid-auto-flow:column; grid-template-rows:repeat(var(--letter-rows,4), minmax(0,1fr)); grid-auto-columns:2.1rem; gap:.25rem; }
+.key-digits{ display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(4,minmax(0,1fr)); gap:.25rem; }
 .key{
-  min-height:0; padding:0; cursor:pointer;
+  min-height:0; padding:0; cursor:pointer; line-height:1;
   font:700 .9rem var(--font-mono); color:var(--cream);
   background:linear-gradient(180deg, var(--cab-2), var(--cab)); border:1px solid var(--cab-edge); border-radius:.4rem;
   box-shadow:0 .2rem 0 rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.08);

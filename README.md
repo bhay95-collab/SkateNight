@@ -72,9 +72,9 @@ The jukebox finds each song by its file name, so give every file a simple name:
 4. Drag your renamed MP3s into the box (up to 100 at once).
 5. Scroll down and click the green **Commit changes** button.
 
-The covers for Vol. I, II, III, IV and X are already in the **`covers`** folder.
+The covers for Vol. I to Vol. X are already in the **`covers`** folder.
 For a new volume, do the same inside `covers` with a square `.jpg` named like
-`vol-v.jpg`.
+`vol-xi.jpg`.
 
 > Limits: GitHub's website refuses a single file over **25 MB** (Suno MP3s are
 > well under that). The whole site should stay under about **1 GB** - roughly 150
@@ -119,22 +119,30 @@ What each part means:
 **How the codes work:** each volume gets a letter in the order they are listed -
 the first volume is **A**, the second **B**, and so on. Each song gets a number
 in the order it appears within its volume. So the first Vol. II song is `B1`, because
-Vol. II is the second volume in the list (Vol. I = A, II = B, III = C, IV = D, X = E). Moving a song up or down the list changes its code.
+Vol. II is the second volume in the list.
+
+| Volume | I | II | III | IV | V | VI | VII | VIII | IX | X |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Letter | A | B | C | D | E | **G** | **H** | **J** | **K** | **L** |
+
+Notice the skipped letters: F is the fullscreen key, and I, N and O are never
+used, so Vol. VI is **G**, not F. This table is also written at the top of
+`tracks.js`. Moving a song up or down the list changes its code.
 (Letters F, N, I and O are skipped: F and N are keyboard shortcuts, and I and O
 look like 1 and 0 from across the rink.)
 
 **Adding a whole new album (volume):** add a line inside the `volumes = [` list:
 
 ```js
-  { id: 'vol-v', title: 'Vol. V', cover: 'covers/vol-v.jpg', accent: 'teal' },
+  { id: 'vol-xi', title: 'Vol. XI', cover: 'covers/vol-xi.jpg', accent: 'teal' },
 ```
 
 `accent` is the colour of that album's little code chips and record label. Choose
-one: `teal`, `mauve`, `gold`, `rust`, `paper`, `sepia`.
+one: `teal`, `mauve`, `gold`, `rust`, `wine`, `paper`, `sepia`.
 
-Where you put the line matters: it sets the album's letter. If you add Vol. V
-*after* Vol. X, it becomes F; if you add it *between* IV and X, it becomes E and
-Vol. X moves to F (and every Vol. X song code changes with it).
+Where you put the line matters: it sets the album's letter. Add new volumes at
+the **end** of the list (Vol. XI becomes **M**). Putting one in the middle shifts
+the letters, and so every song code, of the volumes after it.
 
 **If you break something:** a red button appears in the top right of the jukebox
 saying **CHECK TRACKS.JS**. Click it - it lists, in plain English, what is wrong

@@ -82,7 +82,7 @@ test('an unknown accent falls back to gold but keeps the volume', () => {
   );
   assert.equal(lib.volumes[0].accent, 'gold');
   assert.equal(lib.problems.length, 1);
-  assert.ok(['teal', 'mauve', 'gold', 'rust', 'paper', 'sepia'].every((a) => ACCENTS.includes(a)));
+  assert.ok(['teal', 'mauve', 'gold', 'rust', 'wine', 'paper', 'sepia'].every((a) => ACCENTS.includes(a)));
 });
 
 test('volumes beyond the available letters are reported, not crashed on', () => {

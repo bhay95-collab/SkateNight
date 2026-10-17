@@ -1,12 +1,12 @@
 # covers/ - the album cover pictures
 
-Already here: `vol-i.jpg`, `vol-ii.jpg`, `vol-iii.jpg`, `vol-iv.jpg`, `vol-x.jpg`.
+Already here: `vol-i.jpg` to `vol-x.jpg` (Vol. I to Vol. X, ten covers).
 
 For a new volume, add one picture here. Square pictures look best (about
 900-1000 pixels across), as `.jpg`, under about 300 KB each.
 
 The name must match the `cover` line of that volume in `tracks.js`, for example
-`covers/vol-v.jpg`. Keep names lower case with dashes and no spaces.
+`covers/vol-xi.jpg`. Keep names lower case with dashes and no spaces.
 
 Use the **full cover artwork exactly as designed**, with its own worn paper edge,
 stickers and price tag. The jukebox shows it edge to edge as the sleeve and adds

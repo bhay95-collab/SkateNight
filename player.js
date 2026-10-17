@@ -209,7 +209,7 @@ export async function probeTrack(url, timeoutMs = 20000) {
 }
 
 /* Probe many files, a few at a time, reporting each as it arrives. */
-export async function probeAll(tracks, onResult, concurrency = 3) {
+export async function probeAll(tracks, onResult, concurrency = 2) {
   let i = 0;
   const worker = async () => {
     while (i < tracks.length) {

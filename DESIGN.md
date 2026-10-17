@@ -77,20 +77,19 @@ Sleeve tokens (used **only** on sleeve and sticker materials, plus the record
 label and the volume code chips):
 
 ```
---sl-gold   #D09A25   mustard stripe (Vol. II), Vol. III sticker
+--sl-gold   #D09A25   mustard of Vol. II, III, VI, VII
 --sl-rust   #C8461E   orange-red stripe and frame (Vol. II)
 --sl-paper  #E2D8C6   cream card (Vol. I, III, IV, X)
 --sl-sepia  #6D5036   sepia photography
 --sl-ink    #1E1510   print ink
---sl-teal   #3E8F8A   brief's accent for Vol. V - no cover uses it yet
---sl-mauve  #9B6A87   brief's accent for Vol. IX - no cover uses it yet
+--sl-wine   #7A1F2B   maroon of Vol. VI
+--sl-teal   #3E8F8A   Vol. V, VII, X
+--sl-mauve  #9B6A87   Vol. IV, IX
 ```
 
-> The first five covers (Vol. I, II, III, IV, X) are in `covers/`; gold, rust,
-> paper and sepia were sampled from them by eye. Teal and mauve come from the
-> original brief for Vol. V and IX, which are not in the repo yet: re-sample them
-> when those covers arrive. Volumes are lettered A-E in this order: I, II, III,
-> IV, X.
+> All ten covers (Vol. I-X) are in `covers/`; every sleeve colour was sampled
+> from them by eye. Volumes are lettered in list order, skipping F, I, N, O:
+> I=A II=B III=C IV=D V=E VI=G VII=H VIII=J IX=K X=L.
 
 **One accent per job, never swapped:** magenta means "act here / selected",
 cyan means "this is a number or a light", gold means "this is the biggest

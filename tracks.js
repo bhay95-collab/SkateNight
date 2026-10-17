@@ -22,7 +22,7 @@
      cover   the picture file in the covers folder, e.g. "covers/vol-v.jpg"
              (if the picture is missing, the jukebox draws a plain sleeve)
      accent  the paint colour for this volume's code chips and record label.
-             Pick ONE of:  "teal"  "mauve"  "gold"  "rust"  "paper"  "sepia"
+             Pick ONE of:  "teal"  "mauve"  "gold"  "rust"  "wine"  "paper"  "sepia"
 
    Each volume gets a letter automatically, in the order listed:
    the first is A, the second B, the third C, and so on.
@@ -40,14 +40,21 @@
    ============================================================ */
 
 export const volumes = [
-  // Your five covers so far. Letters come from this ORDER: Vol. I is A, Vol. II
-  // is B, Vol. III is C, Vol. IV is D, Vol. X is E. When you add Vol. V, put it
-  // between IV and X if you want X to stay last (X would then become F).
-  { id: 'vol-i',   title: 'Vol. I',   cover: 'covers/vol-i.jpg',   accent: 'sepia' },
-  { id: 'vol-ii',  title: 'Vol. II',  cover: 'covers/vol-ii.jpg',  accent: 'rust' },
-  { id: 'vol-iii', title: 'Vol. III', cover: 'covers/vol-iii.jpg', accent: 'gold' },
-  { id: 'vol-iv',  title: 'Vol. IV',  cover: 'covers/vol-iv.jpg',  accent: 'mauve' },
-  { id: 'vol-x',   title: 'Vol. X',   cover: 'covers/vol-x.jpg',   accent: 'teal' },
+  // All ten covers. The letter comes from this ORDER (F, I, N and O are skipped,
+  // see "How the codes work" in the README):
+  //   Vol. I = A    Vol. II = B    Vol. III = C    Vol. IV = D    Vol. V = E
+  //   Vol. VI = G   Vol. VII = H   Vol. VIII = J   Vol. IX = K    Vol. X = L
+  // Add Vol. XI at the END of this list (it becomes M) so no existing code changes.
+  { id: 'vol-i',    title: 'Vol. I',    cover: 'covers/vol-i.jpg',    accent: 'sepia' },
+  { id: 'vol-ii',   title: 'Vol. II',   cover: 'covers/vol-ii.jpg',   accent: 'rust' },
+  { id: 'vol-iii',  title: 'Vol. III',  cover: 'covers/vol-iii.jpg',  accent: 'gold' },
+  { id: 'vol-iv',   title: 'Vol. IV',   cover: 'covers/vol-iv.jpg',   accent: 'mauve' },
+  { id: 'vol-v',    title: 'Vol. V',    cover: 'covers/vol-v.jpg',    accent: 'teal' },
+  { id: 'vol-vi',   title: 'Vol. VI',   cover: 'covers/vol-vi.jpg',   accent: 'wine' },
+  { id: 'vol-vii',  title: 'Vol. VII',  cover: 'covers/vol-vii.jpg',  accent: 'gold' },
+  { id: 'vol-viii', title: 'Vol. VIII', cover: 'covers/vol-viii.jpg', accent: 'sepia' },
+  { id: 'vol-ix',   title: 'Vol. IX',   cover: 'covers/vol-ix.jpg',   accent: 'mauve' },
+  { id: 'vol-x',    title: 'Vol. X',    cover: 'covers/vol-x.jpg',    accent: 'teal' },
 ];
 
 export const tracks = [
