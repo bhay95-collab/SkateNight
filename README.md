@@ -8,6 +8,11 @@ MP3s.
 Live address once switched on (see step 6):
 `https://bhay95-collab.github.io/SkateNight/`
 
+![The jukebox playing](docs/screenshots/04-now-playing.jpg)
+
+*(Screenshots in `docs/screenshots/` use stand-in covers and test tones, not your
+real artwork or songs: power-on, INSERT COIN, choosing a song, now playing.)*
+
 ---
 
 ## What is in this folder
