@@ -142,4 +142,12 @@ export const tracks = [
 
   // E3 - Vol. V
   { id: 'to-those-who-believe',     title: 'To Those Who Believe',     volume: 'vol-v',   file: 'audio/to-those-who-believe.mp3' },
+
+  // ---- Songs 26-27: the third song on Vol. VI and VII ----
+
+  // G3 - Vol. VI
+  { id: 'we-have-a-hope-in-jesus', title: 'We Have a Hope in Jesus', volume: 'vol-vi',  file: 'audio/we-have-a-hope-in-jesus.mp3' },
+
+  // H3 - Vol. VII
+  { id: 'you-are-worthy-o-lord',  title: 'You Are Worthy, O Lord',  volume: 'vol-vii', file: 'audio/you-are-worthy-o-lord.mp3' },
 ];
