@@ -58,16 +58,22 @@ export const volumes = [
 ];
 
 export const tracks = [
-  // Example songs - replace with your real ones. These three point at MP3
-  // files that do not exist yet, so they will show OUT OF ORDER until you
-  // add real files with these exact names (or change the names below).
+  // The first five songs. Each is the first song of its volume, so the codes are
+  // A1, B1, C1, D1 and E1. To add more songs to a volume, add lines for it
+  // anywhere in this list: the next one on Vol. I becomes A2, and so on.
 
-  // Becomes code A1 (first song of the first volume, Vol. I)
-  { id: 'example-one',   title: 'Example Song One',   volume: 'vol-i',   file: 'audio/example-one.mp3' },
+  // A1 - Vol. I
+  { id: 'according-to-his-power', title: 'According to His Power', volume: 'vol-i',   file: 'audio/according-to-his-power.mp3' },
 
-  // Becomes code B1 (first song of the second volume, Vol. II)
-  { id: 'example-two',   title: 'Example Song Two',   volume: 'vol-ii',  file: 'audio/example-two.mp3' },
+  // B1 - Vol. II
+  { id: 'bread-of-heaven',        title: 'Bread of Heaven',        volume: 'vol-ii',  file: 'audio/bread-of-heaven.mp3' },
 
-  // Becomes code C1 (first song of the third volume, Vol. III)
-  { id: 'example-three', title: 'Example Song Three', volume: 'vol-iii', file: 'audio/example-three.mp3' },
+  // C1 - Vol. III
+  { id: 'by-his-knowledge',       title: 'By His Knowledge',       volume: 'vol-iii', file: 'audio/by-his-knowledge.mp3' },
+
+  // D1 - Vol. IV
+  { id: 'christ-lifted-up',       title: 'Christ Lifted Up',       volume: 'vol-iv',  file: 'audio/christ-lifted-up.mp3' },
+
+  // E1 - Vol. V
+  { id: 'come-unto-me',           title: 'Come Unto Me',           volume: 'vol-v',   file: 'audio/come-unto-me.mp3' },
 ];
