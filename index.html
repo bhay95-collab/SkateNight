@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-lights="full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skate Night</title>
+<meta name="description" content="RFAI Skate Night - an 80s arcade jukebox for the rink.">
+<meta name="theme-color" content="#140722">
+<link rel="icon" type="image/png" href="rfai-logo.png">
+<link rel="preload" as="font" type="font/woff2" href="fonts/bungee-400.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/barlow-500.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/jetbrains-mono.woff2" crossorigin>
+<!-- The logo is part of the very first frame, so it is preloaded at high
+     priority: the boot tube lights up with the logo already present. -->
+<link rel="preload" as="image" href="rfai-logo.png" fetchpriority="high">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="on-attract">
+
+<a class="skip-link" href="#jukebox">Skip to the jukebox</a>
+
+<!-- ============ 1. BOOT: CRT power-on (ported from trivia) ============
+     Opaque from first paint so the machine assembles unseen behind it.
+     fx.js rebuilds the self-test lines at random each power-on; the
+     static copy below is only a fallback if the script never runs. -->
+<div class="boot" id="boot" aria-hidden="true">
+  <div class="boot-roll"></div>
+  <div class="boot-stack">
+    <img class="boot-logo" src="rfai-logo.png" width="512" height="512" alt="" fetchpriority="high">
+    <div class="boot-screen">
+      <pre class="boot-log" id="boot-log"><span class="ln"><b>RFAI SKATE NIGHT</b> JUKEBOX SYSTEM</span><span class="ln">(C) 1983   ·   ALL RIGHTS RESERVED</span><span class="ln"> </span><span class="ln">  TONEARM CALIBRATION ......... <span class="ok">OK</span></span><span class="ln">  WHEEL BEARINGS LUBED ........ <span class="ok">OK</span></span><span class="ln">  LOADING THE CRATES ......... <span class="boot-cursor">&#9608;</span></span></pre>
+    </div>
+  </div>
+  <div class="boot-flash"></div>
+</div>
+
+<!-- ============ 2. ATTRACT: INSERT COIN ============
+     The click / tap / key press here is the gesture browsers demand
+     before they allow any sound. -->
+<button class="attract" id="attract" type="button" hidden>
+  <span class="attract-inner">
+    <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
+    <span class="attract-presents">RFAI presents</span>
+    <span class="attract-title"><span>Skate</span> <span>Night</span></span>
+    <span class="attract-coin">INSERT COIN</span>
+    <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
+  </span>
+</button>
+
+<!-- ============ BACKGROUND WORLD ============ -->
+<div class="synth-horizon" aria-hidden="true">
+  <div class="synth-stars"></div>
+  <div class="synth-sun"></div>
+  <div class="synth-glow"></div>
+  <div class="synth-grid"></div>
+</div>
+<div class="cab-glow" id="cab-glow" aria-hidden="true"></div>
+<div class="mirror-light" id="mirror-light" aria-hidden="true"></div>
+<div class="mirror-ball" aria-hidden="true"><span></span></div>
+<div class="crt-bezel" aria-hidden="true"></div>
+
+<!-- ============ THE JUKEBOX ============ -->
+<div class="rig" id="jukebox">
+
+  <header class="marquee">
+    <div class="marquee-left">
+      <img class="marquee-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
+      <span class="tab tab-tilt-a">RFAI presents</span>
+    </div>
+
+    <div class="marquee-sign">
+      <h1 class="wordmark"><span class="w-cyan">Skate</span> <span class="w-mag">Night</span></h1>
+    </div>
+
+    <div class="marquee-status">
+      <div class="led-chip" id="led-credits" title="Coins in the machine"><span class="led-key">Credits</span><span class="led" id="credits-val">FREE PLAY</span></div>
+      <div class="led-chip led-offline" id="led-offline" title="Whether every song is saved on this laptop for offline use"><span class="led-dot"></span><span id="offline-text">NOT OFFLINE YET</span></div>
+      <button type="button" class="chip-btn" id="btn-problems" hidden>CHECK TRACKS.JS</button>
+    </div>
+  </header>
+
+  <div class="ticker screen" role="marquee" aria-label="Announcements">
+    <div class="ticker-lane"><span class="ticker-text" id="ticker-text">WELCOME TO SKATE NIGHT</span></div>
+  </div>
+
+  <main class="cabinet">
+
+    <!-- LEFT: record rack + title strips -->
+    <section class="panel rack-panel" aria-label="Record rack and song list">
+      <h2 class="panel-title tab-tilt-a">The Rack</h2>
+      <div class="rack" id="rack" role="tablist" aria-label="Volumes"></div>
+      <div class="strips" id="strips" role="list" aria-label="Songs in this volume"></div>
+    </section>
+
+    <div class="tube" id="tube-l" aria-hidden="true"><canvas></canvas></div>
+
+    <!-- CENTRE: now playing -->
+    <section class="panel now-panel" aria-label="Now playing">
+      <h2 class="panel-title tab-tilt-b">Now Playing</h2>
+
+      <div class="mech screen" id="mech" data-phase="empty">
+        <div class="mech-wall" aria-hidden="true"></div>
+        <div class="mech-slot" id="mech-slot"><div class="mech-sleeve" id="mech-sleeve"></div></div>
+        <div class="platter" id="platter">
+          <div class="record-mover" id="record-mover">
+            <div class="record" id="record">
+              <div class="record-label" id="record-label"></div>
+              <div class="record-hole"></div>
+            </div>
+          </div>
+        </div>
+        <div class="arm" id="arm"><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
+      </div>
+
+      <div class="np-info">
+        <p class="np-title" id="np-title">PRESS PLAY</p>
+        <p class="np-meta"><span id="np-volume">&nbsp;</span><span class="np-code led" id="np-code">--</span></p>
+      </div>
+
+      <div class="np-time">
+        <span class="np-clock led" id="np-elapsed" aria-label="Time played">00:00</span>
+        <div class="np-tube" id="np-tube" role="progressbar" aria-label="Song progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="np-fill" id="np-fill"></i></div>
+        <span class="np-clock led" id="np-remaining" aria-label="Time left">-00:00</span>
+      </div>
+
+      <div class="np-meters">
+        <canvas class="vu" id="vu-l" width="160" height="90" aria-hidden="true"></canvas>
+        <canvas class="spectrum" id="spectrum" aria-hidden="true"></canvas>
+        <canvas class="vu" id="vu-r" width="160" height="90" aria-hidden="true"></canvas>
+      </div>
+    </section>
+
+    <div class="tube" id="tube-r" aria-hidden="true"><canvas></canvas></div>
+
+    <!-- RIGHT: queue + keypad -->
+    <section class="side">
+      <div class="panel queue-panel" aria-label="Up next">
+        <h2 class="panel-title tab-tilt-b">Up Next</h2>
+        <div class="queue screen" id="queue-screen">
+          <ol class="queue-list" id="queue-list"></ol>
+          <p class="queue-house" id="queue-house"></p>
+        </div>
+      </div>
+
+      <div class="panel keypad-panel" aria-label="Song selection keypad">
+        <div class="readout screen" aria-live="polite">
+          <span class="readout-label">Select</span>
+          <span class="readout-code led" id="readout-code" aria-label="Typed code">__</span>
+          <span class="readout-msg" id="readout-msg" role="status"></span>
+        </div>
+        <div class="keypad" id="keypad">
+          <div class="key-letters" id="key-letters"></div>
+          <div class="key-digits" id="key-digits"></div>
+        </div>
+        <div class="keypad-actions">
+          <button type="button" class="btn btn-select" id="btn-select">SELECT</button>
+          <button type="button" class="btn btn-small" id="btn-coin" title="Drop a coin in the slot"><span class="coin-slot" aria-hidden="true"></span>COIN</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="deck" aria-label="Operator controls">
+    <div class="deck-group">
+      <button type="button" class="btn btn-gold" id="btn-play"><span id="btn-play-text">START</span></button>
+      <button type="button" class="btn btn-deck" id="btn-skip">SKIP <kbd>N</kbd></button>
+    </div>
+
+    <div class="deck-group deck-faders">
+      <label class="fader"><span>Music</span><input type="range" id="vol-music" min="0" max="100" value="70" aria-label="Music volume"></label>
+      <label class="fader"><span>Effects</span><input type="range" id="vol-sfx" min="0" max="100" value="70" aria-label="Sound effects volume"></label>
+    </div>
+
+    <div class="deck-group deck-tools">
+      <button type="button" class="btn btn-deck" id="btn-fs">FULLSCREEN <kbd>F</kbd></button>
+      <button type="button" class="btn btn-deck" id="btn-lights" aria-pressed="false">LIGHTS: FULL</button>
+      <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
+      <div class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></div>
+    </div>
+  </footer>
+
+  <div class="rink-floor" id="rink-floor" aria-hidden="true"></div>
+</div>
+
+<!-- keyboard legend: shows for a few seconds, press ? to bring it back -->
+<aside class="legend" id="legend" aria-label="Keyboard shortcuts">
+  <span><kbd>Space</kbd> play / pause</span>
+  <span><kbd>N</kbd> next</span>
+  <span><kbd>F</kbd> fullscreen</span>
+  <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> volume</span>
+  <span><kbd>A</kbd><kbd>1</kbd><kbd>Enter</kbd> pick a song</span>
+  <span><kbd>?</kbd> show this</span>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal" id="problems-modal" hidden>
+  <div class="panel modal-card" role="dialog" aria-modal="true" aria-labelledby="problems-title">
+    <h2 class="panel-title tab-tilt-a" id="problems-title">Check tracks.js</h2>
+    <p class="modal-lead">These entries have a problem. The jukebox skipped them and kept going.</p>
+    <ul class="modal-list" id="problems-list"></ul>
+    <button type="button" class="btn btn-deck" id="problems-close">CLOSE</button>
+  </div>
+</div>
+
+<template id="skater-tpl">
+  <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true" focusable="false">
+    <g class="sk-body" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="60" cy="20" r="11"/>
+      <path d="M60 33 L58 66"/>
+      <path d="M59 42 L38 56"/>
+      <path d="M59 42 L82 50"/>
+      <g class="sk-leg-a"><path d="M58 66 L42 90 L28 96"/><circle cx="22" cy="108" r="5"/><circle cx="40" cy="108" r="5"/></g>
+      <g class="sk-leg-b"><path d="M58 66 L74 86 L92 92"/><circle cx="80" cy="108" r="5"/><circle cx="98" cy="108" r="5"/></g>
+    </g>
+  </svg>
+</template>
+
+<script type="module" src="neon.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

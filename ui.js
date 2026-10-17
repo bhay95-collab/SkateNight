@@ -1,0 +1,320 @@
+/* ============================================================
+   UI - draws the pieces of the screen that change: the record rack,
+   the title strips, the UP NEXT list, the keypad, the Now Playing
+   readouts and the LED ticker.
+
+   It holds no music logic. app.js tells it what to show and gives it
+   functions to call when someone clicks something.
+   ============================================================ */
+import { formatClock, formatCountdown } from './format.js';
+import { isCalm, countUp } from './fx.js';
+
+/* Tiny helper: el('div', { class: 'x', onclick: fn }, child, 'text') */
+export function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (value == null || value === false) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'dataset') Object.assign(node.dataset, value);
+    else if (key.startsWith('on') && typeof value === 'function') node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? '' : value);
+  }
+  for (const child of children.flat()) {
+    if (child == null || child === false) continue;
+    node.append(child.nodeType ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+/* ---------------- sleeves ----------------
+   A sleeve is the "worn paper card" material: cover art inset in a paper
+   border, a price-sticker chip, ring-wear. If the cover picture is missing
+   the sleeve shows a plain printed front instead (never a broken image). */
+const PRICES = ['$1.29', '$1.49', '$1.99', 'SPECIAL BUY!'];
+
+function hash(text) {
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+export function sleeveFace(volume) {
+  const price = PRICES[hash(volume.id) % PRICES.length];
+  const sleeve = el('div', { class: 'sleeve', dataset: { accent: volume.accent } });
+  const fallback = el('span', { class: 'sleeve-front', 'aria-hidden': 'true' },
+    el('b', {}, 'RFAI'),
+    el('i', {}, volume.title),
+    el('small', {}, 'SYNTHS · MACHINES · MUSIC · FOREVER'));
+  sleeve.append(fallback);
+  if (volume.cover) {
+    const img = el('img', { class: 'sleeve-art', src: volume.cover, alt: '', draggable: 'false', decoding: 'async' });
+    img.addEventListener('error', () => { sleeve.classList.add('is-bare'); img.remove(); });
+    sleeve.append(img);
+  } else {
+    sleeve.classList.add('is-bare');
+  }
+  sleeve.append(el('span', { class: 'sleeve-price', 'aria-hidden': 'true' }, price));
+  return sleeve;
+}
+
+/* ---------------- the UI object ---------------- */
+export function createUI({ library, getStatus, handlers }) {
+  const $ = (id) => document.getElementById(id);
+  const trackById = new Map(library.tracks.map((t) => [t.id, t]));
+  const volumeById = new Map(library.volumes.map((v) => [v.id, v]));
+
+  const rackEl = $('rack');
+  const stripsEl = $('strips');
+  const rackButtons = new Map();
+  const stripRows = new Map();
+  let shownVolumeId = null;
+
+  /* ---- rack of sleeves ---- */
+  function renderRack() {
+    rackEl.replaceChildren();
+    rackButtons.clear();
+    for (const v of library.volumes) {
+      const count = library.tracks.filter((t) => t.volume === v.id).length;
+      const btn = el('button', {
+        class: 'rack-sleeve', type: 'button', role: 'tab', 'aria-selected': 'false',
+        'aria-label': `${v.title}, letter ${v.letter}, ${count} songs`,
+        dataset: { volume: v.id, accent: v.accent },
+        onclick: () => handlers.openVolume(v.id),
+      }, sleeveFace(v), el('span', { class: 'rack-letter led' }, v.letter));
+      rackButtons.set(v.id, btn);
+      rackEl.append(btn);
+    }
+    rackEl.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const ids = library.volumes.map((v) => v.id);
+      const i = ids.indexOf(shownVolumeId);
+      const j = Math.min(ids.length - 1, Math.max(0, i + (e.key === 'ArrowRight' ? 1 : -1)));
+      handlers.openVolume(ids[j]);
+      rackButtons.get(ids[j])?.focus();
+      e.preventDefault();
+    });
+  }
+
+  /* ---- title strips ---- */
+  function renderStrips(volumeId) {
+    shownVolumeId = volumeId;
+    for (const [id, btn] of rackButtons) {
+      const on = id === volumeId;
+      btn.setAttribute('aria-selected', String(on));
+      btn.classList.toggle('is-open', on);
+      btn.tabIndex = on ? 0 : -1;
+    }
+    stripsEl.replaceChildren();
+    stripRows.clear();
+    stripsEl.dataset.accent = volumeById.get(volumeId)?.accent || 'gold';
+    const list = library.tracks.filter((t) => t.volume === volumeId);
+    if (list.length === 0) {
+      stripsEl.append(el('p', { class: 'strips-empty' }, 'NO SONGS ON THIS VOLUME YET'));
+      return;
+    }
+    for (const t of list) {
+      const row = el('button', {
+        class: 'strip', type: 'button', role: 'listitem', title: t.title,
+        dataset: { track: t.id },
+        onclick: () => handlers.pickTrack(t.id),
+      },
+        el('span', { class: 'strip-code led' }, t.code),
+        el('span', { class: 'strip-title' }, t.title),
+        el('span', { class: 'strip-aside' }));
+      stripRows.set(t.id, row);
+      stripsEl.append(row);
+    }
+  }
+
+  /* Refresh strip states in place (keeps keyboard focus where it was). */
+  function updateStrips({ nowId, queue }) {
+    for (const [id, row] of stripRows) {
+      const st = getStatus(id);
+      const queuePos = queue.indexOf(id);
+      const aside = row.querySelector('.strip-aside');
+      row.classList.toggle('is-missing', st.state === 'missing');
+      row.classList.toggle('is-now', id === nowId);
+      row.classList.toggle('is-queued', queuePos >= 0);
+      let label;
+      if (st.state === 'missing') label = 'OUT OF ORDER';
+      else if (id === nowId) label = 'NOW';
+      else if (queuePos >= 0) label = `Q${queuePos + 1}`;
+      else label = formatClock(st.duration);
+      if (aside.textContent !== label) aside.textContent = label;
+      const t = trackById.get(id);
+      row.setAttribute('aria-label', `${t.code} ${t.title}${st.state === 'missing' ? ', out of order' : ''}`);
+    }
+  }
+
+  /* ---- keypad ---- */
+  function renderKeypad() {
+    const letters = $('key-letters');
+    const digits = $('key-digits');
+    letters.replaceChildren();
+    digits.replaceChildren();
+    const mk = (label, key, extra = '') => el('button', {
+      class: `key ${extra}`.trim(), type: 'button', dataset: { key },
+      'aria-label': label.length === 1 ? `Key ${label}` : label,
+      onclick: () => handlers.keyPressed(key),
+    }, label);
+    for (const v of library.volumes) letters.append(mk(v.letter, v.letter, 'key-letter'));
+    ['1','2','3','4','5','6','7','8','9'].forEach((d) => digits.append(mk(d, d)));
+    digits.append(mk('CLR', 'CLEAR', 'key-fn'), mk('0', '0'), mk('DEL', 'BACK', 'key-fn'));
+    letters.style.setProperty('--letter-rows', Math.min(4, Math.max(1, library.volumes.length)));
+  }
+
+  function setCode(buffer) {
+    const code = $('readout-code');
+    code.textContent = buffer.length ? buffer.padEnd(2, '_') : '__';
+    code.classList.toggle('is-typing', buffer.length > 0);
+  }
+
+  let msgTimer = null;
+  function setMessage(text, kind = 'info') {
+    const m = $('readout-msg');
+    m.textContent = text;
+    m.dataset.kind = kind;
+    clearTimeout(msgTimer);
+    if (text) msgTimer = setTimeout(() => { m.textContent = ''; }, 4200);
+  }
+
+  /* ---- up next ---- */
+  const QUEUE_ROWS = 3;
+  function renderQueue(queue, houseNextId) {
+    const list = $('queue-list');
+    list.replaceChildren();
+    queue.slice(0, QUEUE_ROWS).forEach((id, i) => {
+      const t = trackById.get(id);
+      if (!t) return;
+      const vol = volumeById.get(t.volume);
+      list.append(el('li', { class: 'q-row' },
+        el('span', { class: 'q-pos led' }, String(i + 1)),
+        el('span', { class: 'q-text' },
+          el('span', { class: 'q-title' }, t.title),
+          el('span', { class: 'q-sub led' }, `${t.code}${vol ? ` · ${vol.title.toUpperCase()}` : ''}`)),
+        el('button', { class: 'q-btn', type: 'button', 'aria-label': `Move ${t.title} up`, disabled: i === 0, onclick: () => handlers.moveUp(i) }, '▲'),
+        el('button', { class: 'q-btn q-x', type: 'button', 'aria-label': `Cancel ${t.title}`, onclick: () => handlers.cancel(i) }, '✕')));
+    });
+    const more = queue.length - QUEUE_ROWS;
+    if (more > 0) list.append(el('li', { class: 'q-more' }, `+${more} MORE WAITING`));
+    const house = $('queue-house');
+    if (queue.length === 0) {
+      const t = houseNextId ? trackById.get(houseNextId) : null;
+      house.hidden = false;
+      house.replaceChildren(el('b', {}, 'HOUSE ROTATION'), t ? ` - NEXT: ${t.title}` : ' - PICK A SONG!');
+    } else {
+      house.hidden = true;
+    }
+  }
+
+  /* ---- now playing ---- */
+  function setNow(track) {
+    const volume = track ? volumeById.get(track.volume) : null;
+    $('np-title').textContent = track ? track.title : 'PRESS START';
+    $('np-volume').textContent = volume ? volume.title.toUpperCase() : ' ';
+    $('np-code').textContent = track ? track.code : '--';
+    fitTitle($('np-title'));
+    if (!track) setProgress(0, NaN);
+  }
+
+  // Long titles shrink a step or two instead of overflowing.
+  function fitTitle(node) {
+    const len = node.textContent.length;
+    node.dataset.size = len > 34 ? 'xs' : len > 24 ? 's' : len > 16 ? 'm' : 'l';
+  }
+
+  let lastShownSecond = -1;
+  function setProgress(elapsed, duration) {
+    const whole = Math.floor(elapsed || 0);
+    const ratio = Number.isFinite(duration) && duration > 0 ? Math.min(1, elapsed / duration) : 0;
+    $('np-fill').style.transform = `scaleX(${ratio.toFixed(4)})`;
+    if (whole !== lastShownSecond) {
+      lastShownSecond = whole;
+      $('np-elapsed').textContent = formatClock(elapsed);
+      $('np-remaining').textContent = formatCountdown(elapsed, duration);
+      $('np-tube').setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
+    }
+  }
+
+  /* The "time left" reel spins up to the song's length as the needle drops
+     (trivia's score-reel count-up). Calm: it just shows the final value. */
+  function rollDuration(duration) {
+    if (!Number.isFinite(duration)) return;
+    lastShownSecond = 0;
+    countUp($('np-remaining'), duration, { ms: 700, format: (n) => `-${formatClock(Math.ceil(n))}` });
+  }
+
+  /* ---- toast & problems ---- */
+  let toastTimer = null;
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('is-on'), 3800);
+  }
+
+  function showProblems(problems) {
+    const list = $('problems-list');
+    list.replaceChildren(...problems.map((p) => el('li', {}, p)));
+    $('problems-modal').hidden = false;
+    $('problems-close').focus();
+  }
+
+  return {
+    renderRack, renderStrips, updateStrips, renderKeypad, setCode, setMessage,
+    renderQueue, setNow, setProgress, rollDuration, toast, showProblems,
+    get shownVolumeId() { return shownVolumeId; },
+    rackSleeve: (volumeId) => rackButtons.get(volumeId)?.querySelector('.sleeve') || null,
+  };
+}
+
+/* ============================================================
+   TICKER - the LED sign that scrolls under the marquee. Each pass it asks
+   for fresh text (so NOW PLAYING is always current), then glides right to
+   left at a steady, readable speed. Calm: the text sits still and swaps
+   every few seconds.
+   ============================================================ */
+const TICKER_REM_PER_SECOND = 7.5;
+const TICKER_CALM_MS = 8000;
+
+export function createTicker({ textEl, nextText }) {
+  let anim = null;
+  let timer = null;
+  let stopped = true;
+
+  function remPx() { return parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; }
+
+  function clear() {
+    clearTimeout(timer);
+    if (anim) { anim.onfinish = null; anim.cancel(); anim = null; }
+  }
+
+  function run() {
+    if (stopped) return;
+    clear();
+    textEl.textContent = nextText();
+    if (isCalm()) {
+      textEl.style.transform = 'none';
+      textEl.parentElement.classList.add('is-calm');
+      timer = setTimeout(run, TICKER_CALM_MS);
+      return;
+    }
+    textEl.parentElement.classList.remove('is-calm');
+    const laneW = textEl.parentElement.clientWidth;
+    const textW = textEl.scrollWidth;
+    const ms = ((laneW + textW) / (TICKER_REM_PER_SECOND * remPx())) * 1000;
+    anim = textEl.animate(
+      [{ transform: `translateX(${laneW}px)` }, { transform: `translateX(${-textW}px)` }],
+      { duration: ms, easing: 'linear', fill: 'forwards' },
+    );
+    anim.onfinish = run;
+    timer = setTimeout(run, ms + 3000);           // failsafe if the finish event is missed
+  }
+
+  return {
+    start() { stopped = false; run(); },
+    restart() { if (!stopped) run(); },
+    stop() { stopped = true; clear(); },
+  };
+}
