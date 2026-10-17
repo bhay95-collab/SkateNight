@@ -105,7 +105,7 @@ function renderBootLog(overlay, holdMs) {
   const test = ({ t, s, k }) => `  ${esc(t)} ${dots(t)} <span class="${k}">${esc(s)}</span>`;
 
   const rows = [
-    '<b>RFAI SKATE NIGHT</b> JUKEBOX SYSTEM',
+    '<b>RFAI SKATE BY FAITH</b> JUKEBOX SYSTEM',
     '(C) 1983   ·   ALL RIGHTS RESERVED',
     ' ',
     ...sample(BOOT_POOL, BOOT_TEST_LINES).map(test),

@@ -1,11 +1,16 @@
-# Skate Night - RFAI jukebox
+# Skate by Faith
 
-An 80s arcade jukebox that plays your RFAI playlist at the roller-skate night.
+**Not by Sight - An 80s Rollerskate Night**
+
+An 80s arcade jukebox, presented by RFAI, that plays your playlist at the
+roller-skate night.
 It is a website that runs on **one laptop** plugged into the projector. No
 accounts, no server, no database. You add songs by editing one file and uploading
 MP3s.
 
-Live address once switched on (see step 6):
+Live address once switched on (see step 6). The repository is still named
+`SkateNight`, so the address keeps that name; to change it, GitHub -> Settings ->
+Repository name (the address changes with it):
 `https://bhay95-collab.github.io/SkateNight/`
 
 ![The jukebox playing](docs/screenshots/04-now-playing.jpg)

@@ -119,3 +119,8 @@ test('composeTicker copes with nothing playing', () => {
   assert.ok(!text.includes('NOW PLAYING'));
   assert.ok(!text.includes('UP NEXT'));
 });
+
+test('the event name and tagline are in the ticker', () => {
+  assert.ok(TICKER_LINES.includes('WELCOME TO SKATE BY FAITH'));
+  assert.ok(TICKER_LINES.includes('NOT BY SIGHT - AN 80S ROLLERSKATE NIGHT'));
+});

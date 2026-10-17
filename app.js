@@ -795,7 +795,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[skate night] start-up failed', err);
+  console.error('[skate by faith] start-up failed', err);
   // Tell the person at the laptop instead of leaving a dead INSERT COIN screen.
   const sub = document.getElementById('attract-sub');
   if (sub) {

@@ -1,7 +1,7 @@
 # Design system - the jukebox
 
-Skate Night is an 1980s arcade jukebox that plays a playlist at a church
-roller-skate night, on one laptop plugged into a projector. It is a sibling of
+Skate by Faith ("Not by Sight - An 80s Rollerskate Night") is an 1980s arcade
+jukebox that plays a playlist at a church roller-skate night, on one laptop plugged into a projector. It is a sibling of
 the trivia quiz machine (`bhay95-collab/trivia_fridays`) and reuses its visual
 DNA on purpose. This file records the material system, motion rules, safety
 rules and constraints so future changes stay **one coherent object** instead of

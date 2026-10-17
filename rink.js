@@ -55,7 +55,7 @@ export function updateMediaSession(track, volume, playing) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title,
         artist: 'RFAI',
-        album: volume ? `Skate Night - ${volume.title}` : 'Skate Night',
+        album: volume ? `Skate by Faith - ${volume.title}` : 'Skate by Faith',
         artwork: art,
       });
     }

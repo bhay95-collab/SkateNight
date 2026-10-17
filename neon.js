@@ -15,7 +15,8 @@
 const PATTERNS = ['neon-flicker-a', 'neon-flicker-b', 'neon-flicker-c'];
 
 const TUBES = [
-  '.wordmark span',
+  '.w-cyan',
+  '.w-mag',
   '.neon',
   '.panel-title-neon',
   '.led-chip .led',

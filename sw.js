@@ -1,5 +1,5 @@
 /* ============================================================
-   SERVICE WORKER - lets Skate Night keep running with no internet.
+   SERVICE WORKER - lets Skate by Faith keep running with no internet.
 
    Two kinds of file, two strategies:
 

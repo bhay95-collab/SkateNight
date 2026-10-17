@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Skate Night</title>
-<meta name="description" content="RFAI Skate Night - an 80s arcade jukebox for the rink.">
+<title>Skate by Faith - Not by Sight</title>
+<meta name="description" content="Skate by Faith, Not by Sight - an 80s rollerskate night. RFAI arcade jukebox for the rink.">
 <meta name="theme-color" content="#140722">
 <link rel="icon" type="image/png" href="rfai-logo.png">
 <link rel="preload" as="font" type="font/woff2" href="fonts/bungee-400.woff2" crossorigin>
@@ -28,7 +28,7 @@
   <div class="boot-stack">
     <img class="boot-logo" src="rfai-logo.png" width="512" height="512" alt="" fetchpriority="high">
     <div class="boot-screen">
-      <pre class="boot-log" id="boot-log"><span class="ln"><b>RFAI SKATE NIGHT</b> JUKEBOX SYSTEM</span><span class="ln">(C) 1983   ·   ALL RIGHTS RESERVED</span><span class="ln"> </span><span class="ln">  TONEARM CALIBRATION ......... <span class="ok">OK</span></span><span class="ln">  WHEEL BEARINGS LUBED ........ <span class="ok">OK</span></span><span class="ln">  LOADING THE CRATES ......... <span class="boot-cursor">&#9608;</span></span></pre>
+      <pre class="boot-log" id="boot-log"><span class="ln"><b>RFAI SKATE BY FAITH</b> JUKEBOX SYSTEM</span><span class="ln">(C) 1983   ·   ALL RIGHTS RESERVED</span><span class="ln"> </span><span class="ln">  TONEARM CALIBRATION ......... <span class="ok">OK</span></span><span class="ln">  WHEEL BEARINGS LUBED ........ <span class="ok">OK</span></span><span class="ln">  LOADING THE CRATES ......... <span class="boot-cursor">&#9608;</span></span></pre>
     </div>
   </div>
   <div class="boot-flash"></div>
@@ -37,11 +37,12 @@
 <!-- ============ 2. ATTRACT: INSERT COIN ============
      The click / tap / key press here is the gesture browsers demand
      before they allow any sound. -->
-<button class="attract" id="attract" type="button" hidden>
+<button class="attract" id="attract" type="button" aria-label="Skate by Faith, Not by Sight. Insert coin to start." hidden>
   <span class="attract-inner">
     <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
     <span class="attract-presents">RFAI presents</span>
-    <span class="attract-title"><span>Skate</span> <span>Night</span></span>
+    <span class="attract-title"><span>Skate</span> <span class="by">by</span> <span>Faith</span></span>
+    <span class="attract-tagline">Not by Sight &mdash; An 80s Rollerskate Night</span>
     <span class="attract-coin">INSERT COIN</span>
     <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
   </span>
@@ -69,7 +70,8 @@
     </div>
 
     <div class="marquee-sign">
-      <h1 class="wordmark"><span class="w-cyan">Skate</span> <span class="w-mag">Night</span></h1>
+      <h1 class="wordmark"><span class="w-cyan">Skate</span> <span class="by">by</span> <span class="w-mag">Faith</span></h1>
+      <p class="wordmark-sub">Not by Sight &mdash; An 80s Rollerskate Night</p>
     </div>
 
     <div class="marquee-status">
@@ -80,7 +82,7 @@
   </header>
 
   <div class="ticker screen" role="marquee" aria-label="Announcements">
-    <div class="ticker-lane"><span class="ticker-text" id="ticker-text">WELCOME TO SKATE NIGHT</span></div>
+    <div class="ticker-lane"><span class="ticker-text" id="ticker-text">WELCOME TO SKATE BY FAITH</span></div>
   </div>
 
   <main class="cabinet">

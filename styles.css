@@ -1,5 +1,5 @@
 /* ===========================================================
-   SKATE NIGHT - the jukebox
+   SKATE BY FAITH (Not by Sight - an 80s rollerskate night) - the jukebox
    One machine, three layers of material:
      CABINET   purple plastic panels with a hard offset shadow, gold
                title tabs screwed on at alternating tilt, arcade buttons
@@ -342,7 +342,7 @@ body.on-attract .rig{ visibility:hidden; }
 .marquee-status .led-chip{ min-width:0; }
 
 .marquee-sign{
-  position:relative; padding:.36rem 2.2rem .3rem;
+  position:relative; padding:.3rem 2rem .8rem;
   background:radial-gradient(120% 140% at 50% -10%, rgba(255,45,149,.12), transparent 55%), linear-gradient(180deg, #120826, #0A0417);
   border:.14rem solid var(--cab-edge); border-radius:1rem;
   box-shadow:0 .4rem 0 rgba(0,0,0,.5), inset 0 0 0 .32rem #0A0417, inset 0 0 0 .38rem rgba(255,255,255,.04), 0 0 2.2rem var(--tube-glow);
@@ -367,9 +367,15 @@ body.on-attract .rig{ visibility:hidden; }
 }
 .wordmark{
   margin:0; font-family:var(--font-display); font-weight:400; line-height:1; text-transform:uppercase;
-  font-size:2.15rem; letter-spacing:-.01em; white-space:nowrap; position:relative; z-index:1;
+  font-size:1.9rem; letter-spacing:-.01em; white-space:nowrap; position:relative; z-index:1;
 }
 .wordmark span{ color:#fff; display:inline-block; }
+/* the little word between the two tubes is plain plastic lettering, not neon */
+.wordmark .by, .attract-title .by{ font-size:.5em; vertical-align:.32em; color:var(--cream); text-shadow:none; margin:0 .1em; }
+.wordmark-sub{
+  margin:.15rem 0 0; text-align:center; position:relative; z-index:1; white-space:nowrap;
+  font:700 .58rem/1 var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--cream);
+}
 .w-cyan{ text-shadow:0 0 .06rem #fff, 0 0 .3rem rgba(37,232,226,.95), 0 0 .75rem rgba(37,232,226,.55), 0 0 1.4rem rgba(37,232,226,.25), -.05rem 0 0 rgba(37,232,226,.3), .05rem 0 0 rgba(255,45,149,.2); }
 .w-mag{ text-shadow:0 0 .06rem #fff, 0 0 .3rem rgba(255,45,149,.95), 0 0 .75rem rgba(255,45,149,.55), 0 0 1.4rem rgba(255,45,149,.25), -.05rem 0 0 rgba(255,45,149,.3), .05rem 0 0 rgba(37,232,226,.2); }
 
@@ -731,6 +737,7 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 }
 .attract:hover .attract-coin{ filter:brightness(1.06); }
 .attract:active .attract-coin{ transform:translateY(.4rem); box-shadow:0 .08rem 0 var(--gold-deep); }
+.attract-tagline{ margin-top:-.2rem; font:700 1.25rem/1.2 var(--font-body); letter-spacing:.16em; text-transform:uppercase; color:var(--cream); }
 .attract-sub{ font:700 1.05rem var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 .6rem rgba(37,232,226,.6); min-height:1.3rem; }
 @keyframes attract-blink{ 50%{ color:rgba(20,7,34,.35); } }
 
