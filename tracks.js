@@ -58,8 +58,8 @@ export const volumes = [
 ];
 
 export const tracks = [
-  // The first five songs. Each is the first song of its volume, so the codes are
-  // A1, B1, C1, D1 and E1. To add more songs to a volume, add lines for it
+  // The first ten songs, one per volume, so the codes are A1 B1 C1 D1 E1 G1 H1 J1
+  // K1 and L1 (F is skipped). To add more songs to a volume, add lines for it
   // anywhere in this list: the next one on Vol. I becomes A2, and so on.
 
   // A1 - Vol. I
@@ -76,4 +76,19 @@ export const tracks = [
 
   // E1 - Vol. V
   { id: 'come-unto-me',           title: 'Come Unto Me',           volume: 'vol-v',   file: 'audio/come-unto-me.mp3' },
+
+  // G1 - Vol. VI
+  { id: 'confess-and-believe',        title: 'Confess and Believe',            volume: 'vol-vi',   file: 'audio/confess-and-believe.mp3' },
+
+  // H1 - Vol. VII
+  { id: 'from-glory-to-glory',        title: 'From Glory to Glory',            volume: 'vol-vii',  file: 'audio/from-glory-to-glory.mp3' },
+
+  // J1 - Vol. VIII
+  { id: 'having-done-all-now-stand',  title: 'Having Done All, Now Stand',     volume: 'vol-viii', file: 'audio/having-done-all-now-stand.mp3' },
+
+  // K1 - Vol. IX
+  { id: 'he-who-began-a-good-work',   title: 'He Who Began a Good Work',       volume: 'vol-ix',   file: 'audio/he-who-began-a-good-work.mp3' },
+
+  // L1 - Vol. X
+  { id: 'it-is-good-to-sing-him-praises', title: 'It Is Good to Sing Him Praises', volume: 'vol-x', file: 'audio/it-is-good-to-sing-him-praises.mp3' },
 ];

@@ -192,7 +192,7 @@ export function createUI({ library, getStatus, handlers }) {
       list.append(el('li', { class: 'q-row' },
         el('span', { class: 'q-pos led' }, String(i + 1)),
         el('span', { class: 'q-text' },
-          el('span', { class: 'q-title' }, t.title),
+          el('span', { class: 'q-title', dataset: { long: t.title.length > 20 ? '1' : '0' } }, t.title),
           el('span', { class: 'q-sub led' }, `${t.code}${vol ? ` · ${vol.title.toUpperCase()}` : ''}`)),
         el('button', { class: 'q-btn', type: 'button', 'aria-label': `Move ${t.title} up`, disabled: i === 0, onclick: () => handlers.moveUp(i) }, '▲'),
         el('button', { class: 'q-btn q-x', type: 'button', 'aria-label': `Cancel ${t.title}`, onclick: () => handlers.cancel(i) }, '✕')));
@@ -222,7 +222,7 @@ export function createUI({ library, getStatus, handlers }) {
   // Long titles shrink a step or two instead of overflowing.
   function fitTitle(node) {
     const len = node.textContent.length;
-    node.dataset.size = len > 34 ? 'xs' : len > 24 ? 's' : len > 16 ? 'm' : 'l';
+    node.dataset.size = len > 34 ? 'xs' : len > 19 ? 's' : len > 16 ? 'm' : 'l';
   }
 
   let lastShownSecond = -1;
