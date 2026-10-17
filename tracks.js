@@ -108,4 +108,21 @@ export const tracks = [
 
   // E2 - Vol. V
   { id: 'praise-waits-for-you-psalm-65',   title: 'Praise Waits for You - Psalm 65',  volume: 'vol-v',   file: 'audio/praise-waits-for-you-psalm-65.mp3' },
+
+  // ---- Songs 16-20: the second song on Vol. VI to X ----
+
+  // G2 - Vol. VI
+  { id: 'pray-without-ceasing',        title: 'Pray Without Ceasing',        volume: 'vol-vi',   file: 'audio/pray-without-ceasing.mp3' },
+
+  // H2 - Vol. VII
+  { id: 'prepare-the-way-of-the-lord', title: 'Prepare the Way of the Lord', volume: 'vol-vii',  file: 'audio/prepare-the-way-of-the-lord.mp3' },
+
+  // J2 - Vol. VIII
+  { id: 'proclaim-the-good-news',      title: 'Proclaim the Good News',      volume: 'vol-viii', file: 'audio/proclaim-the-good-news.mp3' },
+
+  // K2 - Vol. IX
+  { id: 'receive-with-meekness',       title: 'Receive with Meekness',       volume: 'vol-ix',   file: 'audio/receive-with-meekness.mp3' },
+
+  // L2 - Vol. X
+  { id: 'the-life-i-live',             title: 'The Life I Live',             volume: 'vol-x',    file: 'audio/the-life-i-live.mp3' },
 ];
