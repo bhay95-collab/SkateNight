@@ -130,8 +130,8 @@ The first build had every effect at full strength and read as "everything has
 been added". The rule now is **one machine, quietly lit**: the cabinet, the
 record changer and the readouts carry the show; the world around it stays dim.
 
-- Removed: the RFAI PRESENTS tab in the header, the hanging mirror ball, the
-  outrun sun, the bloom around the marquee sign and bubble tubes, the platter glow.
+- Removed: RFAI PRESENTS (header tab and INSERT COIN screen), the roller-skater
+  silhouettes, the hanging mirror ball, the outrun sun, the bloom around the marquee sign and bubble tubes, the platter glow.
 - Dimmed to trivia's levels: the rolling grid (opacity 0.16, lowest band only,
   7 s per cell, music speeds it up to 1.6x at most), stars (gutters only), the
   horizon line, the bass swell (0.14-0.34), mirror-light spots (7, half as bright,
@@ -145,6 +145,10 @@ record changer and the readouts carry the show; the world around it stays dim.
   (17 s cap, 18 s CSS failsafe). Header line: SKATE BY FAITH JUKEBOX.
 - VU meters: landscape windows; the scale and the needle's pivot are computed
   from the smaller side so nothing is ever cut off.
+
+- Selection is by code only (keypad or keyboard). The title strips are read-only
+  paper, as on a real Wurlitzer/Seeburg; the album sleeves still open a volume's
+  strips for reading.
 
 Before adding anything new, ask what it replaces.
 
@@ -184,12 +188,11 @@ bubble tubes that speed up with the music, grid scroll speed and bulb chase spee
 (`playbackRate` of the CSS animations), and a soft bass swell on the cabinet glow.
 
 **Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
-transform only), roller-skater neon silhouettes gliding along the rink floor
-every 20-50 s (at most two at once), the LED ticker scrolling NOW PLAYING / UP
+transform only), the LED ticker scrolling NOW PLAYING / UP
 NEXT / announcer lines, bubble tubes colour-cycling over 48 s.
 
 **Idle attract mode:** after 60 s with no input the machine runs a light show:
-bulbs chase faster, skaters appear more often, the rack sleeves take turns
+bulbs chase faster, the rack sleeves take turns
 lifting, the ticker mixes in attract lines. Any input ends it.
 
 **Coin:** a cream coin drops into the slot, clunk + ring, the credits counter
@@ -205,7 +208,7 @@ LED reads **FREE PLAY** (real arcade term).
 - One shared animation loop; it stops when the tab is hidden and when lights
   are CALM. Music never depends on it.
 - WAAPI animations are cancelled when their sequence ends (no accumulating
-  `fill: forwards` animations). Skater elements remove themselves. Decks reuse
+  `fill: forwards` animations). Decks reuse
   two `<audio>` elements and revoke each Blob URL when a song is replaced.
 - Soak-tested: see "Verification" in README.
 
@@ -231,7 +234,7 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
 `crt-roll` 6.5 s, `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
 1.6 s (small dots moving), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.8 s, `dot-pulse` 1.2 s (small LED),
-`skater-glide` 11-18 s, `stride-*` 1.4 s (movement), `attract-blink` 1.15 s,
+`attract-blink` 1.15 s,
 `coin-drop` once, `score-pop` once, boot sequence once per tab.
 
 ### Calm lights (`prefers-reduced-motion` and the on-screen switch)
@@ -245,7 +248,7 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
   JavaScript effects ask `isCalm()` and jump to the finished picture:
   the changer shows the record already on the platter, the ticker holds still
   text (swapped every 8 s), the visualisers draw one quiet still frame, the
-  skaters and the boot sequence are skipped, the mirror-light spots hold still.
+  the boot sequence is skipped, the mirror-light spots hold still.
 - Every animation has a calm equivalent; a new animation must add both halves.
 - Functional readouts (the clock, the progress tube, the queue) still update in
   calm - they are information, not decoration.
@@ -361,7 +364,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `sound.js` | Synthesised effects |
 | `player.js` | Two audio decks, fades, gapless-feel, probing |
 | `mechanism.js` | The record changer animation |
-| `visualiser.js` | Shared loop, canvases, mirror light, skaters |
+| `visualiser.js` | Shared loop, canvases, mirror light |
 | `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
 | `fx.js` | Calm switch, boot sequence, count-up |
 | `neon.js` | Desynced neon flicker |

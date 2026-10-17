@@ -24,7 +24,7 @@ import { unlockAudio, setMusicLevel, setSfxLevel } from './audio.js';
 import { sfx } from './sound.js';
 import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
-import { createVisualiser, buildMirrorLight, createSkaters } from './visualiser.js';
+import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { createUI, createTicker } from './ui.js';
 import {
   keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker,
@@ -110,7 +110,6 @@ async function main() {
     getStatus,
     handlers: {
       openVolume: (id) => { ui.renderStrips(id); scheduleRender(); },
-      pickTrack: (id) => { noteInput(); requestTrack(id); },
       keyPressed: (key) => { noteInput(); keyPressed(key); },
       moveUp: (i) => { queue = moveUp(queue, i); sfx.key(); afterQueueChange(); },
       cancel: (i) => { queue = cancelAt(queue, i); sfx.key(); afterQueueChange(); },
@@ -126,7 +125,6 @@ async function main() {
   ui.setNow(null);
   ui.renderQueue([], null);
   buildMirrorLight($('mirror-light'));
-  const skaters = createSkaters($('rink-floor'));
 
   if (problems.length) {
     const btn = $('btn-problems');
@@ -626,7 +624,6 @@ async function main() {
   function enterAttract() {
     attractOn = true;
     document.body.classList.add('is-attract');
-    skaters.setAttract(true);
     ticker.restart();
     const spin = () => {
       const buttons = [...document.querySelectorAll('.rack-sleeve')];
@@ -645,7 +642,6 @@ async function main() {
   function exitAttract() {
     attractOn = false;
     document.body.classList.remove('is-attract');
-    skaters.setAttract(false);
     clearInterval(attractTimer);
     document.querySelectorAll('.rack-sleeve.is-spotlight').forEach((b) => b.classList.remove('is-spotlight'));
     mech.clearIdleCover();
@@ -829,7 +825,6 @@ async function main() {
     setTimeout(() => { attractScreen.hidden = true; }, isCalm() ? 0 : 520);
     keepAwake();
     ensureHouseNext();
-    skaters.start();
     ticker.start();
     showLegend();
     scheduleRender();

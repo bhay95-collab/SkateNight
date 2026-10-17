@@ -9,7 +9,6 @@
      - the two BUBBLE TUBES (canvas), which also speed up with the music
      - the grid speed and the bulb chase speed (animation playbackRate)
      - the soft BASS PULSE on the cabinet glow (one element's opacity)
-     - the roller-skater silhouettes that glide along the bottom edge
      - the mirror-ball light spots
 
    Rules this file lives by:
@@ -407,45 +406,4 @@ export function buildMirrorLight(container, count = 7) {
     spot.dataset.tone = i % 3 === 0 ? 'cyan' : i % 3 === 1 ? 'magenta' : 'cream';
     container.append(spot);
   }
-}
-
-/* ============================================================
-   SKATERS - neon-outline roller skaters now and then glide along the
-   rink floor. At most two at once, each removed when it finishes.
-   ============================================================ */
-export function createSkaters(floor) {
-  const tpl = document.getElementById('skater-tpl');
-  let timer = 0;
-  let attract = false;
-  let active = 0;
-
-  function spawn() {
-    if (isCalm() || document.hidden || !tpl || active >= 2) return;
-    active += 1;
-    const holder = document.createElement('div');
-    holder.className = 'skater';
-    const dir = Math.random() < 0.5 ? 'ltr' : 'rtl';
-    holder.dataset.dir = dir;
-    holder.dataset.tone = ['cyan', 'magenta', 'cream'][Math.floor(Math.random() * 3)];
-    const dur = 11 + Math.random() * 7;
-    holder.style.setProperty('--glide', `${dur.toFixed(1)}s`);
-    holder.append(tpl.content.firstElementChild.cloneNode(true));
-    let removed = false;
-    const remove = () => { if (removed) return; removed = true; holder.remove(); active -= 1; };
-    holder.addEventListener('animationend', (e) => { if (e.animationName === 'skater-glide') remove(); });
-    setTimeout(remove, (dur + 4) * 1000);                          // failsafe
-    floor.append(holder);
-  }
-
-  function schedule() {
-    clearTimeout(timer);
-    const [min, max] = attract ? [6000, 14000] : [22000, 52000];
-    timer = setTimeout(() => { safely('skater', spawn); schedule(); }, min + Math.random() * (max - min));
-  }
-
-  return {
-    start() { schedule(); setTimeout(() => safely('skater', spawn), 3500); },
-    setAttract(on) { attract = on; schedule(); },
-    clear() { floor.replaceChildren(); active = 0; },
-  };
 }

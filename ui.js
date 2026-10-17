@@ -113,10 +113,11 @@ export function createUI({ library, getStatus, handlers }) {
       return;
     }
     for (const t of list) {
-      const row = el('button', {
-        class: 'strip', type: 'button', role: 'listitem', title: t.title,
+      // Read-only, like the title strips in a real jukebox: you read the code
+      // here and punch it in on the keypad. Strips are not clickable.
+      const row = el('div', {
+        class: 'strip', role: 'listitem', title: t.title,
         dataset: { track: t.id },
-        onclick: () => handlers.pickTrack(t.id),
       },
         el('span', { class: 'strip-code led' }, t.code),
         el('span', { class: 'strip-title' }, t.title),
