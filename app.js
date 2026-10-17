@@ -12,7 +12,7 @@
    ============================================================ */
 import { buildLibrary, parseCode, findTrackByCode } from './codes.js';
 import { enqueue, enqueueFront, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
-import { RECENT_LIMIT, pickShuffle, pickInOrder, pushRecent } from './rotation.js';
+import { pickShuffle, pickInOrder, pushRecent } from './rotation.js';
 import {
   ATTRACT_LINES, SKATE_JOKES, IDLE_JOKES, OUT_OF_ORDER_LINES,
   createRotator,
@@ -39,6 +39,7 @@ const EJECT_LEAD_SEC = 2.5;
 const LOAD_LEAD_SEC = 1.5;
 const SKIP_SPEED = 1.8;           // the changer works faster on a skip
 const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light show
+const ATTRACT_PAGE_MS = 9000;    // attract mode turns the rack to the next album this often
 const STORE_VOL = 'sn-volumes';
 const STORE_SHUFFLE = 'sn-shuffle';
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
@@ -80,7 +81,9 @@ async function main() {
   const getStatus = (id) => status.get(id) || { state: 'unknown', duration: null };
   let queue = [];
   let recent = [];
-  let houseNext = null;
+  let houseLine = [];             // the house rotation's planned picks, in play order (shown greyed in UP NEXT)
+  let takenId = null;              // taken off the queue / house line, not started yet (pre-roll)
+  let takenFromHouse = false;
   let shuffle = true;              // SHUFFLE on = shuffled deck; off = play in tracks.js order
   try { shuffle = localStorage.getItem(STORE_SHUFFLE) !== 'off'; } catch { /* storage blocked - default on */ }
   let bag = [];                    // songs already played in the current shuffled deck
@@ -123,7 +126,7 @@ async function main() {
   const firstVolume = library.volumes.find((v) => library.tracks.some((t) => t.volume === v.id)) || library.volumes[0];
   if (firstVolume) ui.renderStrips(firstVolume.id);
   ui.setNow(null);
-  ui.renderQueue([], null);
+  ui.renderQueue([], []);
   buildMirrorLight($('mirror-light'));
 
   if (problems.length) {
@@ -142,7 +145,8 @@ async function main() {
     setTimeout(() => {
       renderQueued = false;
       ui.updateStrips({ nowId, queue });
-      ui.renderQueue(queue, houseNext, shuffle ? 'HOUSE SHUFFLE' : 'HOUSE IN ORDER');
+      planHouse();
+      ui.renderQueue(queue, houseLine, shuffle ? 'HOUSE SHUFFLE' : 'HOUSE IN ORDER');
       const playText = phase === 'playing' ? 'PAUSE' : phase === 'paused' ? 'RESUME' : phase === 'changing' ? 'PAUSE' : 'START';
       $('btn-play-text').textContent = playText;
       $('btn-play').classList.toggle('is-playing', phase === 'playing');
@@ -160,32 +164,60 @@ async function main() {
   /* ---------------- choosing what plays next ---------------- */
   const playableIds = () => library.tracks.filter((t) => getStatus(t.id).state !== 'missing').map((t) => t.id);
 
-  /* The house rotation's choice: from the shuffled deck, or the next song in order. */
-  function pickHouse() {
-    const ids = playableIds();
-    if (shuffle) {
-      const pick = pickShuffle({ playableIds: ids, bag, recent, rng: Math.random });
-      bag = pick.bag;                 // may have been emptied for a fresh deck
-      return pick.id;
+  /* The shuffled deck before a song is added: once every playable song has
+     had its turn, a fresh deck starts (pickShuffle makes the same call). */
+  const deckBefore = (deck, ids) => {
+    const kept = deck.filter((id) => ids.includes(id));
+    return ids.every((id) => kept.includes(id)) ? [] : kept;
+  };
+
+  /* Plan the house rotation far enough ahead to fill UP NEXT. Picks are made
+     once and kept, so what UP NEXT shows greyed is exactly what plays if
+     nobody chooses a song. Songs already in the queue are left out. */
+  function planHouse() {
+    const all = playableIds();
+    houseLine = houseLine.filter((id) => all.includes(id) && !queue.includes(id));
+    const ids = all.filter((id) => !queue.includes(id));
+    const pool = ids.length ? ids : all;
+    const want = Math.max(1, ui.queueRows - queue.length);
+    const ahead = [...(takenId ? [takenId] : []), ...houseLine];
+    if (!shuffle) {                                   // in order: the songs after this one
+      let current = ahead.length ? ahead[ahead.length - 1] : nowId;
+      const orderIds = library.tracks.map((t) => t.id);
+      while (houseLine.length < want) {
+        const id = pickInOrder({ orderIds, playableIds: pool, currentId: current });
+        if (!id || houseLine.includes(id)) break;
+        houseLine = [...houseLine, id];
+        current = id;
+      }
+      return;
     }
-    return pickInOrder({ orderIds: library.tracks.map((t) => t.id), playableIds: ids, currentId: nowId });
+    let deck = bag;
+    let planRecent = recent;
+    for (const id of ahead) { deck = [...deckBefore(deck, all), id]; planRecent = pushRecent(planRecent, id); }
+    while (houseLine.length < want) {
+      const pick = pickShuffle({ playableIds: pool, bag: deck, recent: planRecent, rng: Math.random });
+      if (!pick.id) break;
+      houseLine = [...houseLine, pick.id];
+      deck = [...pick.bag, pick.id];
+      planRecent = pushRecent(planRecent, pick.id);
+    }
   }
 
   function ensureHouseNext() {
-    if (houseNext && getStatus(houseNext).state !== 'missing') return houseNext;
-    houseNext = pickHouse();
-    return houseNext;
+    planHouse();
+    return houseLine[0] || null;
   }
 
-  /* A song from the queue may have just played the very track the house had
-     lined up. Drop a pick that would now break the "never repeat the last 5" rule. */
-  function revalidateHouseNext() {
-    if (!houseNext) return;
-    if (!shuffle) { houseNext = null; return; }          // in order: always the song after this one
-    const windowIds = recent.slice(-RECENT_LIMIT);
-    const roomToAvoid = playableIds().length > RECENT_LIMIT;
-    const tooRecent = roomToAvoid ? windowIds.includes(houseNext) : houseNext === recent[recent.length - 1];
-    if (tooRecent || getStatus(houseNext).state === 'missing') houseNext = null;
+  /* A song started. If it was not the house's next pick (someone chose it, or
+     BACK), the plan adjusts: shuffle drops that song from the plan (it has now
+     played); in order carries on from the song that just started. */
+  function noteStarted(id) {
+    const planned = takenFromHouse && takenId === id;
+    takenId = null;
+    takenFromHouse = false;
+    if (planned) return;
+    houseLine = shuffle ? houseLine.filter((h) => h !== id) : [];
   }
 
   /* Take the next song to play: the queue first, then the house rotation. */
@@ -193,10 +225,17 @@ async function main() {
     while (queue.length) {
       const taken = takeNext(queue);
       queue = taken.queue;
-      if (getStatus(taken.next).state !== 'missing') return taken.next;
+      if (getStatus(taken.next).state !== 'missing') {
+        takenId = taken.next;
+        takenFromHouse = false;
+        return taken.next;
+      }
     }
     const id = ensureHouseNext();
-    houseNext = null;
+    if (!id) return null;
+    houseLine = houseLine.slice(1);
+    takenId = id;
+    takenFromHouse = true;
     return id;
   }
 
@@ -232,9 +271,9 @@ async function main() {
     if (!track) return;
     nowId = id;
     recent = pushRecent(recent, id);
-    if (!bag.includes(id)) bag = [...bag, id];
+    if (!bag.includes(id)) bag = [...deckBefore(bag, playableIds()), id];
     history = [...history, id].slice(-HISTORY_LIMIT);
-    revalidateHouseNext();
+    noteStarted(id);
     phase = 'playing';
     mech.setPaused(false);
     const volume = volumeById.get(track.volume);
@@ -262,6 +301,7 @@ async function main() {
     }
     const token = ++changeToken;
     phase = 'changing';
+    ticker.restart();                               // music starting cuts the "music has stopped" joke short
     const track = trackById.get(id);
     const volume = volumeById.get(track.volume);
     showNow(id);
@@ -329,7 +369,7 @@ async function main() {
     shuffle = on;
     try { localStorage.setItem(STORE_SHUFFLE, on ? 'on' : 'off'); } catch { /* fine */ }
     bag = nowId ? [nowId] : [];
-    houseNext = null;
+    houseLine = [];
     paintShuffle();
     if (player) { refreshUpcoming(); scheduleRender(); }
     if (!quiet) ui.toast(on ? 'SHUFFLE ON - EVERY SONG PLAYS BEFORE ANY REPEATS' : 'SHUFFLE OFF - PLAYING IN ORDER');
@@ -398,7 +438,7 @@ async function main() {
     if (getStatus(id).state === 'missing') return;
     status.set(id, { state: 'missing', duration: null });
     queue = dropIds(queue, [id]);
-    if (houseNext === id) houseNext = null;
+    houseLine = houseLine.filter((h) => h !== id);
     const track = trackById.get(id);
     ui.toast(`${track.code} ${track.title} - ${nextOutOfOrder()}`);
     scheduleRender();
@@ -598,6 +638,8 @@ async function main() {
     legendTimer = setTimeout(() => legend.classList.remove('is-on'), ms);
   }
 
+  window.addEventListener('resize', scheduleRender);   // UP NEXT re-fits its greyed rows
+
   /* ---------------- the LED ticker ----------------
      One skate joke per pass: it rolls fully across and off before the next
      one comes in. Song changes never cut a joke short; the next pass simply
@@ -629,7 +671,7 @@ async function main() {
       attractIndex += 1;
     };
     spin();
-    attractTimer = setInterval(spin, 3500);
+    attractTimer = setInterval(spin, ATTRACT_PAGE_MS);
   }
   function exitAttract() {
     attractOn = false;
@@ -766,7 +808,7 @@ async function main() {
     const gone = library.tracks.filter((t) => getStatus(t.id).state === 'missing').map((t) => t.id);
     if (gone.length) {
       queue = dropIds(queue, gone);
-      if (houseNext && gone.includes(houseNext)) houseNext = null;
+      houseLine = houseLine.filter((h) => !gone.includes(h));
     }
     scheduleRender();
     refreshOfflineLed();
@@ -855,7 +897,7 @@ async function main() {
 
   // Handy for tests and for Ben's console: nothing here is needed to run the night.
   window.__skateNight = {
-    state: () => ({ phase, nowId, queue: queue.slice(), houseNext, started, recent: recent.slice() }),
+    state: () => ({ phase, nowId, queue: queue.slice(), houseNext: houseLine[0] || null, houseLine: houseLine.slice(), started, recent: recent.slice() }),
     library,
     get player() { return player; },
   };

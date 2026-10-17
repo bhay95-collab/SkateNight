@@ -245,8 +245,10 @@ INSERT COIN -> START. The queue starts empty (the house rotation fills the gap).
   - **SHUFFLE: OFF**: plays in the order the songs are listed in `tracks.js`,
     then starts again at the top.
 
-  UP NEXT always shows which song the house will play next. Your choice is
-  remembered on that laptop.
+  Any spare rows in UP NEXT show the house's plan, greyed out under **IF NOBODY
+  PICKS** - exactly the songs that will play, in order, if nobody chooses one.
+  Pick one of those songs yourself and it moves up into your list instead. Your
+  SHUFFLE choice is remembered on that laptop.
 - **SKIP** (or **N** / the right arrow) plays the next song straight away.
 - **BACK** (or **P** / the left arrow): more than 3 seconds into a song it starts
   that song again; press it within the first 3 seconds (or twice) to go to the

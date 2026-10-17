@@ -93,7 +93,15 @@ export function createUI({ library, getStatus, handlers }) {
   function renderStrips(volumeId) {
     const v = volumeById.get(volumeId);
     if (!v) return;
+    const isNewPage = shownVolumeId !== null && shownVolumeId !== volumeId;
     shownVolumeId = volumeId;
+    if (isNewPage && !isCalm()) {
+      // a slow page turn, like a real jukebox's title-strip carousel
+      document.querySelector('.rack-page').animate(
+        [{ opacity: 0, transform: 'translateX(.8rem)' }, { opacity: 1, transform: 'none' }],
+        { duration: RACK_TURN_MS, easing: 'cubic-bezier(.2,.7,.2,1)' },
+      );
+    }
     for (const [id, key] of letterKeys) key.classList.toggle('is-open', id === volumeId);
     $('rack-letter').textContent = v.letter;
     $('rack-title').textContent = v.title;
@@ -205,31 +213,43 @@ export function createUI({ library, getStatus, handlers }) {
 
   /* ---- up next ---- */
   const QUEUE_ROWS = 6;
-  function renderQueue(queue, houseNextId, modeLabel = 'HOUSE SHUFFLE') {
+  function renderQueue(queue, houseLine = [], modeLabel = 'HOUSE SHUFFLE') {
     const list = $('queue-list');
     list.replaceChildren();
     queue.slice(0, QUEUE_ROWS).forEach((id, i) => {
       const t = trackById.get(id);
       if (!t) return;
-      const vol = volumeById.get(t.volume);
       list.append(el('li', { class: 'q-row' },
         el('span', { class: 'q-pos led' }, String(i + 1)),
-        el('span', { class: 'q-text' },
-          el('span', { class: 'q-title', dataset: { long: t.title.length > 28 ? '2' : t.title.length > 20 ? '1' : '0' } }, t.title),
-          el('span', { class: 'q-sub led' }, `${t.code}${vol ? ` · ${vol.title.toUpperCase()}` : ''}`)),
+        queueText(t),
         el('button', { class: 'q-btn', type: 'button', 'aria-label': `Move ${t.title} up`, disabled: i === 0, onclick: () => handlers.moveUp(i) }, '▲'),
         el('button', { class: 'q-btn q-x', type: 'button', 'aria-label': `Cancel ${t.title}`, onclick: () => handlers.cancel(i) }, '✕')));
     });
     const more = queue.length - QUEUE_ROWS;
     if (more > 0) list.append(el('li', { class: 'q-more' }, `+${more} MORE WAITING`));
-    const house = $('queue-house');
-    if (queue.length === 0) {
-      const t = houseNextId ? trackById.get(houseNextId) : null;
-      house.hidden = false;
-      house.replaceChildren(el('b', {}, modeLabel), t ? ` - NEXT: ${t.title}` : ' - PICK A SONG!');
-    } else {
-      house.hidden = true;
+    // Spare rows show the house rotation's plan, greyed: what plays if nobody picks.
+    const spare = QUEUE_ROWS - Math.min(queue.length, QUEUE_ROWS);
+    const house = houseLine.slice(0, spare).map((id) => trackById.get(id)).filter(Boolean);
+    if (spare > 0) {
+      list.append(el('li', { class: 'q-divider led', title: modeLabel }, house.length ? 'IF NOBODY PICKS' : 'PICK A SONG!'));
     }
+    house.forEach((t, i) => {
+      list.append(el('li', { class: 'q-row is-house' },
+        el('span', { class: 'q-pos led' }, String(queue.length + i + 1)),
+        queueText(t)));
+    });
+    // Long titles can make the plan taller than the screen: drop greyed rows from the end until it fits.
+    const box = $('queue-screen');
+    while (box.scrollHeight > box.clientHeight + 1 && list.lastElementChild?.classList.contains('is-house')) {
+      list.lastElementChild.remove();
+    }
+  }
+
+  function queueText(t) {
+    const vol = volumeById.get(t.volume);
+    return el('span', { class: 'q-text' },
+      el('span', { class: 'q-title', dataset: { long: t.title.length > 28 ? '2' : t.title.length > 20 ? '1' : '0' } }, t.title),
+      el('span', { class: 'q-sub led' }, `${t.code}${vol ? ` · ${vol.title.toUpperCase()}` : ''}`));
   }
 
   /* ---- now playing ---- */
@@ -292,6 +312,7 @@ export function createUI({ library, getStatus, handlers }) {
     get shownVolumeId() { return shownVolumeId; },
     /* Where a record's sleeve flies out from: the big sleeve if that album's
        page is showing, otherwise its letter key on the selector. */
+    queueRows: QUEUE_ROWS,
     rackSleeve: (volumeId) => (volumeId === shownVolumeId ? $('rack-sleeve').querySelector('.sleeve') : letterKeys.get(volumeId)) || null,
     volumeIdForLetter: (letter) => library.volumes.find((v) => v.letter === letter)?.id || null,
   };
@@ -305,6 +326,7 @@ export function createUI({ library, getStatus, handlers }) {
    ============================================================ */
 const TICKER_REM_PER_SECOND = 4.2;      // slow enough to read every word from the back of the rink
 const TICKER_CALM_MS = 8000;
+const RACK_TURN_MS = 650;               // the rack page sliding in when the album changes
 
 export function createTicker({ textEl, nextText }) {
   let anim = null;

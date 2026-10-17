@@ -205,11 +205,13 @@ bubble tubes that speed up with the music, grid scroll speed and bulb chase spee
 **Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
 transform only), the LED ticker rolling **one skate joke at a time** (each
 line crosses fully and leaves before the next enters; song changes never cut a
-line short), bubble tubes colour-cycling over 48 s. The song name lives in the
+line short, except music starting from silence, which swaps a "music stopped"
+joke for a skate joke), bubble tubes colour-cycling over 48 s. The song name lives in the
 NOW PLAYING panel, not the ticker.
 
 **Idle attract mode:** after 60 s with no input the machine runs a light show:
-bulbs chase faster, the rack pages through the albums
+bulbs chase faster, the rack turns to the next album every 9 s
+(`ATTRACT_PAGE_MS`; every album change slides in over 0.65 s, none in CALM)
 (and shows each cover in the changer window while nothing is playing). Any
 input ends it.
 
@@ -290,6 +292,12 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
   reshuffled, and songs picked from the queue count as played. Shuffle off uses
   `pickInOrder`: the order of `tracks.js`, wrapping round. The choice is saved in
   `localStorage` (`sn-shuffle`); the default is on.
+- **House plan** (`app.js: planHouse`): the house rotation picks ahead, enough
+  to fill UP NEXT's spare rows, and keeps those picks, so the greyed rows under
+  IF NOBODY PICKS are exactly what will play. Songs in the queue are left out of
+  the plan; a song someone picks drops out of it once it plays (in order mode
+  carries on from that song instead). Greyed rows that would not fit on screen
+  are trimmed from the end.
 - **Skip** takes the queue head or the house pick. **Back** keeps a 50-song
   history: after 3 s it restarts the song, before that it goes to the previous
   song and puts the song it left at the top of UP NEXT (`enqueueFront`), so Skip
