@@ -826,7 +826,7 @@ async function main() {
     renderCredits();
     document.body.classList.remove('on-attract');
     attractScreen.classList.add('is-leaving');
-    setTimeout(() => { attractScreen.hidden = true; $('btn-play').focus({ preventScroll: true }); }, isCalm() ? 0 : 520);
+    setTimeout(() => { attractScreen.hidden = true; }, isCalm() ? 0 : 520);
     keepAwake();
     ensureHouseNext();
     skaters.start();

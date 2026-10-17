@@ -35,7 +35,9 @@ else gets invented without extending this list first.
   coloured halos, for **signage only**. Never for body copy, the song title or
   the clock.
 - **Grid horizon** (`.synth-horizon`) - the synthwave world the cabinet sits in:
-  perspective neon grid, striped sun, twinkling starfield, glowing horizon line.
+  faint perspective grid in the lowest band, starfield in the side gutters, one
+  thin horizon line, glass vignette and whisper scanlines. Kept at trivia's
+  level: atmospheric as a whole, invisible while reading.
   One fixed layer at the back. Its grid speed follows the music.
 - **Bubble tubes** (`.tube`) - Wurlitzer-1015-style arches either side of the
   Now Playing panel with rising bubbles and slow colour-cycling.
@@ -122,13 +124,37 @@ worker.
   the UP NEXT titles and the ticker. The rack and strips are reference material
   for the operator and are allowed to be smaller.
 
+## Restraint (the October refinement pass)
+
+The first build had every effect at full strength and read as "everything has
+been added". The rule now is **one machine, quietly lit**: the cabinet, the
+record changer and the readouts carry the show; the world around it stays dim.
+
+- Removed: the RFAI PRESENTS tab in the header, the hanging mirror ball, the
+  outrun sun, the bloom around the marquee sign and bubble tubes, the platter glow.
+- Dimmed to trivia's levels: the rolling grid (opacity 0.16, lowest band only,
+  7 s per cell, music speeds it up to 1.6x at most), stars (gutters only), the
+  horizon line, the bass swell (0.14-0.34), mirror-light spots (7, half as bright,
+  behind the cabinet), neon glows, LEDs, the spectrum (82%), the bubble tubes
+  (liquid 5-24%, slower bubbles), the paper strips and the VU faces (warm, not white).
+- Slowed: the LED ticker (4.2 rem a second, readable from the back), bulb chase
+  (2.6 s), neon flicker dips only to 80% so a word never looks switched off.
+- Framed: trivia's CRT bezel at .7 rem with four corner fasteners and an inner
+  shadow, with the machine inset from it, so the page reads as a cabinet screen.
+- Boot: trivia's pacing - a 13 s hold with the self-test printing across 10 s
+  (17 s cap, 18 s CSS failsafe). Header line: SKATE BY FAITH JUKEBOX.
+- VU meters: landscape windows; the scale and the needle's pivot are computed
+  from the smaller side so nothing is ever cut off.
+
+Before adding anything new, ask what it replaces.
+
 ## Motion
 
 Port of trivia's effects, then the jukebox mechanics on top.
 
 **Ported from trivia:** CRT power-on boot with a random self-test (`startBoot`),
 neon flicker with a random pattern/speed/phase per tube (`neon.js`), the synth
-horizon (grid, sun, stars, glow line), CRT glass roll band, chasing marquee
+horizon (grid, stars, glow line), CRT glass roll band, chasing marquee
 bulbs, the blinking attract prompt, score-reel count-ups (`countUp`, used for
 the credits counter).
 
@@ -157,7 +183,7 @@ capped at 30 fps): neon spectrum bars with peak caps, twin needle VU meters,
 bubble tubes that speed up with the music, grid scroll speed and bulb chase speed
 (`playbackRate` of the CSS animations), and a soft bass swell on the cabinet glow.
 
-**Ambient:** mirror-ball light spots drifting across the whole page (CSS
+**Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
 transform only), roller-skater neon silhouettes gliding along the rink floor
 every 20-50 s (at most two at once), the LED ticker scrolling NOW PLAYING / UP
 NEXT / announcer lines, bubble tubes colour-cycling over 48 s.

@@ -277,7 +277,7 @@ export function createUI({ library, getStatus, handlers }) {
    left at a steady, readable speed. Calm: the text sits still and swaps
    every few seconds.
    ============================================================ */
-const TICKER_REM_PER_SECOND = 7.5;
+const TICKER_REM_PER_SECOND = 4.2;      // slow enough to read every word from the back of the rink
 const TICKER_CALM_MS = 8000;
 
 export function createTicker({ textEl, nextText }) {

@@ -93,7 +93,7 @@ export function countUp(el, to, { ms = 600, format = (n) => String(Math.round(n)
    ============================================================ */
 const BOOT_FLAG = 'sn_booted';
 const BOOT_TEST_LINES = 5;
-const BOOT_LOG_MS = 5200;
+const BOOT_LOG_MS = 10000;           // the self-test prints across this long (trivia's pacing)
 
 function renderBootLog(overlay, holdMs) {
   const log = overlay.querySelector('.boot-log');
@@ -105,7 +105,7 @@ function renderBootLog(overlay, holdMs) {
   const test = ({ t, s, k }) => `  ${esc(t)} ${dots(t)} <span class="${k}">${esc(s)}</span>`;
 
   const rows = [
-    '<b>RFAI SKATE BY FAITH</b> JUKEBOX SYSTEM',
+    '<b>SKATE BY FAITH</b> JUKEBOX',
     '(C) 1983   ·   ALL RIGHTS RESERVED',
     ' ',
     ...sample(BOOT_POOL, BOOT_TEST_LINES).map(test),
@@ -113,8 +113,8 @@ function renderBootLog(overlay, holdMs) {
   ];
 
   const hold = holdMs / 1000;
-  const first = 1.4;
-  const last = Math.max(first + 1, hold - 0.6);
+  const first = 1.6;
+  const last = Math.max(first + 1, hold - 0.8);
   const testCount = rows.length - 3;
   const delayFor = (i) => {
     if (i === 0) return 0.45;
@@ -130,7 +130,7 @@ function renderBootLog(overlay, holdMs) {
 
 /* Returns { reveal(), skip() }. reveal() lifts the overlay once the machine
    is ready (after the minimum hold). skip() lifts it right now. */
-export function startBoot(overlay, { minMs = 7000, capMs = 11000 } = {}) {
+export function startBoot(overlay, { minMs = 13000, capMs = 17000 } = {}) {
   const none = { reveal() {}, skip() {}, played: false };
   if (!overlay) return none;
   if (calm) { overlay.hidden = true; return none; }

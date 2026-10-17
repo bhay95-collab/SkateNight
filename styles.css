@@ -121,9 +121,14 @@ kbd{
   background-image:radial-gradient(rgba(255,255,255,.035) .5px, transparent .6px);
   background-size:3px 3px;
 }
-.synth-horizon::before{ /* glass vignette */
+.synth-horizon::before{ /* tinted-glass vignette pulling focus to the centre (trivia) */
   content:""; position:absolute; inset:0; z-index:5;
-  background:radial-gradient(130% 120% at 50% 45%, transparent 55%, rgba(0,0,0,.5) 100%);
+  background:radial-gradient(135% 120% at 50% 42%, transparent 52%, rgba(0,0,0,.6) 100%);
+}
+.synth-horizon::after{ /* whisper-thin scanlines over the whole world (trivia) */
+  content:""; position:absolute; inset:0; z-index:6;
+  background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.14) 2px 3px);
+  mix-blend-mode:multiply; opacity:.5;
 }
 .synth-stars{
   position:absolute; left:0; right:0; top:0; height:55%;
@@ -142,95 +147,82 @@ kbd{
     radial-gradient(1px 1px at 88% 56%, rgba(37,232,226,.6), transparent),
     radial-gradient(1px 1px at 94% 12%, rgba(255,243,222,.7), transparent),
     radial-gradient(1.5px 1.5px at 97% 34%, rgba(255,45,149,.6), transparent);
-  opacity:.7;
+  opacity:.45;
+  /* stars live in the side gutters only, so the reading column stays quiet (trivia) */
+  -webkit-mask:linear-gradient(90deg, #000 0 20%, transparent 34% 66%, #000 80% 100%);
+  mask:linear-gradient(90deg, #000 0 20%, transparent 34% 66%, #000 80% 100%);
   animation:star-twinkle 7s ease-in-out infinite alternate;
 }
-@keyframes star-twinkle{ from{ opacity:.45 } to{ opacity:.8 } }
+@keyframes star-twinkle{ from{ opacity:.32 } to{ opacity:.5 } }
 
-/* the outrun sun: half sunk below the horizon, with the slatted cut-outs */
-.synth-sun{
-  position:absolute; left:50%; top:54%; width:36vmin; height:36vmin; margin-left:-18vmin; margin-top:-26vmin;
-  border-radius:50%;
-  background:linear-gradient(180deg, var(--cream) 0%, #FF8AB8 28%, var(--magenta) 60%, #7A1B6E 100%);
-  opacity:.5;
-  -webkit-mask:repeating-linear-gradient(180deg, #000 0 78%, transparent 78% 84%);
-  mask:repeating-linear-gradient(180deg, #000 0 78%, transparent 78% 84%);
-  -webkit-mask-size:100% 100%; mask-size:100% 100%;
+.synth-glow{ /* one thin phosphor horizon line, faded at both ends (trivia) */
+  position:absolute; left:6%; right:6%; top:72%; height:1px; opacity:.5;
+  background:linear-gradient(90deg, transparent, rgba(37,232,226,.5) 32%, rgba(255,45,149,.45) 68%, transparent);
+  box-shadow:0 0 .6rem 1px rgba(37,232,226,.12), 0 0 1.1rem .2rem rgba(255,45,149,.07);
 }
-.synth-glow{ /* the horizon line */
-  position:absolute; left:0; right:0; top:54%; height:.14rem;
-  background:linear-gradient(90deg, transparent, var(--cyan) 20%, var(--magenta) 80%, transparent);
-  box-shadow:0 0 1rem .1rem rgba(37,232,226,.35), 0 0 2.2rem .3rem rgba(255,45,149,.25);
-}
-.synth-grid{
-  position:absolute; left:-60%; right:-60%; top:54%; height:90%;
+.synth-grid{ /* the rolling floor: only the lowest band, thin and faint (trivia's level) */
+  position:absolute; left:-40%; right:-40%; top:72%; height:60%;
   background-image:
-    linear-gradient(to right, rgba(37,232,226,.7) .14rem, transparent .14rem),
-    linear-gradient(to bottom, rgba(255,45,149,.65) .14rem, transparent .14rem);
+    linear-gradient(to right, rgba(37,232,226,.5) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(150,96,206,.5) 1px, transparent 1px);
   background-size:6rem 4.4rem;
   transform:perspective(34rem) rotateX(64deg);
   transform-origin:50% 0;
-  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 22%);
-  mask-image:linear-gradient(to bottom, transparent, #000 22%);
-  opacity:.55;
-  animation:grid-scroll 3.4s linear infinite;
+  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 40%);
+  mask-image:linear-gradient(to bottom, transparent, #000 40%);
+  opacity:.16;
+  animation:grid-scroll 7s linear infinite;
 }
 @keyframes grid-scroll{ to{ background-position:0 4.4rem; } }
 
 /* the cabinet's own glow, swelled gently by the bass (opacity set by visualiser.js) */
 .cab-glow{
   position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.2;
-  background:radial-gradient(60% 55% at 50% 52%, rgba(255,45,149,.30), transparent 70%);
+  background:radial-gradient(60% 55% at 50% 52%, rgba(255,45,149,.18), transparent 70%);
 }
 
-/* the mirror ball's light spots, drifting across the whole page */
-.mirror-light{ position:fixed; inset:0; z-index:6; pointer-events:none; overflow:hidden; }
+/* mirror-ball light: a few faint spots drifting BEHIND the cabinet, glimpsed in the gaps */
+.mirror-light{ position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
 .mirror-light i{
   position:absolute; left:var(--x); top:var(--y);
   width:var(--size); height:var(--size); border-radius:50%;
-  background:radial-gradient(circle, rgba(255,243,222,.15) 0, rgba(255,243,222,.07) 38%, transparent 68%);
+  background:radial-gradient(circle, rgba(255,243,222,.08) 0, rgba(255,243,222,.035) 38%, transparent 68%);
   animation:spot-drift var(--dur) ease-in-out var(--delay) infinite alternate;
   will-change:transform;
 }
-.mirror-light i[data-tone="cyan"]{ background:radial-gradient(circle, rgba(37,232,226,.17) 0, rgba(37,232,226,.07) 38%, transparent 68%); }
-.mirror-light i[data-tone="magenta"]{ background:radial-gradient(circle, rgba(255,45,149,.17) 0, rgba(255,45,149,.07) 38%, transparent 68%); }
+.mirror-light i[data-tone="cyan"]{ background:radial-gradient(circle, rgba(37,232,226,.09) 0, rgba(37,232,226,.035) 38%, transparent 68%); }
+.mirror-light i[data-tone="magenta"]{ background:radial-gradient(circle, rgba(255,45,149,.09) 0, rgba(255,45,149,.035) 38%, transparent 68%); }
 @keyframes spot-drift{ to{ transform:translate(var(--dx), var(--dy)); } }
 
-.mirror-ball{
-  position:fixed; z-index:7; left:17.5rem; top:0; width:2.1rem; pointer-events:none;
-}
-.mirror-ball::before{ content:""; position:absolute; left:50%; top:0; width:1px; height:.55rem; background:rgba(255,243,222,.5); }
-.mirror-ball span{
-  display:block; width:100%; aspect-ratio:1; border-radius:50%; margin-top:.5rem; position:relative; overflow:hidden;
-  background:
-    radial-gradient(circle at 34% 30%, #fff 0 7%, transparent 9%),
-    repeating-conic-gradient(from 0deg, #D8D8E8 0 15deg, #8A8AA6 15deg 30deg, #F4F4FF 30deg 45deg, #6A6A86 45deg 60deg);
-  box-shadow:0 0 .8rem rgba(255,243,222,.35);
-  animation:ball-turn 9s linear infinite;
-}
-.mirror-ball span::after{
-  content:""; position:absolute; inset:0; border-radius:50%;
-  background:radial-gradient(circle at 34% 30%, transparent 30%, rgba(12,5,22,.65) 100%);
-}
-@keyframes ball-turn{ to{ transform:rotate(360deg); } }
-
-/* moulded screen bezel around the whole viewport */
+/* CRT screen bezel (trivia): a fixed moulded frame around the viewport so the
+   whole machine reads as if it is running behind the glass of an arcade
+   monitor. Inset shadows on one click-through element, plus four recessed
+   corner fasteners. No layout shift, no overflow. */
 .crt-bezel{
-  --bezel:.55rem;
-  position:fixed; inset:0; z-index:45; pointer-events:none; border-radius:1rem;
+  --bezel:.7rem;
+  position:fixed; inset:0; z-index:45; pointer-events:none; border-radius:1.1rem;
   box-shadow:
     inset .15rem .15rem .15rem calc(-1 * var(--bezel) + .1rem) rgba(176,164,214,.16),
     inset -.15rem -.15rem .25rem calc(-1 * var(--bezel) + .1rem) rgba(0,0,0,.75),
     inset 0 0 1.3rem rgba(37,232,226,.05),
+    inset 0 0 2.6rem rgba(0,0,0,.35),
     inset 0 0 0 var(--bezel) #0b0912,
     inset 0 0 0 calc(var(--bezel) + 1px) rgba(0,0,0,.85);
+}
+.crt-bezel::after{ /* four recessed corner fasteners */
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:
+    radial-gradient(circle .12rem at .8rem .8rem, rgba(0,0,0,.9) 0 .12rem, rgba(150,140,180,.10) .14rem .17rem, transparent .2rem),
+    radial-gradient(circle .12rem at calc(100% - .8rem) .8rem, rgba(0,0,0,.9) 0 .12rem, rgba(150,140,180,.10) .14rem .17rem, transparent .2rem),
+    radial-gradient(circle .12rem at .8rem calc(100% - .8rem), rgba(0,0,0,.9) 0 .12rem, rgba(150,140,180,.10) .14rem .17rem, transparent .2rem),
+    radial-gradient(circle .12rem at calc(100% - .8rem) calc(100% - .8rem), rgba(0,0,0,.9) 0 .12rem, rgba(150,140,180,.10) .14rem .17rem, transparent .2rem);
 }
 
 /* ================= RIG LAYOUT ================= */
 .rig{
   position:relative; z-index:3; height:100vh; height:100dvh;
-  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto 2.1rem;
-  gap:.45rem; padding:.8rem 1.05rem 0;
+  display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto 1.75rem;
+  gap:.45rem; padding:.95rem 1.25rem .35rem;
 }
 /* While INSERT COIN is showing, the machine waits behind it unseen */
 body.on-attract .rig{ visibility:hidden; }
@@ -287,7 +279,7 @@ body.on-attract .rig{ visibility:hidden; }
 
 .led{
   font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-weight:700;
-  color:var(--cyan); text-shadow:0 0 .45rem rgba(37,232,226,.55);
+  color:var(--cyan); text-shadow:0 0 .35rem rgba(37,232,226,.35);
 }
 
 /* ================= buttons: arcade hardware ================= */
@@ -298,7 +290,7 @@ body.on-attract .rig{ visibility:hidden; }
 .btn:disabled{ opacity:.45; cursor:default; }
 .btn-gold{
   background:var(--gold); color:var(--ink); font-family:var(--font-display); font-weight:400;
-  font-size:1.25rem; letter-spacing:.02em; padding:.5rem 1.1rem .4rem; min-width:7.6rem;
+  font-size:1.05rem; letter-spacing:.02em; padding:.5rem .8rem .42rem; min-width:6.4rem;
   box-shadow:0 .3rem 0 var(--gold-deep), 0 .5rem 1rem rgba(0,0,0,.35);
 }
 .btn-gold:hover{ filter:brightness(1.06); box-shadow:0 .3rem 0 var(--gold-deep), 0 .5rem 1rem rgba(0,0,0,.35), 0 0 1.3rem rgba(255,197,49,.55); }
@@ -350,7 +342,7 @@ body.on-attract .rig{ visibility:hidden; }
   position:relative; padding:.3rem 2rem .8rem;
   background:radial-gradient(120% 140% at 50% -10%, rgba(255,45,149,.12), transparent 55%), linear-gradient(180deg, #120826, #0A0417);
   border:.14rem solid var(--cab-edge); border-radius:1rem;
-  box-shadow:0 .4rem 0 rgba(0,0,0,.5), inset 0 0 0 .32rem #0A0417, inset 0 0 0 .38rem rgba(255,255,255,.04), 0 0 2.2rem var(--tube-glow);
+  box-shadow:0 .4rem 0 rgba(0,0,0,.5), inset 0 0 0 .32rem #0A0417, inset 0 0 0 .38rem rgba(255,255,255,.04), 0 0 1.4rem rgba(255,45,149,.12);
 }
 .marquee-sign::before{ /* amber bulb ring, chasing */
   content:""; position:absolute; inset:.4rem .65rem; border-radius:.6rem; pointer-events:none;
@@ -358,8 +350,8 @@ body.on-attract .rig{ visibility:hidden; }
     radial-gradient(circle .13rem at .5rem 50%, var(--gold) 0 .13rem, transparent .17rem),
     radial-gradient(circle .13rem at .5rem 50%, var(--gold) 0 .13rem, transparent .17rem);
   background-size:1.05rem .5rem, 1.05rem .5rem; background-repeat:repeat-x; background-position:0 0, 0 100%;
-  filter:drop-shadow(0 0 .2rem rgba(255,197,49,.7));
-  animation:bulb-chase 1.6s linear infinite;
+  filter:drop-shadow(0 0 .15rem rgba(255,197,49,.45)); opacity:.85;
+  animation:bulb-chase 2.6s linear infinite;
 }
 @keyframes bulb-chase{ to{ background-position:1.05rem 0, 1.05rem 100%; } }
 .marquee-sign::after{ /* four cabinet screws */
@@ -381,8 +373,8 @@ body.on-attract .rig{ visibility:hidden; }
   margin:.15rem 0 0; text-align:center; position:relative; z-index:1; white-space:nowrap;
   font:700 .58rem/1 var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--cream);
 }
-.w-cyan{ text-shadow:0 0 .06rem #fff, 0 0 .3rem rgba(37,232,226,.95), 0 0 .75rem rgba(37,232,226,.55), 0 0 1.4rem rgba(37,232,226,.25), -.05rem 0 0 rgba(37,232,226,.3), .05rem 0 0 rgba(255,45,149,.2); }
-.w-mag{ text-shadow:0 0 .06rem #fff, 0 0 .3rem rgba(255,45,149,.95), 0 0 .75rem rgba(255,45,149,.55), 0 0 1.4rem rgba(255,45,149,.25), -.05rem 0 0 rgba(255,45,149,.3), .05rem 0 0 rgba(37,232,226,.2); }
+.w-cyan{ color:#E9FFFE; text-shadow:0 0 .05rem #fff, 0 0 .28rem rgba(37,232,226,.75), 0 0 .7rem rgba(37,232,226,.32), -.05rem 0 0 rgba(37,232,226,.25), .05rem 0 0 rgba(255,45,149,.15); }
+.w-mag{ color:#FFEAF4; text-shadow:0 0 .05rem #fff, 0 0 .28rem rgba(255,45,149,.75), 0 0 .7rem rgba(255,45,149,.32), -.05rem 0 0 rgba(255,45,149,.25), .05rem 0 0 rgba(37,232,226,.15); }
 
 /* neon tube flicker. Photosensitive-safe by design: dips only to about half
    brightness, a burst holds at most 2 dips (so never more than 3 in a
@@ -390,15 +382,15 @@ body.on-attract .rig{ visibility:hidden; }
    sets one of these per tube at a random speed and phase. */
 @keyframes neon-flicker-a{
   0%,86%,100%{ opacity:1 }
-  87%{ opacity:.55 } 89%{ opacity:1 } 92%{ opacity:.65 } 94%{ opacity:1 }
+  87%{ opacity:.8 } 89%{ opacity:1 } 92%{ opacity:.86 } 94%{ opacity:1 }
 }
 @keyframes neon-flicker-b{
   0%,30%,100%{ opacity:1 }
-  31%{ opacity:.6 } 33%{ opacity:1 } 63%{ opacity:.7 } 66%{ opacity:1 }
+  31%{ opacity:.82 } 33%{ opacity:1 } 63%{ opacity:.88 } 66%{ opacity:1 }
 }
 @keyframes neon-flicker-c{
   0%,52%,100%{ opacity:1 }
-  53%{ opacity:.6 } 56%{ opacity:1 }
+  53%{ opacity:.82 } 56%{ opacity:1 }
 }
 
 /* ================= TICKER ================= */
@@ -407,7 +399,7 @@ body.on-attract .rig{ visibility:hidden; }
 .ticker-text{
   position:absolute; left:0; white-space:nowrap;
   font:700 1.1rem/1 var(--font-mono); letter-spacing:.06em; color:var(--cyan);
-  text-shadow:0 0 .5rem rgba(37,232,226,.55); will-change:transform;
+  text-shadow:0 0 .35rem rgba(37,232,226,.35); will-change:transform;
 }
 .ticker-lane.is-calm .ticker-text{
   position:static; display:block; width:100%; text-align:center; overflow:hidden; text-overflow:ellipsis; padding:0 1rem;
@@ -477,7 +469,7 @@ body.on-attract .rig{ visibility:hidden; }
 }
 .strips-empty{ margin:1rem .4rem; color:var(--dim); font:700 .72rem var(--font-mono); letter-spacing:.08em; text-align:center; }
 .strip{
-  --paper:linear-gradient(180deg,#F0E4C8,#DDCDA6);
+  --paper:linear-gradient(180deg,#E6D9BB,#D2C29E);
   display:grid; grid-template-columns:2.35rem minmax(0,1fr) auto; align-items:center; gap:.5rem;
   width:100%; min-height:1.8rem; margin:0 0 .26rem; padding:.2rem .45rem .2rem .25rem; border:0; cursor:pointer; text-align:left;
   background:var(--paper); color:var(--sl-ink); border-radius:.2rem;
@@ -503,7 +495,7 @@ body.on-attract .rig{ visibility:hidden; }
 .tube{
   position:relative; align-self:stretch; overflow:hidden; background:#0b0614;
   border:.14rem solid var(--cab-edge); border-radius:1.15rem 1.15rem .35rem .35rem;
-  box-shadow:var(--drop), 0 0 1.5rem var(--tube-glow), inset 0 0 .7rem rgba(0,0,0,.7);
+  box-shadow:var(--drop), 0 0 .7rem rgba(255,45,149,.12), inset 0 0 .7rem rgba(0,0,0,.7);
 }
 .tube canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
 .tube::after{ /* the tube's base plate */
@@ -536,7 +528,7 @@ body.on-attract .rig{ visibility:hidden; }
 .platter{
   position:absolute; z-index:1; right:.9rem; top:.5rem; width:7.8rem; aspect-ratio:1; border-radius:50%;
   background:radial-gradient(circle, #2c1c44 0 62%, #1b1030 63% 100%);
-  box-shadow:0 .22rem 0 rgba(0,0,0,.6), inset 0 0 0 .2rem var(--cab-edge), 0 0 1.2rem var(--tube-glow);
+  box-shadow:0 .22rem 0 rgba(0,0,0,.6), inset 0 0 0 .2rem var(--cab-edge);
 }
 .platter::after{ /* strobe-dot ring around the rim (stays still) */
   content:""; position:absolute; inset:.28rem; border-radius:50%;
@@ -600,11 +592,11 @@ body.on-attract .rig{ visibility:hidden; }
 .np-fill{
   position:absolute; inset:.14rem; border-radius:999px; transform:scaleX(0); transform-origin:left; transition:transform .3s linear;
   background:linear-gradient(180deg, #fff 0 18%, var(--cyan) 18% 78%, var(--cyan-deep) 78%);
-  box-shadow:0 0 .6rem var(--cyan), 0 0 1.2rem rgba(37,232,226,.45);
+  box-shadow:0 0 .4rem rgba(37,232,226,.6);
 }
-.np-meters{ display:grid; grid-template-columns:4.9rem minmax(0,1fr) 4.9rem; gap:.55rem; align-items:center; flex:1; min-height:0; max-height:6.2rem; grid-template-rows:minmax(0,1fr); }
+.np-meters{ display:grid; grid-template-columns:5.6rem minmax(0,1fr) 5.6rem; gap:.55rem; align-items:center; flex:1; min-height:0; max-height:6.2rem; grid-template-rows:minmax(0,1fr); }
 .np-meters canvas{ min-height:0; }
-.vu{ width:100%; height:100%; min-height:0; border-radius:.4rem; box-shadow:0 .14rem 0 rgba(0,0,0,.55), 0 0 0 .12rem #5a3f2a; display:block; }
+.vu{ width:100%; aspect-ratio:4 / 3; height:auto; max-height:100%; min-height:0; align-self:center; border-radius:.4rem; box-shadow:0 .14rem 0 rgba(0,0,0,.55), 0 0 0 .12rem #5a3f2a, inset 0 0 .5rem rgba(0,0,0,.4); display:block; }
 .spectrum{ width:100%; height:100%; max-height:100%; border-radius:.4rem; background:var(--screen); box-shadow:var(--inset); display:block; }
 
 /* ================= RIGHT: up next + keypad ================= */
@@ -687,8 +679,8 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 /* ================= RINK FLOOR + SKATERS ================= */
 .rink-floor{ position:relative; overflow:hidden; pointer-events:none; }
 .skater{
-  position:absolute; left:0; bottom:-.1rem; width:2.3rem; height:2.3rem;
-  color:var(--cream); filter:drop-shadow(0 0 .3rem currentColor);
+  position:absolute; left:0; bottom:.15rem; width:1.6rem; height:1.6rem; opacity:.75;
+  color:var(--cream); filter:drop-shadow(0 0 .15rem currentColor);
   animation:skater-glide var(--glide, 14s) linear forwards; will-change:transform;
 }
 .skater[data-tone="cyan"]{ color:var(--cyan); }
@@ -704,7 +696,7 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 
 /* ================= LEGEND, TOAST, MODAL ================= */
 .legend{
-  position:fixed; z-index:30; left:50%; bottom:.3rem; transform:translate(-50%,.6rem);
+  position:fixed; z-index:30; left:50%; bottom:.75rem; transform:translate(-50%,.6rem);
   display:flex; gap:.75rem; padding:.4rem .8rem; max-width:98vw; flex-wrap:nowrap; justify-content:center; white-space:nowrap;
   background:rgba(12,5,22,.94); border:1px solid var(--cab-edge); border-radius:.7rem; box-shadow:var(--drop);
   font-size:.7rem; font-weight:700; color:var(--cream); opacity:0; pointer-events:none;
@@ -738,8 +730,8 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 .attract-title{
   font-family:var(--font-display); font-size:5.2rem; line-height:1; text-transform:uppercase; white-space:nowrap; color:#fff;
 }
-.attract-title span:first-child{ text-shadow:0 0 .1rem #fff, 0 0 .5rem rgba(37,232,226,.95), 0 0 1.3rem rgba(37,232,226,.55), 0 0 2.6rem rgba(37,232,226,.3); }
-.attract-title span:last-child{ text-shadow:0 0 .1rem #fff, 0 0 .5rem rgba(255,45,149,.95), 0 0 1.3rem rgba(255,45,149,.55), 0 0 2.6rem rgba(255,45,149,.3); }
+.attract-title span:first-child{ text-shadow:0 0 .1rem #fff, 0 0 .45rem rgba(37,232,226,.75), 0 0 1.1rem rgba(37,232,226,.32); }
+.attract-title span:last-child{ text-shadow:0 0 .1rem #fff, 0 0 .45rem rgba(255,45,149,.75), 0 0 1.1rem rgba(255,45,149,.32); }
 .attract-coin{
   margin-top:.6rem; padding:.9rem 3.2rem .75rem; border-radius:1rem;
   font-family:var(--font-display); font-size:2.7rem; line-height:1; letter-spacing:.03em; color:var(--ink);
@@ -754,13 +746,13 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 @keyframes attract-blink{ 50%{ color:rgba(20,7,34,.35); } }
 
 /* idle attract light show on the machine itself */
-body.is-attract .marquee-sign::before{ animation-duration:.8s; }
+body.is-attract .marquee-sign::before{ animation-duration:1.6s; }
 body.is-attract .mech.is-idle-cover .mech-slot{ transition:opacity .6s ease; }
 
 /* ================= BOOT: CRT power-on (ported from trivia) ================= */
 .boot{
   position:fixed; inset:0; z-index:100; background:#05030B; display:grid; place-items:center; overflow:hidden;
-  animation:boot-failsafe 12s linear forwards;
+  animation:boot-failsafe 18s linear forwards;   /* safety net if JS never reveals; outlasts the 13 s hold + 17 s cap */
 }
 .boot[hidden]{ display:none; }
 .boot::before{ content:""; position:absolute; inset:0; z-index:4; pointer-events:none; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.32) 2px 3px); }
@@ -828,8 +820,7 @@ html[data-lights="calm"] *::after{
   transition:none !important;
 }
 html[data-lights="calm"] .boot,
-html[data-lights="calm"] .skater,
-html[data-lights="calm"] .mirror-ball{ display:none !important; }
+html[data-lights="calm"] .skater{ display:none !important; }
 html[data-lights="calm"] .attract-coin{ color:var(--ink); }
-html[data-lights="calm"] .synth-grid{ opacity:.4; }
+html[data-lights="calm"] .synth-grid{ opacity:.12; }
 html[data-lights="calm"] .attract.is-leaving{ transform:none; }

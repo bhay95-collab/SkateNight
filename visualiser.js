@@ -113,65 +113,85 @@ export function createVisualiser() {
         x: 0.2 + Math.random() * 0.6,
         y: Math.random(),
         r: 0.8 + Math.random() * 1.9,
-        v: 0.05 + Math.random() * 0.09,
+        v: 0.03 + Math.random() * 0.05,
         wobble: Math.random() * Math.PI * 2,
       })));
     }
   }
 
-  /* ---------- VU face: drawn once, needle drawn on top each frame ---------- */
+  /* ---------- VU meter ----------
+     Geometry comes from the smaller of width and height, so the whole scale
+     and the needle's pivot always sit INSIDE the window, whatever shape the
+     layout gives the canvas. The pivot is a small cap just above the bottom
+     edge; the scale is a 100-degree arc that fits both sides and the top. */
+  function vuGeometry(w, h) {
+    const pad = Math.min(w, h) * 0.08;
+    const cx = w / 2;
+    const cy = h - pad * 1.1;
+    const sin50 = Math.sin((50 * Math.PI) / 180);
+    const r = Math.max(4, Math.min((w / 2 - pad) / sin50, cy - pad - h * 0.06));
+    return { cx, cy, r, pad };
+  }
+
   function renderVuFace(v) {
     const off = document.createElement('canvas');
     off.width = v.w;
     off.height = v.h;
     const c = off.getContext('2d');
     const { w, h } = v;
-    // paper-cream face with a darker rim, like an old VU meter window
+    const { cx, cy, r } = vuGeometry(w, h);
+    // warm, back-lit face - a touch dimmer than paper so it never glares
     const bg = c.createLinearGradient(0, 0, 0, h);
-    bg.addColorStop(0, '#F2E6C9');
-    bg.addColorStop(1, '#D9C79E');
+    bg.addColorStop(0, '#DCCBA3');
+    bg.addColorStop(1, '#B9A47A');
     c.fillStyle = bg;
     c.fillRect(0, 0, w, h);
-    const cx = w / 2;
-    const cy = h * 1.02;
-    const r = h * 0.86;
     c.lineCap = 'round';
     for (let i = 0; i <= 20; i++) {
       const a = (-50 + (100 * i) / 20) * (Math.PI / 180);
-      const inner = r * (i % 5 === 0 ? 0.80 : 0.88);
-      c.strokeStyle = i >= 15 ? rgb(COLORS.red) : '#2A1B12';
-      c.lineWidth = Math.max(1, h * (i % 5 === 0 ? 0.03 : 0.018));
+      const inner = r * (i % 5 === 0 ? 0.78 : 0.87);
+      c.strokeStyle = i >= 15 ? '#C2364A' : '#2A1B12';
+      c.lineWidth = Math.max(1, r * (i % 5 === 0 ? 0.035 : 0.022));
       c.beginPath();
       c.moveTo(cx + Math.sin(a) * inner, cy - Math.cos(a) * inner);
       c.lineTo(cx + Math.sin(a) * r, cy - Math.cos(a) * r);
       c.stroke();
     }
     c.fillStyle = '#2A1B12';
-    c.font = `700 ${Math.round(h * 0.17)}px "JetBrains Mono", monospace`;
+    c.font = `700 ${Math.round(r * 0.22)}px "JetBrains Mono", monospace`;
     c.textAlign = 'center';
-    c.fillText('VU', cx, h * 0.5);
+    c.fillText('VU', cx, cy - r * 0.42);
+    // a soft shadow at the top edge, like the meter sits behind a bezel
+    const shade = c.createLinearGradient(0, 0, 0, h * 0.25);
+    shade.addColorStop(0, 'rgba(0,0,0,.28)');
+    shade.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = shade;
+    c.fillRect(0, 0, w, h * 0.25);
     return off;
   }
 
   function drawVu(v, level, side) {
     if (!v) return;
     const { ctx, w, h } = v;
+    const { cx, cy, r, pad } = vuGeometry(w, h);
     ctx.drawImage(v.face, 0, 0);
-    const cx = w / 2;
-    const cy = h * 1.02;
-    const len = h * 0.9;
     const angle = (-50 + 100 * clamp(level, 0, 1)) * (Math.PI / 180);
     ctx.strokeStyle = '#1A0F0A';
-    ctx.lineWidth = Math.max(1.5, h * 0.025);
+    ctx.lineWidth = Math.max(1.5, r * 0.03);
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.sin(angle) * len, cy - Math.cos(angle) * len);
+    ctx.lineTo(cx + Math.sin(angle) * r * 0.97, cy - Math.cos(angle) * r * 0.97);
     ctx.stroke();
-    ctx.fillStyle = '#1A0F0A';
-    ctx.font = `700 ${Math.round(h * 0.15)}px "JetBrains Mono", monospace`;
+    ctx.fillStyle = '#1A0F0A';                     // the pivot cap
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(2, r * 0.07), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = `700 ${Math.round(r * 0.18)}px "JetBrains Mono", monospace`;
     ctx.textAlign = side === 'L' ? 'left' : 'right';
-    ctx.fillText(side, side === 'L' ? w * 0.06 : w * 0.94, h * 0.2);
+    ctx.textBaseline = 'top';
+    ctx.fillText(side, side === 'L' ? pad : w - pad, pad * 0.8);
+    ctx.textBaseline = 'alphabetic';
   }
 
   /* ---------- spectrum ---------- */
@@ -187,12 +207,12 @@ export function createVisualiser() {
       peaks[i] = bars[i] > peaks[i] ? bars[i] : Math.max(bars[i], peaks[i] - dt * 0.0006);
       const x = i * (bw + gap);
       const bh = Math.max(2, bars[i] * h);
-      ctx.fillStyle = 'rgba(255,45,149,0.18)';                // wide dim halo = glow without blur
-      ctx.fillRect(x - gap, h - bh - gap, bw + gap * 2, bh + gap);
+      ctx.globalAlpha = 0.82;                                  // a little under full brightness
       ctx.fillStyle = gradient;
       ctx.fillRect(x, h - bh, bw, bh);
-      ctx.fillStyle = rgb(COLORS.cream, 0.95);                // the peak cap
+      ctx.fillStyle = rgb(COLORS.cream, 0.8);                 // the peak cap
       ctx.fillRect(x, h - peaks[i] * h - 3 * spectrum.dpr, bw, 2 * spectrum.dpr);
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -203,12 +223,12 @@ export function createVisualiser() {
     const col = tubeColor(seconds + index * 12);
     ctx.clearRect(0, 0, w, h);
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, rgb(col, 0.10));
-    g.addColorStop(1, rgb(col, 0.42));
+    g.addColorStop(0, rgb(col, 0.05));
+    g.addColorStop(1, rgb(col, 0.24));
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     // a bright strip of glass highlight down the left side
-    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.fillRect(w * 0.14, 0, w * 0.1, h);
     const seeds = bubbleSeeds[index];
     for (const b of seeds) {
@@ -217,11 +237,11 @@ export function createVisualiser() {
       const x = (b.x + Math.sin(seconds * 1.5 + b.wobble) * 0.06) * w;
       const y = b.y * h;
       const r = b.r * t.dpr * 1.6;
-      ctx.fillStyle = rgb(COLORS.cream, 0.55);
+      ctx.fillStyle = rgb(COLORS.cream, 0.38);
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
       ctx.fillRect(x - r * 0.35, y - r * 0.4, r * 0.4, r * 0.4);
     }
     return col;
@@ -238,7 +258,7 @@ export function createVisualiser() {
   let lastRate = -1;
   let lastTubeCss = 0;
   function applySpeed(energy, nowMs) {
-    const rate = Math.round((0.45 + energy * 2.4) * 10) / 10;
+    const rate = Math.round((0.7 + energy * 0.9) * 10) / 10;
     if (rate !== lastRate) {
       lastRate = rate;
       for (const a of animations) { try { a.playbackRate = rate; } catch { /* animation gone */ } }
@@ -296,12 +316,12 @@ export function createVisualiser() {
     });
     let tubeCol = null;
     safely('tubes', () => {
-      tubeCol = drawTube(tubes[0], 0, seconds, 1 + energy * 2.4);
-      drawTube(tubes[1], 1, seconds, 1 + energy * 2.4);
+      tubeCol = drawTube(tubes[0], 0, seconds, 1 + energy * 1.2);
+      drawTube(tubes[1], 1, seconds, 1 + energy * 1.2);
     });
 
     // 4. the soft bass swell on the cabinet glow (opacity only)
-    if (glow) glow.style.opacity = (0.16 + 0.34 * pulse).toFixed(3);
+    if (glow) glow.style.opacity = (0.14 + 0.2 * pulse).toFixed(3);
 
     // 5. slower things, a few times a second
     if (now - lastRateTick > 140) {
@@ -309,7 +329,7 @@ export function createVisualiser() {
       applySpeed(energy, now);
       if (tubeCol && now - lastTubeCss > 1000) {
         lastTubeCss = now;
-        document.documentElement.style.setProperty('--tube-glow', rgb(tubeCol, 0.55));
+        document.documentElement.style.setProperty('--tube-glow', rgb(tubeCol, 0.3));
       }
     }
   }
@@ -372,7 +392,7 @@ export function createVisualiser() {
    Pure CSS animation on a dozen small, fixed elements (transform only).
    Calm: the spots hold still at their starting places.
    ============================================================ */
-export function buildMirrorLight(container, count = 12) {
+export function buildMirrorLight(container, count = 7) {
   container.replaceChildren();
   for (let i = 0; i < count; i++) {
     const spot = document.createElement('i');
