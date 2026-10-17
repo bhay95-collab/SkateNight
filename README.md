@@ -27,7 +27,7 @@ real artwork or songs: power-on, INSERT COIN, choosing a song, now playing.)*
 | `tracks.js` | The list of albums (volumes) and songs | **Yes - the only file you edit** |
 | `audio/` | The MP3 files | **Yes - upload songs here** |
 | `covers/` | The album cover pictures | **Yes - upload covers here** |
-| `rfai-logo.png` | The RFAI logo (a pixel-art stand-in for now) | **Yes - replace it with yours** |
+| `rfai-logo.png` | The RFAI headphone-robot logo | Only to swap it |
 | everything else | The machine itself | No |
 
 Each of `audio/` and `covers/` has its own short README.
@@ -150,8 +150,8 @@ show grey "404" lines for missing files. That is normal and harmless.)
 4. Click **Commit changes**.
 
 It appears on the power-on screen, the INSERT COIN screen, the top-left of the
-machine, and as the browser-tab icon. A cute pixel-art robot stands in until you
-upload yours.
+machine, and as the browser-tab icon. The headphone-robot logo is already in
+place; follow these steps only if you want to swap it for a new one.
 
 ## 6. Switch on GitHub Pages (put it on the internet)
 
