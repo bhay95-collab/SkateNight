@@ -14,8 +14,8 @@ import { buildLibrary, parseCode, findTrackByCode } from './codes.js';
 import { enqueue, enqueueFront, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
 import { RECENT_LIMIT, pickShuffle, pickInOrder, pushRecent } from './rotation.js';
 import {
-  ATTRACT_LINES, ANNOUNCER_QUIPS, TICKER_LINES, OUT_OF_ORDER_LINES,
-  createRotator, composeTicker,
+  ATTRACT_LINES, SKATE_JOKES, IDLE_JOKES, OUT_OF_ORDER_LINES,
+  createRotator,
 } from './copy.js';
 import {
   initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely,
@@ -99,8 +99,8 @@ async function main() {
   let player = null;
   let visualiser = null;
 
-  const nextAnnouncer = createRotator(ANNOUNCER_QUIPS);
-  const nextTickerLine = createRotator(TICKER_LINES);
+  const nextJoke = createRotator(SKATE_JOKES);
+  const nextIdleJoke = createRotator(IDLE_JOKES);
   const nextAttractLine = createRotator(ATTRACT_LINES);
   const nextOutOfOrder = createRotator(OUT_OF_ORDER_LINES);
 
@@ -214,7 +214,6 @@ async function main() {
   function afterQueueChange() {
     refreshUpcoming();
     scheduleRender();
-    ticker.restart();
   }
 
   /* ---------------- starting a song ---------------- */
@@ -249,7 +248,6 @@ async function main() {
       failures = 0;
       refreshUpcoming();
       scheduleRender();                          // so UP NEXT names the house pick
-      ticker.restart();
     }
   }
 
@@ -333,7 +331,7 @@ async function main() {
     bag = nowId ? [nowId] : [];
     houseNext = null;
     paintShuffle();
-    if (player) { refreshUpcoming(); scheduleRender(); ticker.restart(); }
+    if (player) { refreshUpcoming(); scheduleRender(); }
     if (!quiet) ui.toast(on ? 'SHUFFLE ON - EVERY SONG PLAYS BEFORE ANY REPEATS' : 'SHUFFLE OFF - PLAYING IN ORDER');
   }
   function paintShuffle() {
@@ -600,21 +598,13 @@ async function main() {
     legendTimer = setTimeout(() => legend.classList.remove('is-on'), ms);
   }
 
-  /* ---------------- the LED ticker ---------------- */
+  /* ---------------- the LED ticker ----------------
+     One skate joke per pass: it rolls fully across and off before the next
+     one comes in. Song changes never cut a joke short; the next pass simply
+     picks from the right pool (music on, or music stopped). */
   const ticker = createTicker({
     textEl: $('ticker-text'),
-    nextText: () => {
-      const now = nowId && trackById.get(nowId);
-      const upId = queue[0] || houseNext;
-      const up = upId && trackById.get(upId);
-      const quips = [nextAnnouncer(), nextTickerLine()];
-      if (attractOn) quips.unshift(nextAttractLine());
-      return composeTicker({
-        nowPlaying: now ? `${now.title.toUpperCase()} (${volumeById.get(now.volume)?.title.toUpperCase() || ''})` : null,
-        upNext: up ? up.title.toUpperCase() : null,
-        quips: started ? quips : [nextAttractLine()],
-      });
-    },
+    nextText: () => (phase === 'playing' || phase === 'changing' ? nextJoke() : nextIdleJoke()),
   });
 
   onCalmChange(() => ticker.restart());          // calm swaps the scroll for still text
@@ -628,7 +618,6 @@ async function main() {
   function enterAttract() {
     attractOn = true;
     document.body.classList.add('is-attract');
-    ticker.restart();
     // the rack flips through the albums on its own, like a jukebox on display
     const spin = () => {
       const vols = library.volumes;
@@ -647,7 +636,6 @@ async function main() {
     document.body.classList.remove('is-attract');
     clearInterval(attractTimer);
     mech.clearIdleCover();
-    ticker.restart();
   }
   function noteInput() {
     lastInput = performance.now();

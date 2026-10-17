@@ -2,20 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   BOOT_POOL,
-  TICKER_LINES,
-  ANNOUNCER_QUIPS,
+  SKATE_JOKES,
+  IDLE_JOKES,
   ATTRACT_LINES,
   OUT_OF_ORDER_LINES,
   createRotator,
   sample,
-  composeTicker,
 } from '../copy.js';
 
-const BLOCKED = ['damn', 'hell', 'crap', 'sucks', 'stupid', 'idiot', 'drunk', 'beer', 'wine', 'sexy', 'hate'];
+const BLOCKED = ['damn', 'hell', 'crap', 'sucks', 'stupid', 'idiot', 'dumb', 'drunk', 'beer', 'wine', 'sexy', 'hate', 'kill', 'dead', 'die', 'butt', 'bum', 'fat', 'ugly', 'loser'];
 
 const textPools = {
-  TICKER_LINES,
-  ANNOUNCER_QUIPS,
+  SKATE_JOKES,
+  IDLE_JOKES,
   ATTRACT_LINES,
   OUT_OF_ORDER_LINES,
 };
@@ -49,15 +48,15 @@ test('the boot self-test pool is big, unique and well-formed', () => {
   }
 });
 
-test('the announcer pool has the classic rink calls', () => {
-  assert.ok(ANNOUNCER_QUIPS.includes('ALL SKATE!'));
-  assert.ok(ANNOUNCER_QUIPS.includes('REVERSE DIRECTION!'));
-  assert.ok(ANNOUNCER_QUIPS.some((q) => q.startsWith('COUPLES SKATE')));
+test('the ticker has a large pool of skate jokes so a long night never repeats early', () => {
+  assert.ok(SKATE_JOKES.length >= 100, `only ${SKATE_JOKES.length} skate jokes`);
+  assert.ok(IDLE_JOKES.length >= 15, `only ${IDLE_JOKES.length} music-stopped jokes`);
+  assert.ok(SKATE_JOKES.includes('WE WALK BY FAITH. TONIGHT WE ROLL BY IT.'));
 });
 
 test('all copy stays church-family friendly', () => {
   const all = [
-    ...TICKER_LINES, ...ANNOUNCER_QUIPS, ...ATTRACT_LINES, ...OUT_OF_ORDER_LINES,
+    ...SKATE_JOKES, ...IDLE_JOKES, ...ATTRACT_LINES, ...OUT_OF_ORDER_LINES,
     ...BOOT_POOL.map((b) => `${b.t} ${b.s}`),
   ];
   for (const line of all) {
@@ -99,28 +98,4 @@ test('a rotator over one line just repeats it', () => {
   const next = createRotator(['only']);
   assert.equal(next(), 'only');
   assert.equal(next(), 'only');
-});
-
-test('composeTicker joins the live info and quips into one scrolling line', () => {
-  const text = composeTicker({
-    nowPlaying: 'SKATE TUNE (VOL. V)',
-    upNext: 'NEXT ONE',
-    quips: ['ALL SKATE!', 'WATCH YOUR STEP!'],
-  });
-  assert.match(text, /NOW PLAYING: SKATE TUNE \(VOL\. V\)/);
-  assert.match(text, /UP NEXT: NEXT ONE/);
-  assert.match(text, /ALL SKATE!/);
-  assert.match(text, /WATCH YOUR STEP!/);
-});
-
-test('composeTicker copes with nothing playing', () => {
-  const text = composeTicker({ nowPlaying: null, upNext: null, quips: ['HELLO RINK!'] });
-  assert.ok(text.includes('HELLO RINK!'));
-  assert.ok(!text.includes('NOW PLAYING'));
-  assert.ok(!text.includes('UP NEXT'));
-});
-
-test('the event name and tagline are in the ticker', () => {
-  assert.ok(TICKER_LINES.includes('WELCOME TO SKATE BY FAITH'));
-  assert.ok(TICKER_LINES.includes('NOT BY SIGHT - AN 80S ROLLERSKATE NIGHT'));
 });

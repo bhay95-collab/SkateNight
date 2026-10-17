@@ -230,6 +230,11 @@ INSERT COIN -> START. The queue starts empty (the house rotation fills the gap).
   album. Then press the number and **SELECT** (or type it, for example `B`,
   `1`, `Enter`). The title strips are for reading only - clicking a strip does
   nothing. The chosen song joins **UP NEXT** (right-hand column).
+- The scrolling LED strip under the sign rolls **one skate joke at a time**,
+  picked at random from 117 (no repeats until every one has had a turn), with
+  a separate set of 20 for when the music is stopped or paused. To add or
+  change jokes, edit the `SKATE_JOKES` list in `copy.js`: ALL CAPS, 64
+  characters at most, one per line in quote marks with a comma after.
 - UP NEXT plays **first in, first out**. Use the arrows to move a song up and the
   cross to remove one.
 - When UP NEXT is empty, the **house rotation** picks the next song itself, so the
@@ -318,7 +323,7 @@ Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
 1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`
 sub-path):
 
-- `npm test` - 65 tests, all passing (queue, codes, `tracks.js` validation,
+- `npm test` - 62 tests, all passing (queue, codes, `tracks.js` validation,
   house rotation and shuffle deck, in-order mode, copy pools, audio maths,
   lights switch, CSS safety rules).
 - Boot, INSERT COIN, selection by keyboard / keypad code, UP NEXT, house

@@ -203,13 +203,15 @@ bubble tubes that speed up with the music, grid scroll speed and bulb chase spee
 (`playbackRate` of the CSS animations), and a soft bass swell on the cabinet glow.
 
 **Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
-transform only), the LED ticker scrolling NOW PLAYING / UP
-NEXT / announcer lines, bubble tubes colour-cycling over 48 s.
+transform only), the LED ticker rolling **one skate joke at a time** (each
+line crosses fully and leaves before the next enters; song changes never cut a
+line short), bubble tubes colour-cycling over 48 s. The song name lives in the
+NOW PLAYING panel, not the ticker.
 
 **Idle attract mode:** after 60 s with no input the machine runs a light show:
 bulbs chase faster, the rack pages through the albums
-(and shows each cover in the changer window while nothing is playing), the
-ticker mixes in attract lines. Any input ends it.
+(and shows each cover in the changer window while nothing is playing). Any
+input ends it.
 
 **Coin:** a cream coin drops into the slot, clunk + ring, the credits counter
 ticks. Credits are cosmetic and never block a selection: with no credits the
@@ -318,15 +320,18 @@ one-sentence reason a skater would recognise.
 
 ## Content tone
 
-Warm, wholesome, playful, church-family friendly. **Rotating copy is the rule**
+Warm, wholesome, playful, church-family friendly - written for a teenage church
+night: daft and funny, never at anyone's expense, light Bible nods only as
+encouragement (Peter on the water, Jericho's seven laps). **Rotating copy is the rule**
 (trivia's pattern): every line a person sees all night is held in a big pool in
 `copy.js` and dealt like a shuffled deck (`createRotator`) so nothing repeats
 until every line has been used, and the same line never appears twice in a row.
 Callers pick once and hold the line so nothing flickers.
 
-Pools: boot self-test (`BOOT_POOL`, 30 lines), ticker lines (20), rink-announcer
-calls (24, including "ALL SKATE!", "COUPLES SKATE - GRAB A FRIEND", "REVERSE
-DIRECTION!"), attract lines (14), out-of-order messages (12). `tests/copy.test.js`
+Pools: boot self-test (`BOOT_POOL`, 30 lines), ticker skate jokes while music
+plays (`SKATE_JOKES`, 117 - about 45 minutes before any repeat), ticker jokes
+while the music is stopped or paused (`IDLE_JOKES`, 20), attract lines (14),
+out-of-order messages (12). `tests/copy.test.js`
 checks size, uniqueness, ALL CAPS, length (readable from the back of the rink),
 and a family-friendly word guard.
 
