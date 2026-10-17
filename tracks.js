@@ -58,8 +58,8 @@ export const volumes = [
 ];
 
 export const tracks = [
-  // The first ten songs, one per volume, so the codes are A1 B1 C1 D1 E1 G1 H1 J1
-  // K1 and L1 (F is skipped). To add more songs to a volume, add lines for it
+  // Songs 1-10: one per volume, so the codes are A1 B1 C1 D1 E1 G1 H1 J1 K1 L1
+  // (F is skipped). To add more songs to a volume, add lines for it
   // anywhere in this list: the next one on Vol. I becomes A2, and so on.
 
   // A1 - Vol. I
@@ -91,4 +91,21 @@ export const tracks = [
 
   // L1 - Vol. X
   { id: 'it-is-good-to-sing-him-praises', title: 'It Is Good to Sing Him Praises', volume: 'vol-x', file: 'audio/it-is-good-to-sing-him-praises.mp3' },
+
+  // ---- Songs 11-15: the second song on Vol. I to V ----
+
+  // A2 - Vol. I
+  { id: 'know-that-the-lord-psalm-4',      title: 'Know that the Lord - Psalm 4',     volume: 'vol-i',   file: 'audio/know-that-the-lord-psalm-4.mp3' },
+
+  // B2 - Vol. II
+  { id: 'let-your-holy-spirit-dwell-in-me', title: 'Let Your Holy Spirit Dwell in Me', volume: 'vol-ii',  file: 'audio/let-your-holy-spirit-dwell-in-me.mp3' },
+
+  // C2 - Vol. III
+  { id: 'lift-up-holy-hands',              title: 'Lift Up Holy Hands',               volume: 'vol-iii', file: 'audio/lift-up-holy-hands.mp3' },
+
+  // D2 - Vol. IV
+  { id: 'praise-lifted-on-high',           title: 'Praise Lifted On High',            volume: 'vol-iv',  file: 'audio/praise-lifted-on-high.mp3' },
+
+  // E2 - Vol. V
+  { id: 'praise-waits-for-you-psalm-65',   title: 'Praise Waits for You - Psalm 65',  volume: 'vol-v',   file: 'audio/praise-waits-for-you-psalm-65.mp3' },
 ];
