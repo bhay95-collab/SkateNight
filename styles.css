@@ -47,12 +47,15 @@
   --gold-deep:#C28E00;
   --line:rgba(255,243,222,.14);
 
-  /* --- sleeve material only (sampled from the RFAI covers; refine once the
-         real covers are in the repo) --- */
+  /* --- sleeve material only. Gold, rust, paper, sepia and ink are sampled from
+         the real RFAI covers (Vol. I-IV, X): mustard + orange-red stripes of
+         Vol. II, cream card, sepia photos, ink-black lettering. Teal and mauve
+         are the brief's accents for later volumes (V, IX); no cover uses them yet. --- */
   --sl-teal:#3E8F8A;
   --sl-mauve:#9B6A87;
-  --sl-gold:#C9A24C;
-  --sl-paper:#E9DCBE;
+  --sl-gold:#D09A25;
+  --sl-rust:#C8461E;
+  --sl-paper:#E2D8C6;
   --sl-sepia:#6D5036;
   --sl-ink:#1E1510;
 
@@ -75,6 +78,7 @@
 [data-accent="teal"]{ --acc:var(--sl-teal); --acc-ink:#F4FFFD; }
 [data-accent="mauve"]{ --acc:var(--sl-mauve); --acc-ink:#FFF6FB; }
 [data-accent="gold"]{ --acc:var(--sl-gold); --acc-ink:#2A1C06; }
+[data-accent="rust"]{ --acc:var(--sl-rust); --acc-ink:#FFF6EE; }
 [data-accent="paper"]{ --acc:var(--sl-paper); --acc-ink:#2A1C06; }
 [data-accent="sepia"]{ --acc:var(--sl-sepia); --acc-ink:#FFF3DE; }
 
@@ -414,20 +418,19 @@ body.on-attract .rig{ visibility:hidden; }
 .sleeve{
   --paper-noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .28 0 0 0 0 .14 0 0 0 .3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   container-type:inline-size;
-  position:relative; width:100%; aspect-ratio:1; overflow:hidden; border-radius:2.5cqw;
+  position:relative; width:100%; aspect-ratio:1; overflow:hidden; border-radius:4%;
   background:var(--paper-noise), linear-gradient(135deg, #F0E4C8, #D9C9A2);
-  box-shadow:0 .2rem 0 rgba(0,0,0,.55), inset 0 0 0 1px rgba(60,40,10,.35), inset 0 0 6cqw rgba(110,80,30,.38);
+  box-shadow:0 .2rem 0 rgba(0,0,0,.55), inset 0 0 0 1px rgba(60,40,10,.35);
 }
-.sleeve-art{
-  position:absolute; inset:5%; width:90%; height:90%; object-fit:cover; display:block;
-  box-shadow:0 0 0 .5cqw rgba(30,21,16,.35);
+.sleeve-art{ /* the real cover already is a worn sleeve (paper edge, stickers), so it fills the card */
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
 }
 /* ring-wear: the pale circle a record rubs into a sleeve, plus a scuffed corner */
 .sleeve::after{
   content:""; position:absolute; inset:0; pointer-events:none;
   background:
-    radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(255,250,235,.20) 42.5% 44.5%, transparent 46%),
-    linear-gradient(135deg, rgba(255,250,235,.12), transparent 30%, transparent 70%, rgba(40,25,10,.18));
+    radial-gradient(circle at 50% 50%, transparent 0 42%, rgba(255,250,235,.10) 42.5% 44.5%, transparent 46%),
+    linear-gradient(135deg, rgba(255,250,235,.07), transparent 30%, transparent 70%, rgba(40,25,10,.12));
 }
 .sleeve-price{
   position:absolute; right:4cqw; bottom:7cqw; z-index:2; transform:rotate(-7deg);
@@ -436,6 +439,7 @@ body.on-attract .rig{ visibility:hidden; }
   box-shadow:0 .5cqw 0 rgba(0,0,0,.35), inset 0 0 0 1px rgba(60,40,10,.25);
 }
 .sleeve-front{ display:none; }
+.sleeve:not(.is-bare) .sleeve-price{ display:none; }   /* real covers carry their own stickers */
 .sleeve.is-bare .sleeve-front{
   position:absolute; inset:5%; z-index:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4cqw;
   background:linear-gradient(160deg, color-mix(in srgb, var(--acc, var(--sl-gold)) 85%, white 8%), color-mix(in srgb, var(--acc, var(--sl-gold)) 70%, black 30%));
@@ -447,7 +451,7 @@ body.on-attract .rig{ visibility:hidden; }
 
 /* ================= LEFT: rack + title strips ================= */
 .rack-panel{ display:flex; flex-direction:column; gap:.8rem; }
-.rack{ display:flex; gap:.45rem; align-items:flex-end; flex:0 0 auto; padding:.45rem .1rem .15rem; min-height:4.2rem; }
+.rack{ display:flex; gap:.3rem; align-items:flex-end; flex:0 0 auto; padding:.45rem .1rem .15rem; min-height:4.2rem; }
 .rack-sleeve{
   flex:1 1 0; min-width:2rem; max-width:3.9rem; padding:0; border:0; background:none; cursor:pointer; position:relative;
   transition:transform .25s var(--ease-out);

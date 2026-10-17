@@ -72,8 +72,9 @@ The jukebox finds each song by its file name, so give every file a simple name:
 4. Drag your renamed MP3s into the box (up to 100 at once).
 5. Scroll down and click the green **Commit changes** button.
 
-Do the same inside the **`covers`** folder for the cover pictures (square `.jpg`
-files, named like `vol-v.jpg`).
+The covers for Vol. I, II, III, IV and X are already in the **`covers`** folder.
+For a new volume, do the same inside `covers` with a square `.jpg` named like
+`vol-v.jpg`.
 
 > Limits: GitHub's website refuses a single file over **25 MB** (Suno MP3s are
 > well under that). The whole site should stay under about **1 GB** - roughly 150
@@ -81,7 +82,7 @@ files, named like `vol-v.jpg`).
 
 ## 4. Add each song to `tracks.js` - worked example
 
-You uploaded `rolling-thunder.mp3` and it belongs on **Vol. V**.
+You uploaded `rolling-thunder.mp3` and it belongs on **Vol. II**.
 
 1. On GitHub, click **`tracks.js`**.
 2. Click the **pencil icon** (Edit this file) at the top right of the file.
@@ -89,7 +90,7 @@ You uploaded `rolling-thunder.mp3` and it belongs on **Vol. V**.
    square brackets** (anywhere between `[` and `]`), copying the pattern exactly:
 
 ```js
-  { id: 'rolling-thunder', title: 'Rolling Thunder', volume: 'vol-v', file: 'audio/rolling-thunder.mp3' },
+  { id: 'rolling-thunder', title: 'Rolling Thunder', volume: 'vol-ii', file: 'audio/rolling-thunder.mp3' },
 ```
 
 4. Click the green **Commit changes...** button (top right), then **Commit
@@ -102,7 +103,7 @@ What each part means:
 |---|---|
 | `id: 'rolling-thunder'` | A nickname for the song. **Lower case, no spaces, different for every song.** |
 | `title: 'Rolling Thunder'` | What appears on screen. Capitals and spaces are fine here. |
-| `volume: 'vol-v'` | Which album it belongs to. Must match an `id` in the `volumes` list above. |
+| `volume: 'vol-ii'` | Which album it belongs to. Must match an `id` in the `volumes` list above. |
 | `file: 'audio/rolling-thunder.mp3'` | The file in the `audio` folder. **Must match the real file name exactly.** |
 
 **The three rules:**
@@ -117,19 +118,23 @@ What each part means:
 
 **How the codes work:** each volume gets a letter in the order they are listed -
 the first volume is **A**, the second **B**, and so on. Each song gets a number
-in the order it appears within its volume. So the first Vol. V song is `B1` if
-Vol. V is the second volume. Moving a song up or down the list changes its code.
+in the order it appears within its volume. So the first Vol. II song is `B1`, because
+Vol. II is the second volume in the list (Vol. I = A, II = B, III = C, IV = D, X = E). Moving a song up or down the list changes its code.
 (Letters F, N, I and O are skipped: F and N are keyboard shortcuts, and I and O
 look like 1 and 0 from across the rink.)
 
 **Adding a whole new album (volume):** add a line inside the `volumes = [` list:
 
 ```js
-  { id: 'vol-x', title: 'Vol. X', cover: 'covers/vol-x.jpg', accent: 'mauve' },
+  { id: 'vol-v', title: 'Vol. V', cover: 'covers/vol-v.jpg', accent: 'teal' },
 ```
 
-`accent` is the paint colour of that album's sleeve and code chips. Choose one:
-`teal`, `mauve`, `gold`, `paper`, `sepia`.
+`accent` is the colour of that album's little code chips and record label. Choose
+one: `teal`, `mauve`, `gold`, `rust`, `paper`, `sepia`.
+
+Where you put the line matters: it sets the album's letter. If you add Vol. V
+*after* Vol. X, it becomes F; if you add it *between* IV and X, it becomes E and
+Vol. X moves to F (and every Vol. X song code changes with it).
 
 **If you break something:** a red button appears in the top right of the jukebox
 saying **CHECK TRACKS.JS**. Click it - it lists, in plain English, what is wrong

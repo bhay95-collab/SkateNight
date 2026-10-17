@@ -21,8 +21,8 @@
      title   what appears on screen, e.g. "Vol. V"
      cover   the picture file in the covers folder, e.g. "covers/vol-v.jpg"
              (if the picture is missing, the jukebox draws a plain sleeve)
-     accent  the paint colour for this volume's sleeve and code chips.
-             Pick ONE of:  "teal"  "mauve"  "gold"  "paper"  "sepia"
+     accent  the paint colour for this volume's code chips and record label.
+             Pick ONE of:  "teal"  "mauve"  "gold"  "rust"  "paper"  "sepia"
 
    Each volume gets a letter automatically, in the order listed:
    the first is A, the second B, the third C, and so on.
@@ -40,10 +40,14 @@
    ============================================================ */
 
 export const volumes = [
-  // Example volumes - change these to match your real covers.
+  // Your five covers so far. Letters come from this ORDER: Vol. I is A, Vol. II
+  // is B, Vol. III is C, Vol. IV is D, Vol. X is E. When you add Vol. V, put it
+  // between IV and X if you want X to stay last (X would then become F).
+  { id: 'vol-i',   title: 'Vol. I',   cover: 'covers/vol-i.jpg',   accent: 'sepia' },
+  { id: 'vol-ii',  title: 'Vol. II',  cover: 'covers/vol-ii.jpg',  accent: 'rust' },
   { id: 'vol-iii', title: 'Vol. III', cover: 'covers/vol-iii.jpg', accent: 'gold' },
-  { id: 'vol-v',   title: 'Vol. V',   cover: 'covers/vol-v.jpg',   accent: 'teal' },
-  { id: 'vol-ix',  title: 'Vol. IX',  cover: 'covers/vol-ix.jpg',  accent: 'mauve' },
+  { id: 'vol-iv',  title: 'Vol. IV',  cover: 'covers/vol-iv.jpg',  accent: 'mauve' },
+  { id: 'vol-x',   title: 'Vol. X',   cover: 'covers/vol-x.jpg',   accent: 'teal' },
 ];
 
 export const tracks = [
@@ -51,12 +55,12 @@ export const tracks = [
   // files that do not exist yet, so they will show OUT OF ORDER until you
   // add real files with these exact names (or change the names below).
 
-  // Becomes code A1 (first song of the first volume)
-  { id: 'example-one',   title: 'Example Song One',   volume: 'vol-iii', file: 'audio/example-one.mp3' },
+  // Becomes code A1 (first song of the first volume, Vol. I)
+  { id: 'example-one',   title: 'Example Song One',   volume: 'vol-i',   file: 'audio/example-one.mp3' },
 
-  // Becomes code B1 (first song of the second volume)
-  { id: 'example-two',   title: 'Example Song Two',   volume: 'vol-v',   file: 'audio/example-two.mp3' },
+  // Becomes code B1 (first song of the second volume, Vol. II)
+  { id: 'example-two',   title: 'Example Song Two',   volume: 'vol-ii',  file: 'audio/example-two.mp3' },
 
-  // Becomes code C1 (first song of the third volume)
-  { id: 'example-three', title: 'Example Song Three', volume: 'vol-ix',  file: 'audio/example-three.mp3' },
+  // Becomes code C1 (first song of the third volume, Vol. III)
+  { id: 'example-three', title: 'Example Song Three', volume: 'vol-iii', file: 'audio/example-three.mp3' },
 ];

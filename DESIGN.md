@@ -39,11 +39,13 @@ else gets invented without extending this list first.
   One fixed layer at the back. Its grid speed follows the music.
 - **Bubble tubes** (`.tube`) - Wurlitzer-1015-style arches either side of the
   Now Playing panel with rising bubbles and slow colour-cycling.
-- **Sleeve** (`.sleeve`) - the new material. A distressed paper card (paper
-  colour + a small noise texture) with the cover art inset in a worn border,
-  **ring-wear** (the pale circle a record rubs into a sleeve), a scuffed corner
-  and a **price-sticker chip** ($1.29 / $1.49 / $1.99 / SPECIAL BUY!, picked from
-  the volume id so it never changes). Everything inside a sleeve is sized in
+- **Sleeve** (`.sleeve`) - the new material: a worn paper record sleeve with a
+  hard shadow, scuffed inner edge and a faint **ring-wear** circle (the pale
+  mark a record rubs into a sleeve) laid over it. The real RFAI covers already
+  *are* worn sleeves (paper edge, stickers, price tags), so the artwork fills
+  the card edge to edge and the jukebox adds nothing but the ring-wear. Only the
+  plain fallback sleeve (cover missing) gets a **price-sticker chip** ($1.29 /
+  $1.49 / $1.99 / SPECIAL BUY!, picked from the volume id so it never changes). Everything inside a sleeve is sized in
   `cqw` so one design works from a rack thumbnail to the big card. If the cover
   picture is missing, a plain printed front is drawn instead (`.sleeve.is-bare`).
   Title strips (`.strip`) are the same paper.
@@ -75,18 +77,20 @@ Sleeve tokens (used **only** on sleeve and sticker materials, plus the record
 label and the volume code chips):
 
 ```
---sl-teal   #3E8F8A   Vol. V
---sl-mauve  #9B6A87   Vol. IX
---sl-gold   #C9A24C   aged gold
---sl-paper  #E9DCBE   paper cream
---sl-sepia  #6D5036   sepia
+--sl-gold   #D09A25   mustard stripe (Vol. II), Vol. III sticker
+--sl-rust   #C8461E   orange-red stripe and frame (Vol. II)
+--sl-paper  #E2D8C6   cream card (Vol. I, III, IV, X)
+--sl-sepia  #6D5036   sepia photography
 --sl-ink    #1E1510   print ink
+--sl-teal   #3E8F8A   brief's accent for Vol. V - no cover uses it yet
+--sl-mauve  #9B6A87   brief's accent for Vol. IX - no cover uses it yet
 ```
 
-> **Note for later:** the sleeve tokens were *estimated* from the description of
-> the covers, because the cover images were not in the repo when this was built.
-> When the real JPGs are added, sample the actual colours and update the six
-> values above (one place, top of `styles.css`).
+> The first five covers (Vol. I, II, III, IV, X) are in `covers/`; gold, rust,
+> paper and sepia were sampled from them by eye. Teal and mauve come from the
+> original brief for Vol. V and IX, which are not in the repo yet: re-sample them
+> when those covers arrive. Volumes are lettered A-E in this order: I, II, III,
+> IV, X.
 
 **One accent per job, never swapped:** magenta means "act here / selected",
 cyan means "this is a number or a light", gold means "this is the biggest

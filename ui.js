@@ -160,7 +160,9 @@ export function createUI({ library, getStatus, handlers }) {
     for (const v of library.volumes) letters.append(mk(v.letter, v.letter, 'key-letter'));
     ['1','2','3','4','5','6','7','8','9'].forEach((d) => digits.append(mk(d, d)));
     digits.append(mk('CLR', 'CLEAR', 'key-fn'), mk('0', '0'), mk('DEL', 'BACK', 'key-fn'));
-    letters.style.setProperty('--letter-rows', Math.min(4, Math.max(1, library.volumes.length)));
+    const n = Math.max(1, library.volumes.length);
+    const rows = n <= 4 ? n : n <= 8 ? Math.ceil(n / 2) : Math.ceil(n / 3);   // 5 volumes -> two columns of 3 and 2
+    letters.style.setProperty('--letter-rows', rows);
   }
 
   function setCode(buffer) {

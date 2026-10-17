@@ -21,7 +21,7 @@ export const CODE_LETTERS = 'ABCDEGHJKLMPQRSTUVWXYZ';
 
 // The accent words Ben can write in tracks.js. Each one is a paint colour
 // sampled for the sleeve material (see the --sl-* tokens in styles.css).
-export const ACCENTS = ['teal', 'mauve', 'gold', 'paper', 'sepia'];
+export const ACCENTS = ['teal', 'mauve', 'gold', 'rust', 'paper', 'sepia'];
 
 const DEFAULT_ACCENT = 'gold';
 
