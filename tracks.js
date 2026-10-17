@@ -125,4 +125,21 @@ export const tracks = [
 
   // L2 - Vol. X
   { id: 'the-life-i-live',             title: 'The Life I Live',             volume: 'vol-x',    file: 'audio/the-life-i-live.mp3' },
+
+  // ---- Songs 21-25: the third song on Vol. I to V ----
+
+  // A3 - Vol. I
+  { id: 'the-new-and-living-way',   title: 'The New and Living Way',   volume: 'vol-i',   file: 'audio/the-new-and-living-way.mp3' },
+
+  // B3 - Vol. II
+  { id: 'the-power-is-in-the-word', title: 'The Power Is in the Word', volume: 'vol-ii',  file: 'audio/the-power-is-in-the-word.mp3' },
+
+  // C3 - Vol. III
+  { id: 'the-way-of-salvation',     title: 'The Way of Salvation',     volume: 'vol-iii', file: 'audio/the-way-of-salvation.mp3' },
+
+  // D3 - Vol. IV
+  { id: 'there-is-a-way',           title: 'There Is a Way',           volume: 'vol-iv',  file: 'audio/there-is-a-way.mp3' },
+
+  // E3 - Vol. V
+  { id: 'to-those-who-believe',     title: 'To Those Who Believe',     volume: 'vol-v',   file: 'audio/to-those-who-believe.mp3' },
 ];
