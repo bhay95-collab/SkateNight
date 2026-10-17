@@ -267,3 +267,35 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
   from Blob URLs instead of through the service worker).
 - The page exposes `window.__skateNight` (state + player) for tests and for
   debugging in the console. The night does not depend on it.
+
+### What was tested, and what was not
+
+Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
+1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`
+sub-path):
+
+- `npm test` - 56 tests, all passing (queue, codes, `tracks.js` validation,
+  house rotation, copy pools, audio maths, lights switch, CSS safety rules).
+- Boot, INSERT COIN, selection by keyboard / keypad / strip, UP NEXT, house
+  rotation, record changer frames, now-playing readouts, idle attract mode.
+- Natural song change: about 40 ms between songs. Skip: about 1.2-1.4 s (the
+  record changer working). Pause / resume, volume keys.
+- CALM lights from the OS setting and from the switch (no animations running
+  at all; choice remembered across reload).
+- A missing MP3 (OUT OF ORDER, skipped, house rotation avoids it) and a broken
+  `tracks.js` (red CHECK TRACKS.JS button, site still alive).
+- LOAD THE CRATES, then the network switched off: the page reloads and songs
+  play from the saved copy.
+- Soak: 14 minutes of continuous play including about 70 skips and queue
+  changes: JavaScript memory flat at 2-3 MB, page elements and running
+  animations constant, console clean.
+- No horizontal scrolling at any of the sizes above.
+
+**Not tested (needs a real laptop and projector):** real speakers (sound was
+checked through the machine's own level meters, not by ear), the laptop's
+media keys, real fullscreen and screen-sleep prevention (the headless browser
+refuses the wake lock), a three-hour run, Safari and Firefox, and performance on
+a genuinely slow laptop (the headless browser draws in software, so it is a
+pessimistic stand-in). Please do a 10-minute run-through on the venue laptop a
+day before. If it ever stutters, **LIGHTS: CALM** removes nearly all the work.
+
