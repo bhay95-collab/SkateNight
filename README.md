@@ -130,6 +130,14 @@ next, previous, shuffle), and I and O are never used (they look like 1 and 0), s
 Vol. VI is **G**, not F. This table is also written at the top of
 `tracks.js`. Moving a song up or down the list changes its code.
 
+**Where to put new songs:** fill the albums with the fewest songs first (right
+now Vol. VIII, IX and X have 2 each; the rest have 3), so every album page shows
+all its songs at once. Add each new song at the **end** of the `tracks = [`
+list, so no existing code changes. Once every album has 3, a 4th song still
+works: that album's strips scroll (mouse wheel or trackpad), a small
+**▼ MORE** tag shows there are songs below, and typing a code scrolls its
+strip into view.
+
 **Adding a whole new album (volume):** add a line inside the `volumes = [` list:
 
 ```js

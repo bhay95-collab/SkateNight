@@ -120,7 +120,10 @@ worker.
   a volume has more songs than fit.
 - Rows: marquee, LED ticker, cabinet, operator deck, key legend.
 - Cabinet columns: tube | **PICK A SONG** (one third) | **NOW PLAYING** + **UP
-  NEXT** (two thirds, split 1.3 : 0.7) | tube.
+  NEXT** (two thirds, split 1.38 : 0.62) | tube.
+- The marquee sign is centred on the page (wordmark 2.45 rem, subtitle .72 rem,
+  both centred inside the sign) with the bulb rows hugging the sign's edges so
+  the lettering never sits on a bulb.
 - PICK A SONG is one panel: the rack page on top (one album at a time - a big
   sleeve as tall as the page, capped at 46% of the width so the title strips
   keep room for two-line titles, with arrows to flip albums) and the selector
@@ -133,7 +136,8 @@ worker.
   operator; status (NOW / Q2 / OUT OF ORDER) is a small tag clipped onto the
   strip's corner so titles keep the full width.
 - About 3 songs per album fit without scrolling at 1280 x 720; a 4th scrolls
-  inside the strip window.
+  inside the strip window. A **▼ MORE** tag shows while songs are hidden below,
+  and a fully typed code outlines its strip in cyan and scrolls it into view.
 
 ## Restraint (the October refinement pass)
 

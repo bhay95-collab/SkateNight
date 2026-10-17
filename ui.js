@@ -122,7 +122,19 @@ export function createUI({ library, getStatus, handlers }) {
       stripRows.set(t.id, row);
       stripsEl.append(row);
     }
+    stripsEl.scrollTop = 0;
+    updateMoreCue();
   }
+
+  /* An album with more songs than fit scrolls inside the strip window. The
+     MORE tag shows while there are songs below, and typing a code scrolls
+     its strip into view. */
+  function updateMoreCue() {
+    const below = stripsEl.scrollHeight - stripsEl.clientHeight - stripsEl.scrollTop;
+    $('strips-more').classList.toggle('is-shown', below > 12);
+  }
+  stripsEl.addEventListener('scroll', updateMoreCue, { passive: true });
+  window.addEventListener('resize', updateMoreCue);
 
   /* Refresh strip states in place. Only a status shows (NOW, Q1, OUT OF ORDER);
      song lengths are left off so the titles get the room. */
@@ -174,6 +186,11 @@ export function createUI({ library, getStatus, handlers }) {
     const code = $('readout-code');
     code.textContent = buffer.length ? buffer.padEnd(2, '_') : '__';
     code.classList.toggle('is-typing', buffer.length > 0);
+    for (const [id, row] of stripRows) {
+      const isTyped = buffer.length > 1 && trackById.get(id).code === buffer;
+      row.classList.toggle('is-typed', isTyped);
+      if (isTyped) row.scrollIntoView({ block: 'nearest' });
+    }
   }
 
   let msgTimer = null;
@@ -198,7 +215,7 @@ export function createUI({ library, getStatus, handlers }) {
       list.append(el('li', { class: 'q-row' },
         el('span', { class: 'q-pos led' }, String(i + 1)),
         el('span', { class: 'q-text' },
-          el('span', { class: 'q-title', dataset: { long: t.title.length > 20 ? '1' : '0' } }, t.title),
+          el('span', { class: 'q-title', dataset: { long: t.title.length > 28 ? '2' : t.title.length > 20 ? '1' : '0' } }, t.title),
           el('span', { class: 'q-sub led' }, `${t.code}${vol ? ` · ${vol.title.toUpperCase()}` : ''}`)),
         el('button', { class: 'q-btn', type: 'button', 'aria-label': `Move ${t.title} up`, disabled: i === 0, onclick: () => handlers.moveUp(i) }, '▲'),
         el('button', { class: 'q-btn q-x', type: 'button', 'aria-label': `Cancel ${t.title}`, onclick: () => handlers.cancel(i) }, '✕')));
