@@ -48,7 +48,7 @@ else gets invented without extending this list first.
   the card edge to edge and the jukebox adds nothing but the ring-wear. Only the
   plain fallback sleeve (cover missing) gets a **price-sticker chip** ($1.29 /
   $1.49 / $1.99 / SPECIAL BUY!, picked from the volume id so it never changes). Everything inside a sleeve is sized in
-  `cqw` so one design works from a rack thumbnail to the big card. If the cover
+  `cqw` so one design works from the changer window to the big rack page. If the cover
   picture is missing, a plain printed front is drawn instead (`.sleeve.is-bare`).
   Title strips (`.strip`) are the same paper.
 
@@ -118,11 +118,22 @@ worker.
   (1280 x 720 at 20 px per rem). Check every change at **1280 x 720**.
 - `body` never scrolls. The only internal scrolling is the title-strip list when
   a volume has more songs than fit.
-- Rows: marquee, LED ticker, cabinet (rack | tube | now playing | tube | queue +
-  keypad), operator deck, rink floor.
+- Rows: marquee, LED ticker, cabinet, operator deck, key legend.
+- Cabinet columns: tube | **PICK A SONG** (one third) | **NOW PLAYING** + **UP
+  NEXT** (two thirds, split 1.3 : 0.7) | tube.
+- PICK A SONG is one panel: the rack page on top (one album at a time - a big
+  sleeve as tall as the page, capped at 46% of the width so the title strips
+  keep room for two-line titles, with arrows to flip albums) and the selector
+  underneath (readout, letter keys wearing a dimmed copy of their cover, number
+  keys, CLR / DEL / SELECT / COIN).
+- Pressing a letter key (or typing it) flips the rack to that album, so the
+  operator sees its songs while finishing the code.
 - The most important things are the largest: song title (Bungee), the LED clock,
-  the UP NEXT titles and the ticker. The rack and strips are reference material
-  for the operator and are allowed to be smaller.
+  the UP NEXT titles and the ticker. The strips are reference material for the
+  operator; status (NOW / Q2 / OUT OF ORDER) is a small tag clipped onto the
+  strip's corner so titles keep the full width.
+- About 3 songs per album fit without scrolling at 1280 x 720; a 4th scrolls
+  inside the strip window.
 
 ## Restraint (the October refinement pass)
 
@@ -147,8 +158,8 @@ record changer and the readouts carry the show; the world around it stays dim.
   from the smaller side so nothing is ever cut off.
 
 - Selection is by code only (keypad or keyboard). The title strips are read-only
-  paper, as on a real Wurlitzer/Seeburg; the album sleeves still open a volume's
-  strips for reading.
+  paper, as on a real Wurlitzer/Seeburg; the rack arrows and letter keys only
+  flip which album's strips are showing.
 
 Before adding anything new, ask what it replaces.
 
@@ -167,7 +178,7 @@ Web Animations (compositor only):
 
 | t (normal speed) | What happens |
 |---|---|
-| 0 - 0.47 s | The volume's **sleeve slides out of the rack** (left panel) to the mechanism window (FLIP from the rack thumbnail's real position). Whirr. |
+| 0 - 0.47 s | The volume's **sleeve slides out of the rack** to the mechanism window (FLIP from the big rack sleeve if that album is showing, otherwise from its letter key). Whirr. |
 | 0.47 - 1.0 s | The **record rises out** of the sleeve and glides across the platter, lifted slightly. |
 | 1.0 - 1.2 s | The record **drops** onto the platter and starts **spinning** (33 1/3 rpm = 1.8 s per turn) with the cover as its label. |
 | 1.0 - 1.5 s | The **tonearm swings** across; **needle-drop thud** at 1.5 s. |
@@ -192,8 +203,9 @@ transform only), the LED ticker scrolling NOW PLAYING / UP
 NEXT / announcer lines, bubble tubes colour-cycling over 48 s.
 
 **Idle attract mode:** after 60 s with no input the machine runs a light show:
-bulbs chase faster, the rack sleeves take turns
-lifting, the ticker mixes in attract lines. Any input ends it.
+bulbs chase faster, the rack pages through the albums
+(and shows each cover in the changer window while nothing is playing), the
+ticker mixes in attract lines. Any input ends it.
 
 **Coin:** a cream coin drops into the slot, clunk + ring, the credits counter
 ticks. Credits are cosmetic and never block a selection: with no credits the

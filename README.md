@@ -215,11 +215,13 @@ INSERT COIN -> START. The queue starts empty (the house rotation fills the gap).
 
 - **START** begins with the house rotation. It does **not** start automatically,
   so you can test volume first.
-- **Pick a song by its code only**, like a real jukebox: find it in **The Rack**
-  (click an album sleeve to see its title strips), then punch the code into the
-  on-screen keypad (letter, number, then **SELECT**) or type it on the keyboard
-  (for example `B`, `1`, `Enter`). The title strips are for reading only -
-  clicking a strip does nothing. The chosen song joins **UP NEXT**.
+- **Pick a song by its code only**, like a real jukebox. The left third of the
+  screen is **PICK A SONG**: one album at a time, big sleeve plus its title
+  strips. Flip albums with the **arrow buttons** either side of the album name,
+  or press a **letter key** (on screen or keyboard) - the rack jumps to that
+  album. Then press the number and **SELECT** (or type it, for example `B`,
+  `1`, `Enter`). The title strips are for reading only - clicking a strip does
+  nothing. The chosen song joins **UP NEXT** (right-hand column).
 - UP NEXT plays **first in, first out**. Use the arrows to move a song up and the
   cross to remove one.
 - When UP NEXT is empty, the **house rotation** picks the next song itself, so the
@@ -308,7 +310,7 @@ Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
 1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`
 sub-path):
 
-- `npm test` - 56 tests, all passing (queue, codes, `tracks.js` validation,
+- `npm test` - 65 tests, all passing (queue, codes, `tracks.js` validation,
   house rotation and shuffle deck, in-order mode, copy pools, audio maths,
   lights switch, CSS safety rules).
 - Boot, INSERT COIN, selection by keyboard / keypad code, UP NEXT, house

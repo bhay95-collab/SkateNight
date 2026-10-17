@@ -63,58 +63,55 @@ export function createUI({ library, getStatus, handlers }) {
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
   const volumeById = new Map(library.volumes.map((v) => [v.id, v]));
 
-  const rackEl = $('rack');
   const stripsEl = $('strips');
-  const rackButtons = new Map();
+  const letterKeys = new Map();
   const stripRows = new Map();
   let shownVolumeId = null;
+  const volumeIds = library.volumes.map((v) => v.id);
+  // One sleeve per album, built once and reused, so flipping the rack never
+  // shows a blank sleeve while a fresh copy of the cover decodes.
+  const rackSleeves = new Map(library.volumes.map((v) => [v.id, sleeveFace(v)]));
 
-  /* ---- rack of sleeves ---- */
+  /* ---- the rack: one album page at a time ----
+     Like the page display in a CD jukebox: a big sleeve with its title strips,
+     flipped with the arrows. Pressing a letter on the selector flips to that
+     album too, so the codes are on screen while you type. */
   function renderRack() {
-    rackEl.replaceChildren();
-    rackButtons.clear();
-    for (const v of library.volumes) {
-      const count = library.tracks.filter((t) => t.volume === v.id).length;
-      const btn = el('button', {
-        class: 'rack-sleeve', type: 'button', role: 'tab', 'aria-selected': 'false',
-        'aria-label': `${v.title}, letter ${v.letter}, ${count} songs`,
-        dataset: { volume: v.id, accent: v.accent },
-        onclick: () => handlers.openVolume(v.id),
-      }, sleeveFace(v), el('span', { class: 'rack-letter led' }, v.letter));
-      rackButtons.set(v.id, btn);
-      rackEl.append(btn);
-    }
-    rackEl.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      const ids = library.volumes.map((v) => v.id);
-      const i = ids.indexOf(shownVolumeId);
-      const j = Math.min(ids.length - 1, Math.max(0, i + (e.key === 'ArrowRight' ? 1 : -1)));
-      handlers.openVolume(ids[j]);
-      rackButtons.get(ids[j])?.focus();
-      e.preventDefault();
-    });
+    const step = (dir) => {
+      if (volumeIds.length === 0) return;
+      const i = volumeIds.indexOf(shownVolumeId);
+      handlers.openVolume(volumeIds[(i + dir + volumeIds.length) % volumeIds.length]);
+    };
+    $('rack-prev').addEventListener('click', () => step(-1));
+    $('rack-next').addEventListener('click', () => step(1));
+    const single = volumeIds.length < 2;
+    $('rack-prev').disabled = single;
+    $('rack-next').disabled = single;
   }
 
-  /* ---- title strips ---- */
+  /* ---- title strips (show one album's page) ---- */
   function renderStrips(volumeId) {
+    const v = volumeById.get(volumeId);
+    if (!v) return;
     shownVolumeId = volumeId;
-    for (const [id, btn] of rackButtons) {
-      const on = id === volumeId;
-      btn.setAttribute('aria-selected', String(on));
-      btn.classList.toggle('is-open', on);
-      btn.tabIndex = on ? 0 : -1;
-    }
+    for (const [id, key] of letterKeys) key.classList.toggle('is-open', id === volumeId);
+    $('rack-letter').textContent = v.letter;
+    $('rack-title').textContent = v.title;
+    $('rack-count').textContent = `${volumeIds.indexOf(volumeId) + 1} / ${volumeIds.length}`;
+    const sleeve = rackSleeves.get(volumeId);
+    if ($('rack-sleeve').firstChild !== sleeve) $('rack-sleeve').replaceChildren(sleeve);
+
     stripsEl.replaceChildren();
     stripRows.clear();
-    stripsEl.dataset.accent = volumeById.get(volumeId)?.accent || 'gold';
+    stripsEl.dataset.accent = v.accent || 'gold';
     const list = library.tracks.filter((t) => t.volume === volumeId);
     if (list.length === 0) {
-      stripsEl.append(el('p', { class: 'strips-empty' }, 'NO SONGS ON THIS VOLUME YET'));
+      stripsEl.append(el('p', { class: 'strips-empty' }, 'NO SONGS ON THIS ALBUM YET'));
       return;
     }
     for (const t of list) {
       // Read-only, like the title strips in a real jukebox: you read the code
-      // here and punch it in on the keypad. Strips are not clickable.
+      // here and punch it in on the selector. Strips are not clickable.
       const row = el('div', {
         class: 'strip', role: 'listitem', title: t.title,
         dataset: { track: t.id },
@@ -127,7 +124,8 @@ export function createUI({ library, getStatus, handlers }) {
     }
   }
 
-  /* Refresh strip states in place (keeps keyboard focus where it was). */
+  /* Refresh strip states in place. Only a status shows (NOW, Q1, OUT OF ORDER);
+     song lengths are left off so the titles get the room. */
   function updateStrips({ nowId, queue }) {
     for (const [id, row] of stripRows) {
       const st = getStatus(id);
@@ -136,34 +134,40 @@ export function createUI({ library, getStatus, handlers }) {
       row.classList.toggle('is-missing', st.state === 'missing');
       row.classList.toggle('is-now', id === nowId);
       row.classList.toggle('is-queued', queuePos >= 0);
-      let label;
+      let label = '';
       if (st.state === 'missing') label = 'OUT OF ORDER';
       else if (id === nowId) label = 'NOW';
       else if (queuePos >= 0) label = `Q${queuePos + 1}`;
-      else label = formatClock(st.duration);
       if (aside.textContent !== label) aside.textContent = label;
       const t = trackById.get(id);
       row.setAttribute('aria-label', `${t.code} ${t.title}${st.state === 'missing' ? ', out of order' : ''}`);
     }
   }
 
-  /* ---- keypad ---- */
+  /* ---- selector keypad ----
+     Row of letters (each wears a tiny copy of its album cover), row of
+     digits, then CLR / DEL / SELECT / COIN (those live in the HTML). */
   function renderKeypad() {
     const letters = $('key-letters');
     const digits = $('key-digits');
     letters.replaceChildren();
     digits.replaceChildren();
-    const mk = (label, key, extra = '') => el('button', {
+    letterKeys.clear();
+    const mk = (label, key, extra = '', ariaLabel = null) => el('button', {
       class: `key ${extra}`.trim(), type: 'button', dataset: { key },
-      'aria-label': label.length === 1 ? `Key ${label}` : label,
+      'aria-label': ariaLabel || (label.length === 1 ? `Key ${label}` : label),
       onclick: () => handlers.keyPressed(key),
     }, label);
-    for (const v of library.volumes) letters.append(mk(v.letter, v.letter, 'key-letter'));
-    ['1','2','3','4','5','6','7','8','9'].forEach((d) => digits.append(mk(d, d)));
-    digits.append(mk('CLR', 'CLEAR', 'key-fn'), mk('0', '0'), mk('DEL', 'BACK', 'key-fn'));
-    const n = Math.max(1, library.volumes.length);
-    const rows = n <= 4 ? n : n <= 10 ? Math.ceil(n / 2) : Math.ceil(n / 3);   // e.g. 10 volumes -> two columns of 5
-    letters.style.setProperty('--letter-rows', rows);
+    for (const v of library.volumes) {
+      const key = mk(v.letter, v.letter, 'key-letter', `Letter ${v.letter}, ${v.title}`);
+      if (v.cover) key.style.setProperty('--cover', `url("${v.cover}")`);
+      letterKeys.set(v.id, key);
+      letters.append(key);
+    }
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].forEach((d) => digits.append(mk(d, d)));
+    letters.style.setProperty('--letter-cols', Math.min(10, Math.max(1, library.volumes.length)));
+    $('key-clear').addEventListener('click', () => handlers.keyPressed('CLEAR'));
+    $('key-del').addEventListener('click', () => handlers.keyPressed('BACK'));
   }
 
   function setCode(buffer) {
@@ -173,16 +177,17 @@ export function createUI({ library, getStatus, handlers }) {
   }
 
   let msgTimer = null;
+  const IDLE_HINT = 'PICK A LETTER, THEN A NUMBER';
   function setMessage(text, kind = 'info') {
     const m = $('readout-msg');
-    m.textContent = text;
-    m.dataset.kind = kind;
+    m.textContent = text || IDLE_HINT;
+    m.dataset.kind = text ? kind : 'hint';
     clearTimeout(msgTimer);
-    if (text) msgTimer = setTimeout(() => { m.textContent = ''; }, 4200);
+    if (text) msgTimer = setTimeout(() => { m.textContent = IDLE_HINT; m.dataset.kind = 'hint'; }, 4200);
   }
 
   /* ---- up next ---- */
-  const QUEUE_ROWS = 3;
+  const QUEUE_ROWS = 6;
   function renderQueue(queue, houseNextId, modeLabel = 'HOUSE SHUFFLE') {
     const list = $('queue-list');
     list.replaceChildren();
@@ -268,7 +273,10 @@ export function createUI({ library, getStatus, handlers }) {
     renderRack, renderStrips, updateStrips, renderKeypad, setCode, setMessage,
     renderQueue, setNow, setProgress, rollDuration, toast, showProblems,
     get shownVolumeId() { return shownVolumeId; },
-    rackSleeve: (volumeId) => rackButtons.get(volumeId)?.querySelector('.sleeve') || null,
+    /* Where a record's sleeve flies out from: the big sleeve if that album's
+       page is showing, otherwise its letter key on the selector. */
+    rackSleeve: (volumeId) => (volumeId === shownVolumeId ? $('rack-sleeve').querySelector('.sleeve') : letterKeys.get(volumeId)) || null,
+    volumeIdForLetter: (letter) => library.volumes.find((v) => v.letter === letter)?.id || null,
   };
 }
 

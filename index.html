@@ -83,18 +83,44 @@
 
   <main class="cabinet">
 
-    <!-- LEFT: record rack + title strips -->
-    <section class="panel rack-panel" aria-label="Record rack and song list">
-      <h2 class="panel-title tab-tilt-a">The Rack</h2>
-      <div class="rack" id="rack" role="tablist" aria-label="Volumes"></div>
-      <div class="strips" id="strips" role="list" aria-label="Songs in this volume"></div>
-    </section>
-
     <div class="tube" id="tube-l" aria-hidden="true"><canvas></canvas></div>
 
-    <!-- CENTRE: now playing -->
+    <!-- LEFT THIRD: the rack (one album page at a time) and the selector -->
+    <section class="panel choose" aria-label="Choose a song">
+      <h2 class="panel-title tab-tilt-a">Pick a Song</h2>
+      <div class="rack-panel" aria-label="Record rack">
+        <h3 class="sr-only">The Rack</h3>
+        <div class="rack-bar">
+          <button type="button" class="rack-nav" id="rack-prev" aria-label="Previous album">&#9664;</button>
+          <p class="rack-label" aria-live="polite"><span class="rack-letter led" id="rack-letter">A</span><span class="rack-title" id="rack-title">Vol. I</span><span class="rack-count" id="rack-count">1 / 10</span></p>
+          <button type="button" class="rack-nav" id="rack-next" aria-label="Next album">&#9654;</button>
+        </div>
+        <div class="rack-page">
+          <div class="rack-sleeve" id="rack-sleeve"></div>
+          <div class="strips" id="strips" role="list" aria-label="Songs on this album"></div>
+        </div>
+      </div>
+
+      <div class="keypad-panel" aria-label="Song selector">
+        <h3 class="sr-only">Selector</h3>
+        <div class="readout screen" aria-live="polite">
+          <span class="readout-code led" id="readout-code" aria-label="Typed code">__</span>
+          <span class="readout-msg" id="readout-msg" role="status">PICK A LETTER, THEN A NUMBER</span>
+        </div>
+        <div class="key-letters" id="key-letters"></div>
+        <div class="key-digits" id="key-digits"></div>
+        <div class="keypad-actions">
+          <button type="button" class="key key-fn" data-key="CLEAR" id="key-clear">CLR</button>
+          <button type="button" class="key key-fn" data-key="BACK" id="key-del">DEL</button>
+          <button type="button" class="btn btn-select" id="btn-select">SELECT</button>
+          <button type="button" class="btn btn-small" id="btn-coin" title="Drop a coin in the slot"><span class="coin-slot" aria-hidden="true"></span>COIN</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT TWO-THIRDS: now playing and up next -->
     <section class="panel now-panel" aria-label="Now playing">
-      <h2 class="panel-title tab-tilt-b">Now Playing</h2>
+      <h2 class="panel-title tab-tilt-a">Now Playing</h2>
 
       <div class="mech screen" id="mech" data-phase="empty">
         <div class="mech-wall" aria-hidden="true"></div>
@@ -128,34 +154,15 @@
       </div>
     </section>
 
-    <div class="tube" id="tube-r" aria-hidden="true"><canvas></canvas></div>
-
-    <!-- RIGHT: queue + keypad -->
-    <section class="side">
-      <div class="panel queue-panel" aria-label="Up next">
-        <h2 class="panel-title tab-tilt-b">Up Next</h2>
-        <div class="queue screen" id="queue-screen">
-          <ol class="queue-list" id="queue-list"></ol>
-          <p class="queue-house" id="queue-house"></p>
-        </div>
-      </div>
-
-      <div class="panel keypad-panel" aria-label="Song selection keypad">
-        <div class="readout screen" aria-live="polite">
-          <span class="readout-label">Select</span>
-          <span class="readout-code led" id="readout-code" aria-label="Typed code">__</span>
-          <span class="readout-msg" id="readout-msg" role="status"></span>
-        </div>
-        <div class="keypad" id="keypad">
-          <div class="key-letters" id="key-letters"></div>
-          <div class="key-digits" id="key-digits"></div>
-        </div>
-        <div class="keypad-actions">
-          <button type="button" class="btn btn-select" id="btn-select">SELECT</button>
-          <button type="button" class="btn btn-small" id="btn-coin" title="Drop a coin in the slot"><span class="coin-slot" aria-hidden="true"></span>COIN</button>
-        </div>
+    <section class="panel queue-panel" aria-label="Up next">
+      <h2 class="panel-title tab-tilt-b">Up Next</h2>
+      <div class="queue screen" id="queue-screen">
+        <ol class="queue-list" id="queue-list"></ol>
+        <p class="queue-house" id="queue-house"></p>
       </div>
     </section>
+
+    <div class="tube" id="tube-r" aria-hidden="true"><canvas></canvas></div>
   </main>
 
   <footer class="deck" aria-label="Operator controls">

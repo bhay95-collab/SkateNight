@@ -493,7 +493,11 @@ async function main() {
     sfx.key();
     if (key === 'CLEAR') return setBuffer('');
     if (key === 'BACK') return setBuffer(codeBuffer.slice(0, -1));
-    if (/^[A-Z]$/.test(key)) return setBuffer(key);
+    if (/^[A-Z]$/.test(key)) {
+      const volumeId = ui.volumeIdForLetter(key);           // flip the rack to that album
+      if (volumeId && volumeId !== ui.shownVolumeId) { ui.renderStrips(volumeId); scheduleRender(); }
+      return setBuffer(key);
+    }
     if (/^\d$/.test(key)) {
       if (!codeBuffer) { say('PICK A LETTER FIRST', 'bad'); return; }
       if (codeBuffer.length >= 3) return;
@@ -625,14 +629,13 @@ async function main() {
     attractOn = true;
     document.body.classList.add('is-attract');
     ticker.restart();
+    // the rack flips through the albums on its own, like a jukebox on display
     const spin = () => {
-      const buttons = [...document.querySelectorAll('.rack-sleeve')];
-      buttons.forEach((b) => b.classList.remove('is-spotlight'));
-      if (buttons.length) {
-        const b = buttons[attractIndex % buttons.length];
-        b.classList.add('is-spotlight');
-        const v = volumeById.get(b.dataset.volume);
-        if (v && phase === 'idle') safely('idle-cover', () => mech.showIdleCover(v));
+      const vols = library.volumes;
+      if (vols.length) {
+        const v = vols[attractIndex % vols.length];
+        safely('attract-page', () => { ui.renderStrips(v.id); scheduleRender(); });
+        if (phase === 'idle') safely('idle-cover', () => mech.showIdleCover(v));
       }
       attractIndex += 1;
     };
@@ -643,7 +646,6 @@ async function main() {
     attractOn = false;
     document.body.classList.remove('is-attract');
     clearInterval(attractTimer);
-    document.querySelectorAll('.rack-sleeve.is-spotlight').forEach((b) => b.classList.remove('is-spotlight'));
     mech.clearIdleCover();
     ticker.restart();
   }
