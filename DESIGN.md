@@ -151,6 +151,12 @@ worker.
   the lettering never sits on a bulb. Its enclosure has a narrow bevel, flush
   fasteners and a dark recessed face. Glass lamps stay fixed in their channels;
   a separately masked light chase passes over them rather than sliding the bulbs.
+- The RFAI logo (3.45 rem, with a soft cyan/pink glow breathing behind it over
+  4.8 s - opacity and scale only, off in CALM) and the CREDITS / OFFLINE chips
+  are each centred in the clear space between an arch leg and the sign, and
+  dropped .55 rem so they clear the arch's top bar and curved corners (checked
+  at six window sizes: at least 6 px of clear space everywhere). The two chips
+  are the same width.
 - PICK A SONG is one panel: the rack page on top (one album at a time - a big
   sleeve with the MORE button under it, the pair as tall as the page and capped
   at 46% of the width so the title strips keep room for two-line titles, with
