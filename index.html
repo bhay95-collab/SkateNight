@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skate by Faith - Not by Sight</title>
 <meta name="description" content="Skate by Faith, Not by Sight - an 80s rollerskate night. RFAI arcade jukebox for the rink.">
-<meta name="theme-color" content="#17131F">
+<meta name="theme-color" content="#140722">
 <link rel="icon" type="image/png" href="rfai-logo.png">
 <link rel="preload" as="font" type="font/woff2" href="fonts/bungee-400.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="fonts/barlow-500.woff2" crossorigin>
@@ -26,12 +26,10 @@
 <div class="boot" id="boot" aria-hidden="true">
   <div class="boot-roll"></div>
   <div class="boot-stack">
-    <span class="boot-series">RFAI · Roller Palace Series · RP—85</span>
     <img class="boot-logo" src="rfai-logo.png" width="512" height="512" alt="" fetchpriority="high">
     <div class="boot-screen">
       <pre class="boot-log" id="boot-log"><span class="ln"><b>SKATE BY FAITH</b> JUKEBOX</span><span class="ln">(C) 1983   ·   ALL RIGHTS RESERVED</span><span class="ln"> </span><span class="ln">  TONEARM CALIBRATION ......... <span class="ok">OK</span></span><span class="ln">  WHEEL BEARINGS LUBED ........ <span class="ok">OK</span></span><span class="ln">  LOADING THE CRATES ......... <span class="boot-cursor">&#9608;</span></span></pre>
     </div>
-    <div class="boot-warmup" aria-hidden="true"></div>
   </div>
   <div class="boot-flash"></div>
 </div>
@@ -68,7 +66,6 @@
   <header class="marquee">
     <div class="marquee-left">
       <img class="marquee-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
-      <span class="manufacturer" aria-hidden="true">RFAI<small>HIGH FIDELITY<br>STEREO AUTOMATIC</small></span>
     </div>
 
     <div class="marquee-sign">
@@ -97,7 +94,7 @@
 
     <!-- LEFT THIRD: the rack (one album page at a time) and the selector -->
     <section class="panel choose" aria-label="Choose a song">
-      <h2 class="panel-title" id="crowd-tab">01 / Pick a Song</h2>
+      <h2 class="panel-title tab-tilt-a" id="crowd-tab">Pick a Song</h2>
       <div class="rack-panel" aria-label="Record rack">
         <h3 class="sr-only">The Rack</h3>
         <div class="rack-bar">
@@ -133,29 +130,27 @@
 
     <!-- RIGHT TWO-THIRDS: now playing and up next -->
     <section class="panel now-panel" aria-label="Now playing">
-      <h2 class="panel-title">02 / Now Playing</h2>
+      <h2 class="panel-title tab-tilt-a">Now Playing</h2>
 
       <div class="mech screen" id="mech" data-phase="empty">
         <div class="mech-wall" aria-hidden="true"></div>
-        <div class="mech-stage">
-          <div class="mech-slot" id="mech-slot"><div class="mech-sleeve" id="mech-sleeve"></div></div>
-          <div class="carousel" aria-hidden="true">
-            <span class="carousel-clip"><canvas class="carousel-ring" id="carousel"></canvas></span>
-            <i class="gripper" id="gripper"></i>
-          </div>
-          <div class="platter" id="platter">
-            <div class="record-mover" id="record-mover">
-              <div class="record" id="record">
-                <div class="record-label" id="record-label"></div>
-                <div class="record-hole"></div>
-              </div>
+        <div class="mech-slot" id="mech-slot"><div class="mech-sleeve" id="mech-sleeve"></div></div>
+        <div class="carousel" aria-hidden="true">
+          <span class="carousel-clip"><canvas class="carousel-ring" id="carousel"></canvas></span>
+          <i class="gripper" id="gripper"></i>
+        </div>
+        <div class="platter" id="platter">
+          <div class="record-mover" id="record-mover">
+            <div class="record" id="record">
+              <div class="record-label" id="record-label"></div>
+              <div class="record-hole"></div>
             </div>
           </div>
-          <div class="arm" id="arm"><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
         </div>
-        <div class="mech-nameplate" aria-hidden="true"><span>PRECISION RECORD CHANGER</span><b>45 RPM · STEREO</b></div>
-        <i class="mech-mount" aria-hidden="true"></i><i class="mech-mount" aria-hidden="true"></i><i class="mech-mount" aria-hidden="true"></i>
+        <div class="arm" id="arm"><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
       </div>
+
+      <div class="mech-nameplate" aria-hidden="true"><span>PRECISION RECORD CHANGER</span><b>45 RPM · STEREO</b></div>
 
       <div class="np-info">
         <p class="np-title" id="np-title">PRESS PLAY</p>
@@ -176,7 +171,7 @@
     </section>
 
     <section class="panel queue-panel" aria-label="Up next">
-      <h2 class="panel-title">03 / Up Next</h2>
+      <h2 class="panel-title tab-tilt-b">Up Next</h2>
       <div class="queue screen" id="queue-screen">
         <ol class="queue-list" id="queue-list"></ol>
       </div>
@@ -187,10 +182,10 @@
   </main>
 
   <footer class="deck" aria-label="Operator controls">
-    <div class="deck-group transport">
-      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">BACK</button>
+    <div class="deck-group">
+      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">&#9664; BACK</button>
       <button type="button" class="btn btn-gold" id="btn-play"><span id="btn-play-text">START</span></button>
-      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP</button>
+      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP &#9654;</button>
     </div>
 
     <div class="deck-group deck-faders">
@@ -201,26 +196,14 @@
     <div class="deck-group deck-tools">
       <button type="button" class="btn btn-deck" id="btn-shuffle" aria-pressed="true" title="Shuffle: every song plays once before any repeats (S). Off = play in the order of tracks.js">SHUFFLE: ON</button>
       <button type="button" class="btn btn-deck" id="btn-crowd" title="Open the crowd screen for the projector: drag it there, then click it to go fullscreen">CROWD</button>
+      <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
       <button type="button" class="btn btn-deck" id="btn-lights" aria-pressed="false">LIGHTS: FULL</button>
-      <details class="service-drawer" id="cabinet-settings">
-        <summary>SETUP</summary>
-        <div class="service-panel" aria-label="Cabinet setup">
-          <p>RFAI / CABINET SETUP</p>
-          <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
-          <span class="crate-unit">
-            <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
-            <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
-          </span>
-        </div>
-      </details>
+      <span class="crate-unit">
+        <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
+        <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
+      </span>
     </div>
   </footer>
-
-  <div class="cabinet-plinth" aria-hidden="true">
-    <div class="speaker-grille"></div>
-    <span class="plinth-badge">RFAI<small>ROLLER PALACE · RP—85</small></span>
-    <div class="speaker-grille"></div>
-  </div>
 
 </div>
 
@@ -248,7 +231,6 @@
 </div>
 
 <script type="module" src="neon.js"></script>
-<script type="module" src="cabinet.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

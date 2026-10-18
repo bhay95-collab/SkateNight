@@ -19,6 +19,7 @@ const TUBES = [
   '.w-mag',
   '.neon',
   '.panel-title-neon',
+  '.led-chip .led',
 ].join(', ');
 
 function fizz(el) {

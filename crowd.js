@@ -7,13 +7,13 @@
    from the control window over link.js: what is playing, UP NEXT, the
    rack page, every record-changer move, SELECTION ACCEPTED, the song
    clock and the meter levels. Its own touches: the ticker jokes, the
-   steady bubble tubes and the illuminated arch.
+   bubble tubes, the arch and the silent screen flicker.
    ============================================================ */
 import { createUI, createTicker } from './ui.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
-import { initLights, followLights, startBoot, safely } from './fx.js';
+import { initLights, followLights, startBoot, startScreenFlicker, safely } from './fx.js';
 import { SKATE_JOKES, IDLE_JOKES, createRotator } from './copy.js';
 import { LIGHTS_KEY } from './lights.js';
 import { createLink } from './link.js';
@@ -46,6 +46,7 @@ export function runCrowd(library) {
   $('crowd-tab').textContent = 'The Rack';
   buildMirrorLight($('mirror-light'));
   safely('arch', () => mountArch($('arch'), { rig: $('jukebox'), tubes: [$('tube-l'), $('tube-r')], cabinet: document.querySelector('.cabinet') }));
+  safely('screen-flicker', () => startScreenFlicker($('crt-flicker')));
 
   const nextJoke = createRotator(SKATE_JOKES);
   const nextIdleJoke = createRotator(IDLE_JOKES);

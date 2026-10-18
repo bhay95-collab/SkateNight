@@ -221,17 +221,8 @@ export function createUI({ library, getStatus, handlers }) {
     $('sf-code').textContent = track.code;
     $('sf-title').textContent = track.title;
     $('sign-flash').classList.add('is-on');
-    const cabinet = $('jukebox');
-    cabinet.classList.remove('is-selecting');
-    if (!isCalm()) {
-      void cabinet.offsetWidth;
-      cabinet.classList.add('is-selecting');
-    }
     clearTimeout(signTimer);
-    signTimer = setTimeout(() => {
-      $('sign-flash').classList.remove('is-on');
-      cabinet.classList.remove('is-selecting');
-    }, SIGN_FLASH_MS);
+    signTimer = setTimeout(() => $('sign-flash').classList.remove('is-on'), SIGN_FLASH_MS);
   }
 
   let msgTimer = null;
@@ -261,7 +252,7 @@ export function createUI({ library, getStatus, handlers }) {
     const more = queue.length - QUEUE_ROWS;
     if (more > 0) list.append(el('li', { class: 'q-more' }, `+${more} MORE WAITING`));
     // Spare rows show the house rotation's plan, greyed: what plays if nobody picks.
-    const spare = Math.min(3, QUEUE_ROWS - Math.min(queue.length, QUEUE_ROWS));
+    const spare = QUEUE_ROWS - Math.min(queue.length, QUEUE_ROWS);
     const house = houseLine.slice(0, spare).map((id) => trackById.get(id)).filter(Boolean);
     if (spare > 0) {
       list.append(el('li', { class: 'q-divider led', title: modeLabel }, house.length ? 'IF NOBODY PICKS' : 'PICK A SONG!'));

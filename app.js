@@ -18,7 +18,7 @@ import {
   createRotator,
 } from './copy.js';
 import {
-  initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely,
+  initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
 import { unlockAudio, setMusicLevel, setSfxLevel } from './audio.js';
 import { sfx, preloadSfxFiles, decodeSfxFiles } from './sound.js';
@@ -71,7 +71,8 @@ async function main() {
     return;
   }
   initLights();
-  preloadSfxFiles();                                 // any sfx/*.mp3 recordings, fetched early
+  preloadSfxFiles();                                 // original effects and optional MP3 overrides
+  safely('screen-flicker', () => startScreenFlicker($('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
   $('btn-lights').addEventListener('click', () => { flipLights(); sfx.key(); });
 
   // Boot overlay is opaque from first paint; the machine assembles behind it.

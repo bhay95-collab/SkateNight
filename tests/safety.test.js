@@ -33,6 +33,12 @@ test('the neon flicker keyframes never go fully dark', () => {
   }
 });
 
+test('the hard rule: only the cabinet tokens from trivia are used for the palette', () => {
+  for (const token of ['#140722', '#1D0B33', '#2B1147', '#38175C', '#4A2670', '#0C0516', '#FF2D95', '#25E8E2', '#FFC531', '#FFF3DE', '#A98CC4']) {
+    assert.ok(css.includes(token), `palette token ${token} is missing`);
+  }
+});
+
 test('the screen flicker is photosensitive-safe', async () => {
   const { planFlicker, FLICKER } = await import('../lights.js');
   let seed = 7;

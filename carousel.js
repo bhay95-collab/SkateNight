@@ -33,43 +33,22 @@ export function drawCarousel(canvas, records, gap = -1) {
   const size = Math.round(rect.width * dpr);
   if (canvas.width !== size) { canvas.width = size; canvas.height = size; }
   const c = canvas.getContext('2d');
-  if (!c) return;
   const half = size / 2;
-  const inner = half * 0.835;                // just under the platter's rim
-  const outer = half * 0.978;
+  const inner = half * 0.83;                 // just under the platter's rim
+  const outer = half * 0.985;
   const css = getComputedStyle(document.documentElement);
   const accent = (name) => css.getPropertyValue(`--sl-${name}`).trim() || '#D09A25';
-  const circle = (r, style, width) => {
-    c.strokeStyle = style; c.lineWidth = width;
-    c.beginPath(); c.arc(half, half, r, 0, Math.PI * 2); c.stroke();
-  };
 
   c.clearRect(0, 0, size, size);
-  // A recessed cast-metal magazine, rather than records floating in the
-  // window. These details are painted only when its size or contents change;
-  // the complete assembly still turns as a single compositor-layer canvas.
-  const cradle = c.createRadialGradient(half, half, inner, half, half, outer);
-  cradle.addColorStop(0, '#090B10');
-  cradle.addColorStop(0.2, '#282A30');
-  cradle.addColorStop(0.78, '#13151A');
-  cradle.addColorStop(1, '#050609');
-  circle((inner + outer) / 2, cradle, outer - inner);
+  c.lineCap = 'round';
+  // the rail the records stand in
+  c.strokeStyle = 'rgba(169,140,196,.45)';
+  c.lineWidth = Math.max(1.5, half * 0.018);
+  c.beginPath(); c.arc(half, half, outer - half * 0.004, 0, Math.PI * 2); c.stroke();
 
-  const steel = c.createLinearGradient(0, 0, size * 0.7, size);
-  steel.addColorStop(0, '#62666E');
-  steel.addColorStop(0.23, '#DADBD4');
-  steel.addColorStop(0.34, '#686E77');
-  steel.addColorStop(0.67, '#242831');
-  steel.addColorStop(0.85, '#B1B1A8');
-  steel.addColorStop(1, '#474B53');
-  circle(outer, '#050609', half * 0.036);
-  circle(outer, steel, half * 0.022);
-  circle(outer - half * 0.019, '#090B10', Math.max(1, dpr));
-  circle(inner, steel, half * 0.019);
-
-  const pitch = (2 * Math.PI * inner) / Math.max(records.length, 1);
-  const thick = Math.max(2, Math.min(half * 0.065, pitch * 0.45));
+  const thick = Math.max(2, Math.min(half * 0.085, ((2 * Math.PI * inner) / Math.max(records.length, 1)) * 0.55));
   records.forEach((acc, i) => {
+    if (i === gap) return;
     const a = (slotAngle(i, records.length) * Math.PI) / 180;
     const sx = Math.sin(a);
     const sy = -Math.cos(a);
@@ -77,27 +56,8 @@ export function drawCarousel(canvas, records, gap = -1) {
       c.strokeStyle = style; c.lineWidth = width;
       c.beginPath(); c.moveTo(half + sx * r1, half + sy * r1); c.lineTo(half + sx * r2, half + sy * r2); c.stroke();
     };
-    c.lineCap = 'butt';
-    line(inner + half * 0.008, outer - half * 0.018, '#050608', thick + half * 0.023);
-    line(inner + half * 0.012, outer - half * 0.022, '#4E535B', Math.max(1, dpr * 0.7));
-    if (i === gap) return;     // its empty metal cradle remains visible
-    c.lineCap = 'round';
-    line(inner + half * 0.014, outer - half * 0.025, '#777B80', thick + Math.max(1, dpr));
-    line(inner + half * 0.014, outer - half * 0.025, '#0A0B0E', thick);
-    // Only a narrow coloured index tab protrudes beyond the vinyl edge.
-    line(outer - half * 0.052, outer - half * 0.028, accent(acc), thick * 0.68);
+    line(inner, outer, '#7A6896', thick + Math.max(1.5, dpr * 1.5));   // the record's edge catching the light
+    line(inner, outer, '#120D18', thick);                              // black vinyl
+    line(outer - (outer - inner) * 0.5, outer - (outer - inner) * 0.06, accent(acc), thick * 0.8);   // its label colour
   });
-
-  // Small slotted fasteners anchor the magazine rim. They turn with it,
-  // making the final indexing movement readable even with a large library.
-  c.lineCap = 'butt';
-  for (let i = 0; i < 6; i++) {
-    const a = ((i * 60 + 15) * Math.PI) / 180;
-    const x = half + Math.sin(a) * (outer - half * 0.003);
-    const y = half - Math.cos(a) * (outer - half * 0.003);
-    c.fillStyle = '#C1C2BA';
-    c.beginPath(); c.arc(x, y, Math.max(1.2, half * 0.009), 0, Math.PI * 2); c.fill();
-    c.strokeStyle = '#363A43'; c.lineWidth = Math.max(0.8, dpr * 0.55);
-    c.beginPath(); c.moveTo(x - half * 0.006, y); c.lineTo(x + half * 0.006, y); c.stroke();
-  }
 }
