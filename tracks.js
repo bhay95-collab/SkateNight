@@ -235,4 +235,15 @@ export const tracks = [
 
   // L5 - Vol. X
   { id: 'holy-spirit-helper',  title: 'Holy Spirit Helper',  volume: 'vol-x',    file: 'audio/holy-spirit-helper.mp3' },
+
+  // ---- Songs 51-53: a sixth song on Vol. I - III ----
+
+  // A6 - Vol. I
+  { id: 'reigning-in-life',    title: 'Reigning in Life',    volume: 'vol-i',    file: 'audio/reigning-in-life.mp3' },
+
+  // B6 - Vol. II
+  { id: 'he-lives',            title: 'He Lives',            volume: 'vol-ii',   file: 'audio/he-lives.mp3' },
+
+  // C6 - Vol. III
+  { id: 'fire-of-love',        title: 'Fire of Love',        volume: 'vol-iii',  file: 'audio/fire-of-love.mp3' },
 ];
