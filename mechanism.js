@@ -3,9 +3,11 @@
 
    When a song is chosen:
      1. the volume's SLEEVE slides out of the rack (left panel) to the
-        mechanism window,
-     2. the RECORD rises out of the sleeve, glides across and DROPS onto
-        the platter,
+        mechanism window, while the CAROUSEL (every record, on edge, in a
+        ring round the platter - carousel.js) turns until the chosen record
+        reaches the gripper,
+     2. the RECORD swings up out of the ring, turning from edge-on to face-up,
+        and DROPS onto the platter,
      3. the record starts SPINNING with the cover as its label,
      4. the TONEARM swings across and the needle lands - THUD.
    When a song ends everything runs in reverse.
@@ -22,6 +24,7 @@
    ============================================================ */
 import { sleeveFace } from './ui.js';
 import { isCalm, delay } from './fx.js';
+import { carouselTarget, drawCarousel } from './carousel.js';
 
 // Timing at normal speed (milliseconds). app.js starts the next song's audio
 // exactly LOAD_MS after calling load(), when the needle lands.
@@ -37,7 +40,7 @@ const ARM_END = 30;
 const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
 const EASE_IN_OUT = 'cubic-bezier(0.65, 0, 0.35, 1)';
 
-export function createMechanism({ sfx }) {
+export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
   const $ = (id) => document.getElementById(id);
   const root = $('mech');
   const slot = $('mech-slot');
@@ -47,6 +50,18 @@ export function createMechanism({ sfx }) {
   const record = $('record');
   const label = $('record-label');
   const arm = $('arm');
+  const ring = $('carousel');
+  const gripper = $('gripper');
+
+  // The carousel: one record per song, in tracks.js order, coloured by album.
+  const trackIndex = new Map(tracks.map((t, i) => [t.id, i]));
+  const ringRecords = tracks.map((t) => volumeById.get(t.volume)?.accent || 'gold');
+  let ringDeg = 0;                  // how far the ring has turned (keeps growing: clockwise only)
+  let outIndex = -1;                // the record out on the platter (a gap in the ring)
+  const paintRing = () => drawCarousel(ring, ringRecords, outIndex);
+  const setRing = (deg) => { ringDeg = deg; if (ring) ring.style.transform = `rotate(${deg}deg)`; };
+  paintRing();
+  window.addEventListener('resize', paintRing);
 
   let phase = 'empty';
   let running = null;               // { anims, timers } of the sequence in flight
@@ -72,6 +87,9 @@ export function createMechanism({ sfx }) {
       running = null;
     }
     record.classList.remove('is-spinning');
+    gripper?.classList.remove('is-picking');
+    outIndex = -1;
+    paintRing();
     setArm(ARM_PARK);
     setPhase('empty');
   }
@@ -81,8 +99,6 @@ export function createMechanism({ sfx }) {
     const platRect = platter.getBoundingClientRect();
     const rackEl = currentVolume ? getRackSleeve(currentVolume.id) : null;
     const rackRect = rackEl ? rackEl.getBoundingClientRect() : null;
-    const dx = (platRect.left + platRect.width / 2) - (slotRect.left + slotRect.width / 2);
-    const dy = (platRect.top + platRect.height / 2) - (slotRect.top + slotRect.height / 2);
     let flip;
     if (rackRect && rackRect.width > 0) {
       flip = {
@@ -93,8 +109,11 @@ export function createMechanism({ sfx }) {
     } else {
       flip = { x: -slotRect.width * 0.6, y: -slotRect.height * 0.2, s: 0.3 };
     }
-    return { dx, dy, flip };
+    return { flip, radius: platRect.width / 2 };
   }
+
+  // The record standing edge-on in the ring at the gripper, relative to the platter centre.
+  const edgeOn = (radius) => tf(-radius * 0.94, 0, 1).replace(/scale\(1\)/, 'scale(0.07, 0.94)');
 
   const tf = (x, y, s = 1, r = 0) => `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
 
@@ -115,11 +134,17 @@ export function createMechanism({ sfx }) {
   }
 
   /* Bring the next record in. Resolves when the needle is down. */
-  async function load(volume, { speed = 1 } = {}) {
+  async function load(volume, { speed = 1, trackId = null } = {}) {
     if (phase === 'playing' || running) hardReset();
     setCover(volume);
+    const index = trackIndex.has(trackId) ? trackIndex.get(trackId) : -1;
+    const fromDeg = ringDeg;
+    const toDeg = carouselTarget(ringDeg, index, ringRecords.length);
 
     if (isCalm()) {
+      setRing(toDeg);
+      outIndex = index;
+      paintRing();
       setArm(ARM_START);
       record.classList.add('is-spinning');
       setPhase('playing');
@@ -130,26 +155,30 @@ export function createMechanism({ sfx }) {
 
     const T = LOAD_MS / speed;
     const f = { sleeve: 0.31, rise: 0.23, drop: 0.13, arm: 0.33 };
-    const tSleeve = f.sleeve * T;
+    const tSleeve = f.sleeve * T;                    // the carousel turns while the sleeve slides in
     const tRise = f.rise * T;
     const tDrop = f.drop * T;
     const tArm = f.arm * T;
     const tDown = tSleeve + tRise + tDrop;
-    const { dx, dy, flip } = rects();
+    const { flip, radius } = rects();
     const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
 
     setPhase('playing');         // the finished layout; the animations below paint over it
     sfx.whirr(tDown / 1000);
 
+    setRing(toDeg);
     const anims = [
       slot.animate(
         [{ transform: tf(flip.x, flip.y, flip.s), opacity: 0.85 }, { transform: tf(0, 0, 1), opacity: 1 }],
         opts(0, tSleeve)),
+      ring.animate(
+        [{ transform: `rotate(${fromDeg}deg)` }, { transform: `rotate(${toDeg}deg)` }],
+        opts(0, tSleeve * 0.94, EASE_IN_OUT)),
       mover.animate(
         [
-          { transform: tf(-dx, -dy, 0.96), opacity: 0, offset: 0 },
-          { transform: tf(-dx, -dy, 0.96), opacity: 1, offset: 0.08 },
-          { transform: tf(0, -14, 1.07), opacity: 1, offset: tRise / (tRise + tDrop) },
+          { transform: edgeOn(radius), opacity: 0, offset: 0 },
+          { transform: edgeOn(radius), opacity: 1, offset: 0.06 },
+          { transform: `translate(${-radius * 0.4}px, -14px) scale(0.72, 1.06)`, opacity: 1, offset: tRise / (tRise + tDrop) },
           { transform: tf(0, 0, 1), opacity: 1, offset: 1 },
         ],
         opts(tSleeve, tRise + tDrop, EASE_IN_OUT)),
@@ -158,7 +187,10 @@ export function createMechanism({ sfx }) {
         opts(tDown, tArm, EASE_IN_OUT)),
     ];
 
+    gripper?.classList.add('is-picking');
     const timers = [
+      setTimeout(() => { outIndex = index; paintRing(); }, tSleeve),     // the record leaves the ring
+      setTimeout(() => gripper?.classList.remove('is-picking'), tDown),
       setTimeout(() => record.classList.add('is-spinning'), tDown),
       setTimeout(() => sfx.thud(), T),
     ];
@@ -178,7 +210,7 @@ export function createMechanism({ sfx }) {
       return;
     }
     const T = EJECT_MS / speed;
-    const { dx, dy, flip } = rects();
+    const { flip, radius } = rects();
     const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
     const currentArm = parseFloat(arm.style.getPropertyValue('--arm-angle')) || ARM_START;
 
@@ -190,9 +222,9 @@ export function createMechanism({ sfx }) {
       mover.animate(
         [
           { transform: tf(0, 0, 1), opacity: 1, offset: 0 },
-          { transform: tf(0, -14, 1.07), opacity: 1, offset: 0.3 },
-          { transform: tf(-dx, -dy, 0.96), opacity: 1, offset: 0.92 },
-          { transform: tf(-dx, -dy, 0.96), opacity: 0, offset: 1 },
+          { transform: `translate(${-radius * 0.4}px, -14px) scale(0.72, 1.06)`, opacity: 1, offset: 0.4 },
+          { transform: edgeOn(radius), opacity: 1, offset: 0.92 },
+          { transform: edgeOn(radius), opacity: 0, offset: 1 },
         ],
         opts(0.22 * T, 0.36 * T, EASE_IN_OUT)),
       slot.animate(
@@ -201,7 +233,10 @@ export function createMechanism({ sfx }) {
          { transform: tf(flip.x, flip.y, flip.s), opacity: 0, offset: 1 }],
         opts(0.55 * T, 0.45 * T)),
     ];
-    const timers = [setTimeout(() => record.classList.remove('is-spinning'), 0.22 * T)];
+    const timers = [
+      setTimeout(() => record.classList.remove('is-spinning'), 0.22 * T),
+      setTimeout(() => { outIndex = -1; paintRing(); }, 0.58 * T),         // back in its slot in the ring
+    ];
     await runSequence(anims, T + 30, timers, () => {
       record.classList.remove('is-spinning');
       setArm(ARM_PARK);
@@ -213,9 +248,9 @@ export function createMechanism({ sfx }) {
     load,
     eject,
     /* Eject whatever is there, then load the new record. */
-    async swap(volume, { speed = 1 } = {}) {
+    async swap(volume, { speed = 1, trackId = null } = {}) {
       await eject({ speed });
-      await load(volume, { speed });
+      await load(volume, { speed, trackId });
     },
     loadMs: (speed = 1) => (isCalm() ? CALM_SWAP_MS : LOAD_MS / speed),
     ejectMs: (speed = 1) => (isCalm() ? CALM_SWAP_MS : EJECT_MS / speed),

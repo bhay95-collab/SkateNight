@@ -142,3 +142,19 @@ test('in-order mode follows the list, skips broken songs and wraps round', () =>
   assert.equal(pickInOrder({ orderIds: order, playableIds: [], currentId: 'a' }), null);
   assert.equal(pickInOrder({ orderIds: ['x'], playableIds: ['x'], currentId: 'x' }), 'x');
 });
+
+test('the record carousel always turns clockwise to bring the record to the gripper', async () => {
+  const { carouselTarget, slotAngle, PICK_DEG, MIN_TURN_DEG } = await import('../carousel.js');
+  for (const count of [1, 2, 7, 29, 80]) {
+    let deg = 0;
+    for (let k = 0; k < 200; k++) {
+      const index = (k * 7) % count;
+      const next = carouselTarget(deg, index, count);
+      assert.ok(next - deg >= MIN_TURN_DEG && next - deg < 360 + MIN_TURN_DEG, 'turns forward, a visible amount, less than two laps');
+      const atGripper = (((slotAngle(index, count) + next) % 360) + 360) % 360;
+      assert.ok(Math.abs(atGripper - PICK_DEG) < 1e-6, 'the chosen record ends at the gripper');
+      deg = next;
+    }
+  }
+  assert.equal(carouselTarget(30, -1, 10), 30, 'unknown record: no turn');
+});

@@ -121,7 +121,7 @@ async function main() {
       cancel: (i) => { queue = cancelAt(queue, i); sfx.key(); afterQueueChange(); },
     },
   });
-  const mech = createMechanism({ sfx });
+  const mech = createMechanism({ sfx, tracks: library.tracks, volumeById });
   mech.setRackLookup((volumeId) => ui.rackSleeve(volumeId));
 
   ui.renderRack();
@@ -309,7 +309,7 @@ async function main() {
     const track = trackById.get(id);
     const volume = volumeById.get(track.volume);
     showNow(id);
-    mech.load(volume, { speed: 1 }).catch(() => {});
+    mech.load(volume, { speed: 1, trackId: id }).catch(() => {});
     setTimeout(() => startAudio(id, token), mech.loadMs(1));
   }
 
@@ -324,7 +324,7 @@ async function main() {
     const volume = volumeById.get(track.volume);
     const ejectMs = mech.ejectMs(SKIP_SPEED);
     const loadMs = mech.loadMs(SKIP_SPEED);
-    mech.swap(volume, { speed: SKIP_SPEED }).catch(() => {});
+    mech.swap(volume, { speed: SKIP_SPEED, trackId: id }).catch(() => {});
     setTimeout(() => { if (token === changeToken) showNow(id); }, ejectMs);
     setTimeout(() => startAudio(id, token), ejectMs + loadMs);
     scheduleRender();
@@ -401,7 +401,7 @@ async function main() {
       phase = 'changing';
       const ejectMs = mech.ejectMs(SKIP_SPEED);
       const loadMs = mech.loadMs(SKIP_SPEED);
-      mech.swap(volume, { speed: SKIP_SPEED }).catch(() => {});
+      mech.swap(volume, { speed: SKIP_SPEED, trackId: id }).catch(() => {});
       setTimeout(() => startAudio(id, token), ejectMs + loadMs);
     }
   }
@@ -423,7 +423,7 @@ async function main() {
           pre.nextId = nextId;
           pre.loadStarted = true;
           const t = trackById.get(nextId);
-          mech.load(volumeById.get(t.volume), { speed: 1 }).catch(() => {});
+          mech.load(volumeById.get(t.volume), { speed: 1, trackId: nextId }).catch(() => {});
           scheduleRender();
         }
       }
