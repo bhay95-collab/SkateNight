@@ -66,9 +66,12 @@ function sizeCanvas(canvas) {
   return { ctx: canvas.getContext('2d'), w, h, dpr };
 }
 
-export function createVisualiser() {
+/* source: the crowd screen has no sound of its own, so it draws from levels
+   sent by the control window (a function returning { levels, vuL, vuR }).
+   tap: the control window hands each frame's levels to the crowd screen. */
+export function createVisualiser({ source = null, tap = null } = {}) {
   const $ = (id) => document.getElementById(id);
-  const engine = getEngine();
+  const engine = source ? null : getEngine();
   const freq = engine ? new Uint8Array(engine.analyser.frequencyBinCount) : new Uint8Array(0);
   const timeL = engine ? new Float32Array(engine.analyserL.fftSize) : new Float32Array(0);
   const timeR = engine ? new Float32Array(engine.analyserR.fftSize) : new Float32Array(0);
@@ -292,6 +295,10 @@ export function createVisualiser() {
       const gain = engine.musicBus.gain.value;
       rmsL = vuLevel(rmsFromFloat(timeL), gain);
       rmsR = vuLevel(rmsFromFloat(timeR), gain);
+      if (tap) safely('tap', () => tap({ levels: Array.from(levels, (v) => Math.round(v * 1000) / 1000), vuL: rmsL, vuR: rmsR }));
+    } else if (source) {
+      const d = source();
+      if (d && Array.isArray(d.levels)) { levels = d.levels; rmsL = d.vuL || 0; rmsR = d.vuR || 0; }
     }
     let bass = 0;
     let total = 0;

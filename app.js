@@ -26,6 +26,8 @@ import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
+import { createLink, isCrowdView } from './link.js';
+import { runCrowd } from './crowd.js';
 import { createUI, createTicker } from './ui.js';
 import {
   keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker,
@@ -63,6 +65,11 @@ async function loadLibrary() {
 }
 
 async function main() {
+  if (isCrowdView()) {                               // the projector window: no sound, no controls
+    const { library } = await loadLibrary();
+    runCrowd(library);
+    return;
+  }
   initLights();
   preloadSfxFiles();                                 // any sfx/*.mp3 recordings, fetched early
   safely('screen-flicker', () => startScreenFlicker(document.getElementById('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
@@ -121,7 +128,31 @@ async function main() {
       cancel: (i) => { queue = cancelAt(queue, i); sfx.key(); afterQueueChange(); },
     },
   });
-  const mech = createMechanism({ sfx, tracks: library.tracks, volumeById });
+  /* ---------------- the crowd screen link ----------------
+     Everything the room should see is also sent to the crowd screen. */
+  const link = createLink();
+  let crowdOpen = false;                           // only stream meter levels once a crowd screen has said hello
+  const mech = mirrorMech(createMechanism({ sfx, tracks: library.tracks, volumeById }));
+  function mirrorMech(m) {
+    const tx = Object.create(m);
+    tx.load = (v, o = {}) => { link.send('mech', { op: 'load', volumeId: v?.id, ...o }); return m.load(v, o); };
+    tx.swap = (v, o = {}) => { link.send('mech', { op: 'swap', volumeId: v?.id, ...o }); return m.swap(v, o); };
+    tx.eject = (o = {}) => { link.send('mech', { op: 'eject', ...o }); return m.eject(o); };
+    tx.setPaused = (p) => { link.send('mech', { op: 'paused', paused: p }); m.setPaused(p); };
+    tx.showIdleCover = (v) => { link.send('mech', { op: 'idle', volumeId: v?.id }); m.showIdleCover(v); };
+    tx.clearIdleCover = () => { link.send('mech', { op: 'clearIdle' }); m.clearIdleCover(); };
+    return tx;
+  }
+  const crowdState = () => ({
+    phase, nowId, queue: queue.slice(), houseLine: houseLine.slice(), shuffle,
+    shownVolumeId: ui.shownVolumeId, missing: library.tracks.filter((t) => getStatus(t.id).state === 'missing').map((t) => t.id),
+  });
+  link.listen(({ type }) => {
+    if (type !== 'hello') return;
+    crowdOpen = true;
+    link.send('snapshot', { state: crowdState(), lights: isCalm() ? 'calm' : 'full' });
+  });
+  link.send('operator');                           // a crowd screen already open (say, after a reload) says hello back
   mech.setRackLookup((volumeId) => ui.rackSleeve(volumeId));
 
   ui.renderRack();
@@ -151,6 +182,7 @@ async function main() {
       ui.updateStrips({ nowId, queue });
       planHouse();
       ui.renderQueue(queue, houseLine, shuffle ? 'HOUSE SHUFFLE' : 'HOUSE IN ORDER');
+      link.send('state', crowdState());
       const playText = phase === 'playing' ? 'PAUSE' : phase === 'paused' ? 'RESUME' : phase === 'changing' ? 'PAUSE' : 'START';
       $('btn-play-text').textContent = playText;
       $('btn-play').classList.toggle('is-playing', phase === 'playing');
@@ -409,6 +441,7 @@ async function main() {
   function onTime(current, duration, id) {
     if (id !== nowId || phase !== 'playing') return;
     ui.setProgress(current, duration);
+    link.send('time', { current, duration, nowId });
     if (!Number.isFinite(duration) || duration <= 0) return;
     mech.setProgress(current / duration);
     const remaining = duration - current;
@@ -516,6 +549,7 @@ async function main() {
     queue = result.queue;
     sfx.confirm();
     safely('sign-flash', () => ui.flashSelection(track));
+    link.send('select', { trackId: track.id });
     useCredit();
     say(`ADDED ${track.code} - ${track.title}`, 'good');
     if (phase === 'idle') playFromIdle();
@@ -590,6 +624,12 @@ async function main() {
   $('btn-skip').addEventListener('click', () => { noteInput(); skip(); });
   $('btn-back').addEventListener('click', () => { noteInput(); back(); });
   $('btn-shuffle').addEventListener('click', () => { noteInput(); sfx.key(); setShuffle(!shuffle); });
+  $('btn-crowd').addEventListener('click', () => {
+    noteInput();
+    sfx.key();
+    const crowd = window.open(`${location.pathname}?view=crowd`, 'skate-crowd', 'popup,width=1280,height=720');
+    if (!crowd) ui.toast('THE BROWSER BLOCKED THE CROWD SCREEN - ALLOW POP-UPS FOR THIS SITE');
+  });
   paintShuffle();
 
   const savedVol = (() => {
@@ -845,7 +885,7 @@ async function main() {
       await Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]);   // so a recorded coin plays first time
       safely('coin', () => sfx.coin());
       player = createPlayer({ onEnded, onTime, onError, onDuration });
-      visualiser = createVisualiser();
+      visualiser = createVisualiser({ tap: (d) => { if (crowdOpen) link.send('levels', d); } });
       safely('visualiser', () => visualiser.start());
       setupMediaSession({
         onPlay: () => { if (phase === 'paused') togglePlay(); else if (phase === 'idle') playFromIdle(); },

@@ -180,6 +180,25 @@ record changer and the readouts carry the show; the world around it stays dim.
 
 Before adding anything new, ask what it replaces.
 
+## Crowd screen (two windows)
+
+The **CROWD SCREEN** button opens `index.html?view=crowd` (`crowd.js`) for the
+projector, with the laptop showing the full control window. The crowd screen:
+- plays **no sound** and has **no controls** (no deck, selector, queue buttons,
+  status chips or key legend); its tab reads THE RACK, and the rack fills the
+  column - a big sleeve over larger strips - following the control window's page;
+- mirrors everything the room should see over a `BroadcastChannel` (`link.js`):
+  state (playing, UP NEXT and the house plan, rack page), every record-changer
+  move, SELECTION ACCEPTED, the song clock (about 4 times a second) and the
+  meter levels (30 a second, only once a crowd screen has said hello);
+- catches up when opened mid-song (a `snapshot` reply to its `hello`: the
+  record is shown already playing);
+- follows the LIGHTS setting (shared `localStorage`, `storage` event);
+- runs its own ticker jokes, bubble tubes, arch and (silent) screen flicker;
+- goes fullscreen on a click or F, and hides the pointer when fullscreen.
+If the control window is minimised the browser pauses its drawing, so the
+crowd screen's meters freeze until it is shown again.
+
 ## Motion
 
 Port of trivia's effects, then the jukebox mechanics on top.
@@ -195,13 +214,33 @@ Web Animations (compositor only):
 
 | t (normal speed) | What happens |
 |---|---|
-| 0 - 0.47 s | The volume's **sleeve slides out of the rack** to the mechanism window (FLIP from the big rack sleeve if that album is showing, otherwise from its letter key). Whirr. |
-| 0.47 - 1.0 s | The **record rises out** of the sleeve and glides across the platter, lifted slightly. |
+| 0 - 0.47 s | The volume's **sleeve slides out of the rack** to the mechanism window (FLIP from the big rack sleeve if that album is showing, otherwise from its letter key) while the **record carousel turns** clockwise until the chosen record reaches the chrome gripper at 9 o'clock (lit cyan while it works). Whirr. |
+| 0.47 - 1.0 s | The **record swings out of the ring**, turning from edge-on to face-up as it crosses the platter, lifted slightly. Its slot in the ring stays empty while it plays. |
 | 1.0 - 1.2 s | The record **drops** onto the platter and starts **spinning** (33 1/3 rpm = 1.8 s per turn) with the cover as its label. |
 | 1.0 - 1.5 s | The **tonearm swings** across; **needle-drop thud** at 1.5 s. |
 
 At the end of a song the same moves run in reverse (1.0 s): arm lifts, record
-slides back under the sleeve, sleeve returns to the rack. During the song the
+swings back edge-on into its slot in the ring, sleeve returns to the rack.
+
+**Record carousel** (`carousel.js`): every song's record stands on edge in a
+ring round the platter, seen from above (like looking down into a Wurlitzer),
+each tipped with its album's sleeve colour, in `tracks.js` order. One canvas,
+painted once; turning it is a CSS rotation, always clockwise, at least 45°
+(`carouselTarget`, tested). Clipped to a circle so the turning square canvas
+never pokes out.
+
+**Cabinet details:**
+- **Arch** (`arch.js`): a glass tube rises out of each side bubble tube, beside
+  the ticker, and arches over the top behind the marquee sign. One SVG path
+  measured from the real tube positions, redrawn on resize; follows the tubes'
+  colour (`--tube-col`) with a few drifting bubbles (`arch-bubbles`, 14 s).
+- **Latching keys**: the selector letter (and its digits) stay pushed in and
+  lit cyan until the code is selected or cleared, like mechanical selector
+  buttons.
+- **SELECTION J3 ACCEPTED**: the marquee sign shows each accepted pick and its
+  title for 2.2 s, then hands back to the wordmark.
+- **Page flip**: the rack's album page flips over on its hinge (0.7 s, direction
+  follows album order) with a clack (`sfx.page`). During the song the
 tonearm creeps toward the middle of the record with progress.
 
 For a natural song change the changer **pre-rolls**: the eject starts 2.5 s
@@ -340,7 +379,8 @@ on INSERT COIN is the browser's required gesture.
 | `coin` | A coin drops into the slot |
 | `key` | A keypad button is pressed |
 | `confirm` | A song was added to the queue |
-| `whirr` | The record mechanism moving |
+| `whirr` | The record mechanism moving (and the carousel turning) |
+| `page` | The rack's album page flips over (a clack) |
 | `thud` | The needle lands on the record |
 | `buzz` | Something is out of order / refused |
 | `flicker` | The screen dips - a faint electrical crackle, one per dip, quiet on purpose |
@@ -412,7 +452,11 @@ from 10 metres). Everything about reading and validating that file lives in
 | `dsp.js` | Spectrum bands, loudness, envelope, beat gate (pure) |
 | `lights.js` | FULL / CALM decision (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
-| `sound.js` | Synthesised effects |
+| `sound.js` | Synthesised effects, or recordings from `sfx/` |
+| `carousel.js` | The record carousel: turn maths (pure) and its drawing |
+| `arch.js` | The arched cabinet crown |
+| `crowd.js` | The crowd screen (projector window): mirrors the control window |
+| `link.js` | BroadcastChannel between the control window and the crowd screen |
 | `player.js` | Two audio decks, fades, gapless-feel, probing |
 | `mechanism.js` | The record changer animation |
 | `visualiser.js` | Shared loop, canvases, mirror light |

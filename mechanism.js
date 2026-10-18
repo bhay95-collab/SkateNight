@@ -265,6 +265,20 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     },
     setPaused(paused) { root.classList.toggle('is-paused', paused); },
 
+    /* The finished picture straight away (a crowd screen opened mid-song). */
+    showPlaying(volume, { trackId = null, paused = false } = {}) {
+      hardReset();
+      setCover(volume);
+      const index = trackIndex.has(trackId) ? trackIndex.get(trackId) : -1;
+      setRing(carouselTarget(ringDeg, index, ringRecords.length));
+      outIndex = index;
+      paintRing();
+      setArm(ARM_START);
+      record.classList.add('is-spinning');
+      root.classList.toggle('is-paused', paused);
+      setPhase('playing');
+    },
+
     /* Idle "attract" look: show a cover on the empty mechanism without a record. */
     showIdleCover(volume) {
       if (phase === 'playing' || running) return;

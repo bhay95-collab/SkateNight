@@ -29,6 +29,11 @@ function applyLights(mode) {
   }
 }
 
+/* The crowd screen follows whatever the control window has chosen. */
+export function followLights(mode) {
+  if (mode === 'calm' || mode === 'full') applyLights(mode);
+}
+
 /* Reads the saved choice (or the operating system's setting) and applies it. */
 export function initLights() {
   let stored = null;

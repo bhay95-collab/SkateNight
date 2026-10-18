@@ -204,12 +204,23 @@ place; follow these steps only if you want to swap it for a new one.
 **On the night:**
 
 - [ ] Plug the laptop into **power** (important - it will run for hours).
-- [ ] **Plug in the projector** and set the laptop to **Duplicate / Mirror**
-      displays (Windows: press the Windows key + **P**, choose *Duplicate*. Mac:
-      System Settings -> Displays -> *Mirror*).
-- [ ] Open the jukebox site in Chrome.
-- [ ] Press **F** for **fullscreen** (press **Esc** to leave).
-- [ ] Press **INSERT COIN**, then **START**.
+- [ ] **Plug in the projector** and set the laptop to **Extend** displays, so
+      the projector is a second screen (Windows: press the Windows key + **P**,
+      choose *Extend*. Mac: System Settings -> Displays -> use as *Extended
+      display*, not Mirror).
+- [ ] Open the jukebox site in Chrome on the laptop screen and press
+      **INSERT COIN**.
+- [ ] Press **CROWD** (bottom right). A second window opens: that is the
+      **crowd screen** - the jukebox as the room sees it, with no buttons,
+      sliders or keypad. **Drag it onto the projector**, then **click it once**
+      to make it fullscreen. (If Chrome blocks it, click the blocked pop-up
+      icon in the address bar and choose *Always allow*.)
+- [ ] Back on the laptop, press **START**. You run everything from the laptop
+      window; the crowd screen follows along by itself. Keep the laptop window
+      open (not minimised), or the projector's meters stop moving.
+- [ ] No second screen? Use *Duplicate* instead and press **F** for fullscreen
+      in the one window (press **Esc** to leave) - everything still works, the
+      room just sees the controls too.
 - [ ] **Test volume:** move the **MUSIC** slider (or tap the up/down arrow keys)
       while someone stands at the back of the rink. The laptop's own volume
       should be about three-quarters up; use the jukebox slider to fine-tune.
@@ -218,7 +229,8 @@ place; follow these steps only if you want to swap it for a new one.
 - [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
 
 **If the page is closed or reloaded by accident:** open the site again and press
-INSERT COIN -> START. The queue starts empty (the house rotation fills the gap).
+INSERT COIN -> START (and press CROWD again if the crowd screen was closed - an
+open crowd screen picks the jukebox back up on its own). The queue starts empty (the house rotation fills the gap).
 
 ## How it behaves
 
