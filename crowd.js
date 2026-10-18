@@ -13,7 +13,7 @@ import { createUI, createTicker } from './ui.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
-import { initLights, followLights, startBoot, startScreenFlicker, safely } from './fx.js';
+import { initLights, followLights, onCalmChange, startBoot, startScreenFlicker, safely } from './fx.js';
 import { SKATE_JOKES, IDLE_JOKES, createRotator } from './copy.js';
 import { LIGHTS_KEY } from './lights.js';
 import { createLink } from './link.js';
@@ -53,6 +53,7 @@ export function runCrowd(library) {
   const isMusicOn = () => state.phase === 'playing' || state.phase === 'changing';
   const ticker = createTicker({ textEl: $('ticker-text'), nextText: () => (isMusicOn() ? nextJoke() : nextIdleJoke()) });
   ticker.start();
+  onCalmChange(() => ticker.restart());
 
   let levels = null;
   const visualiser = createVisualiser({ source: () => levels });

@@ -69,6 +69,7 @@
     </div>
 
     <div class="marquee-sign">
+      <div class="marquee-chase" aria-hidden="true"></div>
       <h1 class="wordmark"><span class="w-cyan">Skate</span> <span class="by">by</span> <span class="w-mag">Faith</span></h1>
       <p class="wordmark-sub">Not by Sight &mdash; An 80s Rollerskate Night</p>
       <div class="sign-flash" id="sign-flash" aria-hidden="true">
@@ -134,20 +135,26 @@
 
       <div class="mech screen" id="mech" data-phase="empty">
         <div class="mech-wall" aria-hidden="true"></div>
+        <div class="mech-sleeve-well" aria-hidden="true"></div>
         <div class="mech-slot" id="mech-slot"><div class="mech-sleeve" id="mech-sleeve"></div></div>
-        <div class="carousel" aria-hidden="true">
-          <span class="carousel-clip"><canvas class="carousel-ring" id="carousel"></canvas></span>
-          <i class="gripper" id="gripper"></i>
-        </div>
-        <div class="platter" id="platter">
-          <div class="record-mover" id="record-mover">
-            <div class="record" id="record">
-              <div class="record-label" id="record-label"></div>
-              <div class="record-hole"></div>
-            </div>
+        <div class="changer-assembly">
+          <div class="carousel" aria-hidden="true">
+            <span class="carousel-clip"><canvas class="carousel-ring" id="carousel"></canvas></span>
+            <i class="gripper" id="gripper"></i>
           </div>
+          <div class="platter" id="platter">
+            <div class="record-mover" id="record-mover">
+              <div class="record" id="record">
+                <div class="record-label" id="record-label"></div>
+                <div class="record-hole"></div>
+              </div>
+            </div>
+            <i class="spindle" aria-hidden="true"></i>
+          </div>
+          <i class="arm-mount" aria-hidden="true"></i>
+          <i class="arm-rest" aria-hidden="true"></i>
+          <div class="arm" id="arm"><i class="arm-counterweight"></i><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
         </div>
-        <div class="arm" id="arm"><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
       </div>
 
       <div class="mech-nameplate" aria-hidden="true"><span>PRECISION RECORD CHANGER</span><b>45 RPM · STEREO</b></div>

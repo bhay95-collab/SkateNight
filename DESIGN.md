@@ -148,7 +148,9 @@ worker.
   NEXT** (two thirds, split 1.38 : 0.62) | tube.
 - The marquee sign is centred on the page (wordmark 2.45 rem, subtitle .72 rem,
   both centred inside the sign) with the bulb rows hugging the sign's edges so
-  the lettering never sits on a bulb.
+  the lettering never sits on a bulb. Its enclosure has a narrow bevel, flush
+  fasteners and a dark recessed face. Glass lamps stay fixed in their channels;
+  a separately masked light chase passes over them rather than sliding the bulbs.
 - PICK A SONG is one panel: the rack page on top (one album at a time - a big
   sleeve as tall as the page, capped at 46% of the width so the title strips
   keep room for two-line titles, with arrows to flip albums) and the selector
@@ -189,7 +191,7 @@ record changer and the readouts carry the show; the world around it stays dim.
   behind the cabinet), neon glows, LEDs, the spectrum (82%), the bubble tubes
   (liquid 5-24%, slower bubbles), the paper strips and the VU faces (warm, not white).
 - Slowed: the LED ticker (4.2 rem a second, readable from the back), bulb chase
-  (2.6 s), neon flicker dips only to 80% so a word never looks switched off.
+  (4.6 s before music-reactive rate adjustment), neon flicker dips only to 80% so a word never looks switched off.
 - Framed: trivia's CRT bezel at .7 rem with four corner fasteners and an inner
   shadow, with the machine inset from it, so the page reads as a cabinet screen.
 - Boot: trivia's pacing - a full, unskippable 13 s hold with the self-test
@@ -254,9 +256,29 @@ lifts before turning edge-on, the gripper catches it into its slot in the ring,
 and the sleeve returns to the rack. The mechanical window retains the small
 **PRECISION RECORD CHANGER** and **45 RPM · STEREO** labels.
 
+The changer has a satin-black sleeve cradle and a separate mechanical mounting
+plate behind the glass. Its platter uses a ribbed rubber mat, machined rim,
+raised hub and spindle. The tonearm has a fixed bearing mount, counterweight,
+metal shaft, separate cartridge and visible stylus. In the parked position
+(-5°), the cartridge rests outside the magazine; the playing arc remains 17–30°.
+
+All fixed hardware shares an unscaled 10 em coordinate space. The 8.9 em magazine
+and 7.3 em platter are concentric at (5 em, 5 em), and the assembly sizes to the
+actual window with container units. Deliberate clearance keeps the magazine,
+gripper and full tonearm sweep inside the case. Do not restore the former
+8.9 em ring in an 8.8 em case, or use clipping to conceal a clearance failure.
+Only the sleeve intentionally travels outside the window during transfer.
+
+Pickup/return offsets come from the measured gripper and platter centres. Lift
+height scales with platter radius, so the record meets the picker and spindle
+at every supported size. Avoid scale transforms on the assembly: animation
+translations use measured CSS pixels. Audio scheduling remains independent.
+
 **Record carousel** (`carousel.js`): every song's record stands on edge in a
 ring round the platter, seen from above (like looking down into a Wurlitzer),
-each with a bold band of its album's sleeve colour, in `tracks.js` order (the platter is 7.3 em so the ring has room to read). One canvas,
+each with a bold band of its album's sleeve colour, in `tracks.js` order. Recessed
+cradles, bevelled black vinyl edges, indexing marks and restrained cyan/magenta
+inlays give the magazine depth while retaining those colours. One canvas,
 painted once; turning it is a CSS rotation, always clockwise, at least 45°
 (`carouselTarget`, tested). Clipped to a circle so the turning square canvas
 never pokes out.
@@ -336,7 +358,7 @@ LED reads **FREE PLAY** (real arcade term).
 
 Audit list - every `@keyframes` in `styles.css` and its rate:
 `crt-roll` 9 s (one band, whole screen), `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
-1.6 s (small dots moving), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
+4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
 `attract-blink` 1.15 s,
 `coin-drop` once, `score-pop` once, boot sequence once per tab.
