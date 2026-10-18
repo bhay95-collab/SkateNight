@@ -134,10 +134,11 @@ Vol. VI is **G**, not F. This table is also written at the top of
 **Where to put new songs:** spread them evenly, fewest songs first (right
 now Vol. I - VII have 5 songs and Vol. VIII - X have 4; the next songs go on
 Vol. VIII, then IX, then X). Add each new song at the **end** of the
-`tracks = [` list, so no existing code changes. An album with more than 3 songs
-still works: its strips scroll on the laptop (mouse wheel or trackpad), a small
-**▼ MORE** tag shows there are songs below, and typing a code scrolls its
-strip into view. The crowd screen shows every song without scrolling.
+`tracks = [` list, so no existing code changes. An album with more songs than
+fit still works: the laptop's strip window shows a group of songs and the
+**MORE ▼** button under the album cover turns to the next group (tiny lamps on
+the button show which group you are on). Typing a code turns to the right group
+by itself. The crowd screen shows every song, no button needed.
 
 **Adding a whole new album (volume):** add a line inside the `volumes = [` list:
 
@@ -248,7 +249,10 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   or press a **letter key** (on screen or keyboard) - the rack jumps to that
   album. Then press the number and **SELECT** (or type it, for example `B`,
   `1`, `Enter`). The title strips are for reading only - clicking a strip does
-  nothing. The chosen song joins **UP NEXT** (right-hand column).
+  nothing. An album with more songs than fit shows them in groups: press the
+  **MORE ▼** button under the album cover to see the next group (it goes back
+  to the first after the last). The chosen song joins **UP NEXT** (right-hand
+  column).
 - The scrolling LED strip under the sign rolls **one skate joke at a time**,
   picked at random from 117 (no repeats until every one has had a turn), with
   a separate set of 20 for when the music is stopped or paused. To add or

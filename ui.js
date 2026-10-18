@@ -114,12 +114,16 @@ export function createUI({ library, getStatus, handlers }) {
     const sleeve = rackSleeves.get(volumeId);
     if ($('rack-sleeve').firstChild !== sleeve) $('rack-sleeve').replaceChildren(sleeve);
 
+    if (stripsVolumeId !== volumeId) stripPage = 0;       // a new album starts on its first page
+    stripsVolumeId = volumeId;
     stripsEl.replaceChildren();
     stripRows.clear();
     stripsEl.dataset.accent = v.accent || 'gold';
     const list = library.tracks.filter((t) => t.volume === volumeId);
     if (list.length === 0) {
       stripsEl.append(el('p', { class: 'strips-empty' }, 'NO SONGS ON THIS ALBUM YET'));
+      stripPages = [];
+      updateMoreButton();
       return;
     }
     for (const t of list) {
@@ -135,19 +139,77 @@ export function createUI({ library, getStatus, handlers }) {
       stripRows.set(t.id, row);
       stripsEl.append(row);
     }
-    stripsEl.scrollTop = 0;
-    updateMoreCue();
+    paginateStrips();
   }
 
-  /* An album with more songs than fit scrolls inside the strip window. The
-     MORE tag shows while there are songs below, and typing a code scrolls
-     its strip into view. */
-  function updateMoreCue() {
-    const below = stripsEl.scrollHeight - stripsEl.clientHeight - stripsEl.scrollTop;
-    $('strips-more').classList.toggle('is-shown', below > 12);
+  /* ---- MORE: the strip window never scrolls ----
+     Like the title-strip window on a real jukebox, it shows as many strips as
+     fit and a push-button under the cover turns to the next group (and, after
+     the last, back to the first). Typing a code turns to the group that holds
+     its strip. The crowd screen has no button, so it shows every strip. */
+  const moreBtn = $('strips-more');
+  let stripPages = [];            // arrays of rows, one per group
+  let stripPage = 0;
+  let stripsVolumeId = null;
+
+  function paginateStrips() {
+    const rows = [...stripRows.values()];
+    rows.forEach((r) => r.classList.remove('is-off'));
+    stripPages = [];
+    if (document.body.classList.contains('is-crowd')) {
+      if (rows.length) stripPages = [rows];
+    } else {
+      const css = getComputedStyle(stripsEl);
+      const room = stripsEl.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom);
+      let group = [];
+      let used = 0;
+      for (const row of rows) {
+        const h = row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0);
+        if (group.length && used + h > room + 1) { stripPages.push(group); group = []; used = 0; }
+        group.push(row);
+        used += h;
+      }
+      if (group.length) stripPages.push(group);
+    }
+    stripPage = Math.min(stripPage, Math.max(0, stripPages.length - 1));
+    showStripPage();
   }
-  stripsEl.addEventListener('scroll', updateMoreCue, { passive: true });
-  window.addEventListener('resize', updateMoreCue);
+
+  function showStripPage() {
+    stripPages.forEach((group, i) => group.forEach((r) => r.classList.toggle('is-off', i !== stripPage)));
+    updateMoreButton();
+  }
+
+  function updateMoreButton() {
+    const pages = stripPages.length;
+    moreBtn.disabled = pages < 2;
+    moreBtn.setAttribute('aria-label', pages < 2
+      ? 'All songs on this album are showing'
+      : `More songs on this album: showing group ${stripPage + 1} of ${pages}`);
+    $('more-lamps').replaceChildren(...(pages < 2 ? [] : stripPages.map((_, i) => el('i', { class: i === stripPage ? 'is-on' : '' }))));
+  }
+
+  function turnStrips(next) {
+    if (next === stripPage || next < 0 || next >= stripPages.length) return;
+    stripPage = next;
+    showStripPage();
+    if (!isCalm()) {
+      stripsEl.animate(
+        [{ opacity: 0.3, transform: 'translateY(.5rem)' }, { opacity: 1, transform: 'none' }],
+        { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' },
+      );
+    }
+  }
+
+  moreBtn.addEventListener('click', () => {
+    if (stripPages.length < 2) return;
+    turnStrips((stripPage + 1) % stripPages.length);
+    handlers.stripsTurned?.();
+    moreBtn.blur();                                       // so Space / arrow keys keep driving the music
+  });
+  let paginateTimer = 0;
+  window.addEventListener('resize', () => { clearTimeout(paginateTimer); paginateTimer = setTimeout(paginateStrips, 120); });
+  if (document.fonts?.ready) document.fonts.ready.then(paginateStrips).catch(() => {});
 
   /* Refresh strip states in place. Only a status shows (NOW, Q1, OUT OF ORDER);
      song lengths are left off so the titles get the room. */
@@ -209,7 +271,7 @@ export function createUI({ library, getStatus, handlers }) {
     for (const [id, row] of stripRows) {
       const isTyped = buffer.length > 1 && trackById.get(id).code === buffer;
       row.classList.toggle('is-typed', isTyped);
-      if (isTyped) row.scrollIntoView({ block: 'nearest' });
+      if (isTyped) turnStrips(stripPages.findIndex((group) => group.includes(row)));
     }
   }
 

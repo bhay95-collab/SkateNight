@@ -141,8 +141,8 @@ worker.
   window: `min(window width / 64, window height / 36)`. A 16:9 projector shows
   the same picture at any resolution. The design canvas is **64 x 36 rem**
   (1280 x 720 at 20 px per rem). Check every change at **1280 x 720**.
-- `body` never scrolls. The only internal scrolling is the title-strip list when
-  a volume has more songs than fit.
+- Nothing on the control screen scrolls. The title-strip window shows as many
+  strips as fit and a **MORE** push-button turns to the next group (see below).
 - Rows: marquee, LED ticker, cabinet, operator deck, key legend.
 - Cabinet columns: tube | **PICK A SONG** (one third) | **NOW PLAYING** + **UP
   NEXT** (two thirds, split 1.38 : 0.62) | tube.
@@ -152,8 +152,9 @@ worker.
   fasteners and a dark recessed face. Glass lamps stay fixed in their channels;
   a separately masked light chase passes over them rather than sliding the bulbs.
 - PICK A SONG is one panel: the rack page on top (one album at a time - a big
-  sleeve as tall as the page, capped at 46% of the width so the title strips
-  keep room for two-line titles, with arrows to flip albums) and the selector
+  sleeve with the MORE button under it, the pair as tall as the page and capped
+  at 46% of the width so the title strips keep room for two-line titles, with
+  arrows to flip albums) and the selector
   underneath (readout, letter keys wearing a dimmed copy of their cover, number
   keys, CLR / DEL / SELECT / COIN).
 - Pressing a letter key (or typing it) flips the rack to that album, so the
@@ -162,9 +163,18 @@ worker.
   the UP NEXT titles and the ticker. The strips are reference material for the
   operator; status (NOW / Q2 / OUT OF ORDER) is a small tag clipped onto the
   strip's corner so titles keep the full width.
-- About 3 songs per album fit without scrolling at 1280 x 720; a 4th scrolls
-  inside the strip window. A **▼ MORE** tag shows while songs are hidden below,
-  and a fully typed code outlines its strip in cyan and scrolls it into view.
+- **MORE** (`ui.js: paginateStrips`): the strip window never scrolls (no wheel,
+  no scrollbar), like a real jukebox's title-strip window. It measures how many
+  strips fit (3 at 16:9 sizes such as 1280 x 720 and 1920 x 1080; taller windows
+  like 1024 x 768 fit all 5) and splits the album into groups. The **MORE ▼** push-button under the
+  cover turns to the next group, and after the last group back to the first,
+  with a page-turn clack (`sfx.page`) and a quick slide. Small lamps on the
+  button show which group is showing; the button is dimmed and disabled when
+  every strip fits. A fully typed code turns to the group holding its strip and
+  outlines it in cyan. The groups re-measure on resize and when fonts load,
+  and the group number is kept when the album re-renders (e.g. when a song
+  changes) but reset to the first when the album changes. The crowd screen has
+  no button and shows every strip (it hides MORE and uses a taller layout).
 - Transport, music/effects faders, SHUFFLE, CROWD and LIGHTS remain on the deck.
   TOOLS groups FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. The native
   disclosure supports mouse, Enter and Space, closes on Escape or an outside

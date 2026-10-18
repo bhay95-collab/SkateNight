@@ -124,6 +124,7 @@ async function main() {
     getStatus,
     handlers: {
       openVolume: (id) => { sfx.page(); ui.renderStrips(id); scheduleRender(); },
+      stripsTurned: () => sfx.page(),
       keyPressed: (key) => { noteInput(); keyPressed(key); },
       moveUp: (i) => { queue = moveUp(queue, i); sfx.key(); afterQueueChange(); },
       cancel: (i) => { queue = cancelAt(queue, i); sfx.key(); afterQueueChange(); },

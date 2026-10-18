@@ -104,10 +104,14 @@
           <button type="button" class="rack-nav" id="rack-next" aria-label="Next album">&#9654;</button>
         </div>
         <div class="rack-page">
-          <div class="rack-sleeve" id="rack-sleeve"></div>
+          <div class="rack-side">
+            <div class="rack-sleeve" id="rack-sleeve"></div>
+            <button type="button" class="more-btn" id="strips-more" disabled aria-label="More songs on this album">
+              <span class="more-label">MORE &#9660;</span><span class="more-lamps" id="more-lamps" aria-hidden="true"></span>
+            </button>
+          </div>
           <div class="strips-wrap">
             <div class="strips" id="strips" role="list" aria-label="Songs on this album"></div>
-            <span class="strips-more" id="strips-more" aria-hidden="true">&#9660; MORE</span>
           </div>
         </div>
       </div>
