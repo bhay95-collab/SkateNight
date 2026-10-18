@@ -220,4 +220,9 @@ export const tracks = [
 
   // H5 - Vol. VII
   { id: 'this-is-the-message', title: 'This Is the Message', volume: 'vol-vii', file: 'audio/this-is-the-message.mp3' },
+
+  // ---- Song 48: a fifth song on Vol. VIII ----
+
+  // J5 - Vol. VIII
+  { id: 'by-our-lord-jesus',   title: 'By Our Lord Jesus',   volume: 'vol-viii', file: 'audio/by-our-lord-jesus.mp3' },
 ];
