@@ -158,4 +158,21 @@ export const tracks = [
 
   // K3 - Vol. IX
   { id: 'doing-away-with-my-religion', title: 'Doing Away With My Religion', volume: 'vol-ix',   file: 'audio/doing-away-with-my-religion.mp3' },
+
+  // ---- Songs 30-34: Vol. X gets its third, then a fourth song on Vol. I - IV ----
+
+  // L3 - Vol. X
+  { id: 'we-have-come',          title: 'We Have Come',          volume: 'vol-x',   file: 'audio/we-have-come.mp3' },
+
+  // A4 - Vol. I
+  { id: 'fire-flame-of-jehovah', title: 'Fire-Flame of Jehovah', volume: 'vol-i',   file: 'audio/fire-flame-of-jehovah.mp3' },
+
+  // B4 - Vol. II
+  { id: 'love-that-lifts-me-up', title: 'Love that Lifts Me Up', volume: 'vol-ii',  file: 'audio/love-that-lifts-me-up.mp3' },
+
+  // C4 - Vol. III
+  { id: 'pressing-on',           title: 'Pressing On',           volume: 'vol-iii', file: 'audio/pressing-on.mp3' },
+
+  // D4 - Vol. IV
+  { id: 'shine-in-our-hearts',   title: 'Shine in Our Hearts',   volume: 'vol-iv',  file: 'audio/shine-in-our-hearts.mp3' },
 ];
