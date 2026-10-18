@@ -209,4 +209,15 @@ export const tracks = [
 
   // D5 - Vol. IV
   { id: 'clouds-of-glory',     title: 'Clouds of Glory',     volume: 'vol-iv',  file: 'audio/clouds-of-glory.mp3' },
+
+  // ---- Songs 45-47: a fifth song on Vol. V - VII ----
+
+  // E5 - Vol. V
+  { id: 'living-in-your-will', title: 'Living in Your Will', volume: 'vol-v',   file: 'audio/living-in-your-will.mp3' },
+
+  // G5 - Vol. VI
+  { id: 'love-abiding',        title: 'Love Abiding',        volume: 'vol-vi',  file: 'audio/love-abiding.mp3' },
+
+  // H5 - Vol. VII
+  { id: 'this-is-the-message', title: 'This Is the Message', volume: 'vol-vii', file: 'audio/this-is-the-message.mp3' },
 ];
