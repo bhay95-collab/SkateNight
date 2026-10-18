@@ -225,4 +225,9 @@ export const tracks = [
 
   // J5 - Vol. VIII
   { id: 'by-our-lord-jesus',   title: 'By Our Lord Jesus',   volume: 'vol-viii', file: 'audio/by-our-lord-jesus.mp3' },
+
+  // ---- Song 49: a fifth song on Vol. IX ----
+
+  // K5 - Vol. IX
+  { id: 'my-redeemer-liveth',  title: 'My Redeemer Liveth',  volume: 'vol-ix',   file: 'audio/my-redeemer-liveth.mp3' },
 ];
