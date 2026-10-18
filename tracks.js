@@ -230,4 +230,9 @@ export const tracks = [
 
   // K5 - Vol. IX
   { id: 'my-redeemer-liveth',  title: 'My Redeemer Liveth',  volume: 'vol-ix',   file: 'audio/my-redeemer-liveth.mp3' },
+
+  // ---- Song 50: a fifth song on Vol. X (every album now has 5) ----
+
+  // L5 - Vol. X
+  { id: 'holy-spirit-helper',  title: 'Holy Spirit Helper',  volume: 'vol-x',    file: 'audio/holy-spirit-helper.mp3' },
 ];
