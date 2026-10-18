@@ -114,7 +114,7 @@ async function main() {
     library,
     getStatus,
     handlers: {
-      openVolume: (id) => { ui.renderStrips(id); scheduleRender(); },
+      openVolume: (id) => { sfx.page(); ui.renderStrips(id); scheduleRender(); },
       keyPressed: (key) => { noteInput(); keyPressed(key); },
       moveUp: (i) => { queue = moveUp(queue, i); sfx.key(); afterQueueChange(); },
       cancel: (i) => { queue = cancelAt(queue, i); sfx.key(); afterQueueChange(); },
@@ -513,6 +513,7 @@ async function main() {
     }
     queue = result.queue;
     sfx.confirm();
+    safely('sign-flash', () => ui.flashSelection(track));
     useCredit();
     say(`ADDED ${track.code} - ${track.title}`, 'good');
     if (phase === 'idle') playFromIdle();
@@ -535,7 +536,7 @@ async function main() {
     if (key === 'BACK') return setBuffer(codeBuffer.slice(0, -1));
     if (/^[A-Z]$/.test(key)) {
       const volumeId = ui.volumeIdForLetter(key);           // flip the rack to that album
-      if (volumeId && volumeId !== ui.shownVolumeId) { ui.renderStrips(volumeId); scheduleRender(); }
+      if (volumeId && volumeId !== ui.shownVolumeId) { sfx.page(); ui.renderStrips(volumeId); scheduleRender(); }
       return setBuffer(key);
     }
     if (/^\d$/.test(key)) {

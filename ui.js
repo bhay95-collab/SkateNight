@@ -94,12 +94,17 @@ export function createUI({ library, getStatus, handlers }) {
     const v = volumeById.get(volumeId);
     if (!v) return;
     const isNewPage = shownVolumeId !== null && shownVolumeId !== volumeId;
+    const forward = volumeIds.indexOf(volumeId) >= volumeIds.indexOf(shownVolumeId);
     shownVolumeId = volumeId;
     if (isNewPage && !isCalm()) {
-      // a slow page turn, like a real jukebox's title-strip carousel
+      // the page flips over on its hinge, like a title-strip carousel turning
+      const swing = forward ? 84 : -84;
       document.querySelector('.rack-page').animate(
-        [{ opacity: 0, transform: 'translateX(.8rem)' }, { opacity: 1, transform: 'none' }],
-        { duration: RACK_TURN_MS, easing: 'cubic-bezier(.2,.7,.2,1)' },
+        [
+          { transform: `perspective(40rem) rotateY(${swing}deg)`, transformOrigin: forward ? 'left center' : 'right center', opacity: 0.35, filter: 'brightness(.45)' },
+          { transform: 'perspective(40rem) rotateY(0deg)', transformOrigin: forward ? 'left center' : 'right center', opacity: 1, filter: 'brightness(1)' },
+        ],
+        { duration: RACK_TURN_MS, easing: 'cubic-bezier(.25,.8,.3,1.04)' },
       );
     }
     for (const [id, key] of letterKeys) key.classList.toggle('is-open', id === volumeId);
@@ -194,11 +199,30 @@ export function createUI({ library, getStatus, handlers }) {
     const code = $('readout-code');
     code.textContent = buffer.length ? buffer.padEnd(2, '_') : '__';
     code.classList.toggle('is-typing', buffer.length > 0);
+    // Latching keys, like a mechanical selector: the letter stays pushed in
+    // (and lit) until the code is selected or cleared, and so do its digits.
+    const held = new Set(buffer.split(''));
+    for (const key of document.querySelectorAll('#key-letters .key, #key-digits .key')) {
+      const isHeld = key.dataset.key === buffer[0] ? true : /\d/.test(key.dataset.key) && held.has(key.dataset.key);
+      key.classList.toggle('is-latched', isHeld);
+    }
     for (const [id, row] of stripRows) {
       const isTyped = buffer.length > 1 && trackById.get(id).code === buffer;
       row.classList.toggle('is-typed', isTyped);
       if (isTyped) row.scrollIntoView({ block: 'nearest' });
     }
+  }
+
+  /* The marquee sign announces each accepted pick, like a cabinet's
+     selection display, then hands back to the wordmark. */
+  let signTimer = null;
+  function flashSelection(track) {
+    if (!track) return;
+    $('sf-code').textContent = track.code;
+    $('sf-title').textContent = track.title;
+    $('sign-flash').classList.add('is-on');
+    clearTimeout(signTimer);
+    signTimer = setTimeout(() => $('sign-flash').classList.remove('is-on'), SIGN_FLASH_MS);
   }
 
   let msgTimer = null;
@@ -312,6 +336,7 @@ export function createUI({ library, getStatus, handlers }) {
     get shownVolumeId() { return shownVolumeId; },
     /* Where a record's sleeve flies out from: the big sleeve if that album's
        page is showing, otherwise its letter key on the selector. */
+    flashSelection,
     queueRows: QUEUE_ROWS,
     rackSleeve: (volumeId) => (volumeId === shownVolumeId ? $('rack-sleeve').querySelector('.sleeve') : letterKeys.get(volumeId)) || null,
     volumeIdForLetter: (letter) => library.volumes.find((v) => v.letter === letter)?.id || null,
@@ -326,7 +351,8 @@ export function createUI({ library, getStatus, handlers }) {
    ============================================================ */
 const TICKER_REM_PER_SECOND = 4.2;      // slow enough to read every word from the back of the rink
 const TICKER_CALM_MS = 8000;
-const RACK_TURN_MS = 650;               // the rack page sliding in when the album changes
+const SIGN_FLASH_MS = 2200;             // how long the sign shows SELECTION J3 ACCEPTED
+const RACK_TURN_MS = 700;               // the rack page flipping over when the album changes
 
 export function createTicker({ textEl, nextText }) {
   let anim = null;

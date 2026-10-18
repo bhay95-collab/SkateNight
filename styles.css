@@ -379,6 +379,17 @@ body.on-attract .rig{ visibility:hidden; }
 .wordmark span{ color:#fff; display:inline-block; }
 /* the little word between the two tubes is plain plastic lettering, not neon */
 .wordmark .by, .attract-title .by{ font-size:.5em; vertical-align:.32em; color:var(--cream); text-shadow:none; margin:0 .1em; }
+/* "SELECTION J3 ACCEPTED": the sign shows each new pick for two seconds */
+.sign-flash{
+  position:absolute; inset:.55rem 1.2rem; z-index:2; border-radius:.5rem;
+  display:grid; grid-template-columns:1fr auto 1fr; grid-template-rows:1fr auto; align-items:center; column-gap:.9rem; row-gap:.1rem;
+  background:#0A0417; opacity:0; transition:opacity .25s ease; pointer-events:none;
+}
+.sign-flash.is-on{ opacity:1; }
+.sf-label{ font:700 .72rem var(--font-mono); letter-spacing:.3em; color:var(--cream); }
+.sf-label:first-child{ text-align:right; }
+.sf-code{ font-size:2.2rem; line-height:1; letter-spacing:.12em; }
+.sf-title{ grid-column:1 / -1; text-align:center; font:700 .72rem/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--gold); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .wordmark-sub{
   margin:.15rem 0 0; text-align:center; position:relative; z-index:1; white-space:nowrap;
   font:700 .72rem/1 var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--cream);
@@ -549,6 +560,12 @@ body.on-attract .rig{ visibility:hidden; }
 .key-fn{ font-size:.62rem; letter-spacing:.06em; color:var(--dim); }
 .key:hover{ border-color:var(--cyan); }
 .key:active, .key.is-pressed{ transform:translateY(.2rem); box-shadow:0 .04rem 0 rgba(0,0,0,.55); }
+/* latched: pushed in and lit from behind until the code is used or cleared */
+.key.is-latched{
+  transform:translateY(.18rem); border-color:var(--cyan); color:#E9FFFE;
+  box-shadow:0 .04rem 0 rgba(0,0,0,.55), inset 0 0 .6rem rgba(37,232,226,.45), 0 0 .5rem rgba(37,232,226,.3);
+}
+.key-letter.is-latched{ background:linear-gradient(180deg, rgba(37,232,226,.18), rgba(12,5,22,.6)), var(--cover, none) center / cover, var(--cab); }
 .keypad-actions{ display:grid; grid-template-columns:2.6rem 2.6rem minmax(0,1fr) auto; grid-template-rows:2.15rem; gap:.3rem; align-items:stretch; margin-top:.1rem; }
 .keypad-actions .key{ height:auto; }
 #btn-coin{ display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .6rem; }

@@ -11,10 +11,11 @@
      thud     the needle dropping onto the record
      buzz     something is OUT OF ORDER / refused (low rude buzz)
      flicker  the screen dipping (a faint electrical crackle)
+     page     the rack's album page flipping over (a mechanical clack)
 
    Your own recordings: put an MP3 named after the effect in the sfx/
    folder (sfx/coin.mp3, sfx/key.mp3, sfx/confirm.mp3, sfx/whirr.mp3,
-   sfx/thud.mp3, sfx/buzz.mp3, sfx/flicker.mp3) and it plays instead of the
+   sfx/thud.mp3, sfx/buzz.mp3, sfx/flicker.mp3, sfx/page.mp3) and it plays instead of the
    built-in sound.
    Any effect without a file keeps the built-in one.
 
@@ -22,7 +23,7 @@
    ============================================================ */
 import { getEngine } from './audio.js';
 
-export const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker'];
+export const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page'];
 const rawFiles = new Map();      // name -> the MP3's bytes (fetched at page load)
 const buffers = new Map();       // name -> decoded sound, ready to play
 let fetching = null;
@@ -136,7 +137,9 @@ export const sfx = {
 
   key: safe(() => {
     if (playFile('key')) return;
-    tone({ freq: 1320, to: 1100, type: 'square', dur: 0.06, peak: 0.16 });
+    thump({ freq: 2600, dur: 0.018, peak: 0.32 });                  // the switch contact
+    thump({ freq: 520, dur: 0.05, peak: 0.26, at: 0.008 });         // the key bottoming out
+    tone({ freq: 1320, to: 1100, type: 'square', dur: 0.04, peak: 0.06, at: 0.01 });
   }),
 
   confirm: safe(() => {
@@ -163,6 +166,13 @@ export const sfx = {
     if (playFile('buzz')) return;
     tone({ freq: 120, to: 54, type: 'sawtooth', dur: 0.32, peak: 0.3 });
     tone({ freq: 62, to: 44, type: 'square', dur: 0.32, peak: 0.2 });
+  }),
+
+  page: safe(() => {
+    if (playFile('page')) return;
+    thump({ freq: 1800, dur: 0.03, peak: 0.22 });                   // the catch releasing
+    thump({ freq: 380, dur: 0.07, peak: 0.24, at: 0.16 });          // the page landing
+    thump({ freq: 4200, dur: 0.02, peak: 0.08, at: 0.17 });
   }),
 
   // Quiet on purpose: the room should half-notice it, never be startled.
