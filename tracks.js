@@ -150,4 +150,12 @@ export const tracks = [
 
   // H3 - Vol. VII
   { id: 'you-are-worthy-o-lord',  title: 'You Are Worthy, O Lord',  volume: 'vol-vii', file: 'audio/you-are-worthy-o-lord.mp3' },
+
+  // ---- Songs 28-29: the third song on Vol. VIII and IX ----
+
+  // J3 - Vol. VIII
+  { id: 'remember-the-heights',        title: 'Remember the Heights',        volume: 'vol-viii', file: 'audio/remember-the-heights.mp3' },
+
+  // K3 - Vol. IX
+  { id: 'doing-away-with-my-religion', title: 'Doing Away With My Religion', volume: 'vol-ix',   file: 'audio/doing-away-with-my-religion.mp3' },
 ];
