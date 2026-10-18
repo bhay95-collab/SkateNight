@@ -9,10 +9,12 @@
    ============================================================ */
 
 /* Squash a spectrum (bytes 0-255, low pitch first) into `count` bars of
-   0..1, spaced so bass gets as much room as treble (like our ears). */
-export function groupBands(freq, count, { minBin = 1 } = {}) {
+   0..1, spaced so bass gets as much room as treble (like our ears).
+   maxBin stops the bars at that bin: MP3s carry almost nothing above
+   about 15 kHz, so bars past it would only ever sit flat. */
+export function groupBands(freq, count, { minBin = 1, maxBin = Infinity } = {}) {
   const bars = new Array(Math.max(0, count)).fill(0);
-  const n = freq.length;
+  const n = Math.min(freq.length, Math.max(1, Math.floor(maxBin)));
   if (n === 0 || count <= 0) return bars;
   if (n === 1) {
     bars[0] = freq[0] / 255;

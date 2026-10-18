@@ -31,6 +31,7 @@ import { clamp } from './format.js';
 
 const FRAME_MS = 1000 / 30;
 const BAR_COUNT = 36;
+const SPECTRUM_TOP_HZ = 15000;      // the highest pitch the bars show (MP3s hold almost nothing above it)
 const MAX_DPR = 1.5;
 
 // Neon colours as plain numbers so canvas can use them (mirror the CSS tokens).
@@ -291,7 +292,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       engine.analyser.getByteFrequencyData(freq);
       engine.analyserL.getFloatTimeDomainData(timeL);
       engine.analyserR.getFloatTimeDomainData(timeR);
-      levels = groupBands(freq, BAR_COUNT);
+      levels = groupBands(freq, BAR_COUNT, { maxBin: SPECTRUM_TOP_HZ / (engine.ctx.sampleRate / engine.analyser.fftSize) });
       const gain = engine.musicBus.gain.value;
       rmsL = vuLevel(rmsFromFloat(timeL), gain);
       rmsR = vuLevel(rmsFromFloat(timeR), gain);

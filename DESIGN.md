@@ -253,7 +253,7 @@ hides the swap. Measured gap between songs: about 40 ms. On a skip the changer
 runs 1.8x faster (about 1.4 s).
 
 **Audio-reactive** (`visualiser.js`, one shared `requestAnimationFrame` loop,
-capped at 30 fps): neon spectrum bars with peak caps, twin needle VU meters,
+capped at 30 fps): neon spectrum bars with peak caps (36 bars, log-spaced up to 15 kHz - MP3s carry almost nothing above that, so no bar sits dead), twin needle VU meters,
 bubble tubes that speed up with the music, grid scroll speed and bulb chase speed
 (`playbackRate` of the CSS animations), and a soft bass swell on the cabinet glow.
 

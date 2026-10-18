@@ -96,3 +96,12 @@ test('vuLevel reads loudness in decibels and ignores the MUSIC slider', async ()
   assert.ok(Math.abs(vuLevel(at(-18) * 0.4, 0.4) - vuLevel(at(-18))) < 1e-9, 'same needle at any volume');
   assert.ok(Math.abs(rmsFromFloat(new Float32Array([0.5, -0.5, 0.5, -0.5])) - 0.5) < 1e-9);
 });
+
+test('groupBands can stop at a top bin so no bar covers empty treble', () => {
+  const data = new Uint8Array(512);
+  data.fill(200, 0, 320);                       // sound up to bin 320 (15 kHz at 48 kHz / 1024)
+  const capped = groupBands(data, 36, { maxBin: 320 });
+  assert.ok(capped.every((v) => v > 0.7), 'every bar has sound in it');
+  const uncapped = groupBands(data, 36);
+  assert.ok(uncapped[35] === 0, 'without the cap the top bars sit flat');
+});
