@@ -186,7 +186,10 @@ The **CROWD SCREEN** button opens `index.html?view=crowd` (`crowd.js`) for the
 projector, with the laptop showing the full control window. The crowd screen:
 - plays **no sound** and has **no controls** (no deck, selector, queue buttons,
   status chips or key legend); its tab reads THE RACK, and the rack fills the
-  column - a big sleeve over larger strips - following the control window's page;
+  column - a big sleeve over larger strips - following the control window's page.
+  Nobody can scroll this window, so every strip always shows: the strips take
+  the height they need and the sleeve shrinks to fit (tested with 5 songs on
+  an album);
 - mirrors everything the room should see over a `BroadcastChannel` (`link.js`):
   state (playing, UP NEXT and the house plan, rack page), every record-changer
   move, SELECTION ACCEPTED, the song clock (about 4 times a second) and the
