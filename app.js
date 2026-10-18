@@ -18,10 +18,10 @@ import {
   createRotator,
 } from './copy.js';
 import {
-  initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely,
+  initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
 import { unlockAudio, setMusicLevel, setSfxLevel } from './audio.js';
-import { sfx } from './sound.js';
+import { sfx, preloadSfxFiles, decodeSfxFiles } from './sound.js';
 import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
@@ -63,6 +63,8 @@ async function loadLibrary() {
 
 async function main() {
   initLights();
+  preloadSfxFiles();                                 // any sfx/*.mp3 recordings, fetched early
+  safely('screen-flicker', () => startScreenFlicker(document.getElementById('crt-flicker')));
   $('btn-lights').addEventListener('click', () => { flipLights(); sfx.key(); });
 
   // Boot overlay is opaque from first paint; the machine assembles behind it.
@@ -837,6 +839,7 @@ async function main() {
     const engine = unlockAudio();                      // the click is the browser's required gesture
     engineReady = Boolean(engine);
     if (engineReady) {
+      await Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]);   // so a recorded coin plays first time
       safely('coin', () => sfx.coin());
       player = createPlayer({ onEnded, onTime, onError, onDuration });
       visualiser = createVisualiser();

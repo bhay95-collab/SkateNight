@@ -24,8 +24,15 @@ else gets invented without extending this list first.
   Panels do not float; they sit on the page like moulded plastic.
 - **Screen** (`.screen`, `.led`, `.ticker`, `.queue`, `.readout`, `.mech`) - a
   recessed near-black CRT display for anything with a number or a queue on it.
-  Inset shadow, scanlines, a curved-glass highlight and one bright band rolling
-  slowly down the glass (`crt-roll`). Numbers are `JetBrains Mono` tabular.
+  Inset shadow, scanlines and a curved-glass highlight. Numbers are
+  `JetBrains Mono` tabular.
+- **Monitor glass** (`.crt-glass`, `.crt-flicker`) - effects of the projector
+  "screen" itself, so they cover the whole page inside the bezel, never one
+  panel at a time: one faint bright band rolling down the whole screen
+  (`crt-roll`, 9 s), and now and then the whole screen dips like an old monitor
+  on a tired supply (`startScreenFlicker` in `fx.js`, planned by `planFlicker`
+  in `lights.js`): one or two dips, at most 60% darker, under a second, bursts
+  25-70 s apart, never in CALM.
 - **Title tab** (`.panel-title`, `.tab`) - a gold tab "screwed on" to the top
   edge of a panel at a slight tilt, alternating direction (`.tab-tilt-a` /
   `.tab-tilt-b`) so no two look mass-produced.
@@ -251,11 +258,14 @@ LED reads **FREE PLAY** (real arcade term).
   over a small area.
 
 Audit list - every `@keyframes` in `styles.css` and its rate:
-`crt-roll` 6.5 s, `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
+`crt-roll` 9 s (one band, whole screen), `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
 1.6 s (small dots moving), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.8 s, `dot-pulse` 1.2 s (small LED),
 `attract-blink` 1.15 s,
 `coin-drop` once, `score-pop` once, boot sequence once per tab.
+Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
+1 s, bursts at least 25 s apart, never more than 60% darker - so never more
+than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
 
 ### Calm lights (`prefers-reduced-motion` and the on-screen switch)
 
@@ -310,8 +320,13 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
 
 Two separate volume paths: music and effects (`audio.js`). Both pass through a
 gentle limiter so a loud track meeting a loud beep cannot hurt the speakers.
-Effects are **synthesised** with Web Audio (`sound.js`, ported from trivia): no
-audio files, no licensing, no loading. **Off until a person clicks** - the click
+Effects are **synthesised** with Web Audio (`sound.js`, ported from trivia)
+unless a recording is supplied: an MP3 in `sfx/` named after the effect
+(`sfx/coin.mp3` etc., see `sfx/README.md`) replaces that one effect. Files are
+fetched at page load, decoded on the first click, and a file that will not
+decode falls back to the built-in sound. A long `whirr` file is faded out to
+fit the changer's move. Missing files show as 404s in the browser console -
+harmless. **Off until a person clicks** - the click
 on INSERT COIN is the browser's required gesture.
 
 | Effect | The one moment it belongs to |

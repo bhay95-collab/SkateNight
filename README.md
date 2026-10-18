@@ -27,10 +27,11 @@ real artwork or songs: power-on, INSERT COIN, choosing a song, now playing.)*
 | `tracks.js` | The list of albums (volumes) and songs | **Yes - the only file you edit** |
 | `audio/` | The MP3 files | **Yes - upload songs here** |
 | `covers/` | The album cover pictures | **Yes - upload covers here** |
+| `sfx/` | Your own sound effects (optional) | Only to swap a sound |
 | `rfai-logo.png` | The RFAI headphone-robot logo | Only to swap it |
 | everything else | The machine itself | No |
 
-Each of `audio/` and `covers/` has its own short README.
+Each of `audio/`, `covers/` and `sfx/` has its own short README.
 
 ---
 

@@ -9,7 +9,7 @@
    html[data-lights="calm"]; JavaScript effects check isCalm() themselves.
    ============================================================ */
 import { BOOT_POOL, sample } from './copy.js';
-import { LIGHTS_KEY, resolveLights, toggleLights } from './lights.js';
+import { LIGHTS_KEY, resolveLights, toggleLights, planFlicker } from './lights.js';
 
 let calm = false;
 const calmListeners = new Set();
@@ -57,6 +57,22 @@ export function safely(label, fn) {
 }
 
 export const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* The whole monitor dips now and then (planFlicker in lights.js holds the
+   safety rules). Skipped in CALM and while the tab is hidden. */
+export function startScreenFlicker(layer) {
+  if (!layer || typeof layer.animate !== 'function') return;
+  const next = () => {
+    const plan = planFlicker();
+    setTimeout(() => {
+      safely('screen-flicker', () => {
+        if (!calm && !document.hidden) layer.animate(plan.keyframes, { duration: plan.duration, easing: 'linear' });
+      });
+      next();
+    }, plan.nextInMs);
+  };
+  next();
+}
 
 /* ============================================================
    Count-up. A number odometer-rolls from zero to its value.

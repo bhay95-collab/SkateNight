@@ -38,3 +38,21 @@ test('the hard rule: only the cabinet tokens from trivia are used for the palett
     assert.ok(css.includes(token), `palette token ${token} is missing`);
   }
 });
+
+test('the screen flicker is photosensitive-safe', async () => {
+  const { planFlicker, FLICKER } = await import('../lights.js');
+  let seed = 7;
+  const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  for (let i = 0; i < 500; i++) {
+    const plan = planFlicker(rng);
+    const peaks = plan.keyframes.filter((k) => k.opacity > 0);
+    assert.ok(plan.dips >= 1 && plan.dips <= 2, 'one or two dips per burst');
+    assert.ok(plan.duration < 1000, 'a burst is over within a second, so it holds at most 2 flashes');
+    assert.ok(plan.nextInMs >= FLICKER.minGapMs, 'bursts are far apart');
+    assert.ok(Math.max(...peaks.map((k) => k.opacity)) <= FLICKER.maxDim, 'never goes more than 60% dark');
+    assert.equal(plan.keyframes[0].opacity, 0);
+    assert.equal(plan.keyframes[plan.keyframes.length - 1].opacity, 0, 'always ends fully back on');
+    const offsets = plan.keyframes.map((k) => k.offset);
+    assert.ok(offsets.every((o, j) => o >= 0 && o <= 1 && (j === 0 || o >= offsets[j - 1])), 'valid keyframe offsets');
+  }
+});
