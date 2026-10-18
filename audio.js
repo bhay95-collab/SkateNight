@@ -49,7 +49,21 @@ export function unlockAudio() {
     splitter.connect(analyserL, 0);
     splitter.connect(analyserR, 1);
 
-    engine = { ctx, musicBus, sfxBus, analyser, analyserL, analyserR, musicLevel: 0.7, sfxLevel: 0.7 };
+    // A bass-only listener for beat detection: the music through a 140 Hz
+    // low-pass (twice, for a steep cut), so only kick drum and bass guitar
+    // reach it. Loud masters hold the full spectrum near its ceiling, which
+    // hides beats there; the bass alone swings 4-5x between beats.
+    const bassPass1 = ctx.createBiquadFilter();
+    const bassPass2 = ctx.createBiquadFilter();
+    bassPass1.type = bassPass2.type = 'lowpass';
+    bassPass1.frequency.value = bassPass2.frequency.value = 140;
+    const beatAnalyser = ctx.createAnalyser();
+    beatAnalyser.fftSize = 1024;
+    musicBus.connect(bassPass1);
+    bassPass1.connect(bassPass2);
+    bassPass2.connect(beatAnalyser);
+
+    engine = { ctx, musicBus, sfxBus, analyser, analyserL, analyserR, beatAnalyser, musicLevel: 0.7, sfxLevel: 0.7 };
     applyVolumes();
   }
   if (engine.ctx.state === 'suspended') engine.ctx.resume().catch(() => {});

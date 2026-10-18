@@ -24,7 +24,7 @@
      - Every draw is wrapped: an error in one effect switches that effect
        off quietly instead of reaching the music.
    ============================================================ */
-import { groupBands, rmsFromFloat, vuLevel, createEnvelope, createBeatGate } from './dsp.js';
+import { groupBands, rmsFromFloat, vuLevel, logoGlow, createEnvelope, createBeatDetector } from './dsp.js';
 import { getEngine } from './audio.js';
 import { isCalm, onCalmChange, safely } from './fx.js';
 import { clamp } from './format.js';
@@ -76,9 +76,13 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   const freq = engine ? new Uint8Array(engine.analyser.frequencyBinCount) : new Uint8Array(0);
   const timeL = engine ? new Float32Array(engine.analyserL.fftSize) : new Float32Array(0);
   const timeR = engine ? new Float32Array(engine.analyserR.fftSize) : new Float32Array(0);
+  const timeBass = engine ? new Float32Array(engine.beatAnalyser.fftSize) : new Float32Array(0);
 
   // ---- element handles
   const glow = $('cab-glow');
+  const logoHalo = $('logo-halo');
+  const logoImg = $('marquee-logo');
+  let logoLive = false;
   const spectrumCanvas = $('spectrum');
   const vuCanvases = [$('vu-l'), $('vu-r')];
   const tubeCanvases = [$('tube-l')?.querySelector('canvas'), $('tube-r')?.querySelector('canvas')];
@@ -87,8 +91,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   const bassEnv = createEnvelope({ attackMs: 140, releaseMs: 420 });
   const energyEnv = createEnvelope({ attackMs: 200, releaseMs: 900 });
   const vuEnv = [createEnvelope({ attackMs: 60, releaseMs: 300 }), createEnvelope({ attackMs: 60, releaseMs: 300 })];   // about a real VU's 300 ms
-  const kickGate = createBeatGate({ minGapMs: 340 });
-  let bassAvg = 0;
+  const beat = createBeatDetector();                 // finds the kick in the bass-only signal, 340 ms apart at most
   let kickUntil = 0;
   const bars = new Float32Array(BAR_COUNT);
   const peaks = new Float32Array(BAR_COUNT);
@@ -288,6 +291,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
     let levels = null;
     let rmsL = 0;
     let rmsR = 0;
+    let bassLevel = 0;
     if (engine) {
       engine.analyser.getByteFrequencyData(freq);
       engine.analyserL.getFloatTimeDomainData(timeL);
@@ -296,23 +300,21 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       const gain = engine.musicBus.gain.value;
       rmsL = vuLevel(rmsFromFloat(timeL), gain);
       rmsR = vuLevel(rmsFromFloat(timeR), gain);
-      if (tap) safely('tap', () => tap({ levels: Array.from(levels, (v) => Math.round(v * 1000) / 1000), vuL: rmsL, vuR: rmsR }));
+      engine.beatAnalyser.getFloatTimeDomainData(timeBass);
+      bassLevel = rmsFromFloat(timeBass) / Math.max(gain, 0.05);          // the MUSIC slider divided back out
+      if (tap) safely('tap', () => tap({ levels: Array.from(levels, (v) => Math.round(v * 1000) / 1000), vuL: rmsL, vuR: rmsR, bass: Math.round(bassLevel * 10000) / 10000 }));
     } else if (source) {
       const d = source();
-      if (d && Array.isArray(d.levels)) { levels = d.levels; rmsL = d.vuL || 0; rmsR = d.vuR || 0; }
+      if (d && Array.isArray(d.levels)) { levels = d.levels; rmsL = d.vuL || 0; rmsR = d.vuR || 0; bassLevel = d.bass || 0; }
     }
-    let bass = 0;
     let total = 0;
     if (levels) {
-      for (let i = 0; i < 4; i++) bass += levels[i];
-      bass /= 4;
       for (let i = 0; i < levels.length; i++) total += levels[i];
       total /= levels.length;
     }
 
-    // 2. kick detection -> gated, smoothed pulse
-    bassAvg += (bass - bassAvg) * 0.02;
-    if (bass > bassAvg * 1.25 + 0.06 && kickGate.trigger(now)) kickUntil = now + 160;
+    // 2. beat detection (bass only) -> gated, smoothed pulse
+    if (beat.step(bassLevel, now, step)) kickUntil = now + 160;
     const pulse = bassEnv.step(now < kickUntil ? 1 : 0, step);
     const energy = energyEnv.step(total * 1.6, step);
 
@@ -330,6 +332,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
 
     // 4. the soft bass swell on the cabinet glow (opacity only)
     if (glow) glow.style.opacity = (0.14 + 0.2 * pulse).toFixed(3);
+    safely('logo', () => driveLogo(pulse, energy));
 
     // 5. slower things, a few times a second
     if (now - lastRateTick > 140) {
@@ -353,9 +356,29 @@ export function createVisualiser({ source = null, tap = null } = {}) {
     rafId = requestAnimationFrame(frame);
   }
 
+  /* The logo answers the music: halo and a small swell on the beat. Hands back
+     to the slow CSS breathing when the music stops (and in CALM). */
+  function driveLogo(pulse, energy) {
+    if (!logoHalo || !logoImg) return;
+    const live = energy > 0.12 || pulse > 0.05;            // hands back to the slow breathing about 2 s after the music stops
+    if (!live) { if (logoLive) clearLogo(); return; }
+    const g = logoGlow(pulse);
+    logoLive = true;
+    logoHalo.dataset.live = '1';
+    logoHalo.style.opacity = g.haloOpacity.toFixed(3);
+    logoHalo.style.transform = `scale(${g.haloScale.toFixed(3)})`;
+    logoImg.style.transform = `scale(${g.logoScale.toFixed(3)})`;
+  }
+  function clearLogo() {
+    logoLive = false;
+    if (logoHalo) { delete logoHalo.dataset.live; logoHalo.style.opacity = ''; logoHalo.style.transform = ''; }
+    if (logoImg) logoImg.style.transform = '';
+  }
+
   function stop() {
     running = false;
     cancelAnimationFrame(rafId);
+    clearLogo();
   }
 
   /* CALM: draw each canvas once in a quiet, finished state. */

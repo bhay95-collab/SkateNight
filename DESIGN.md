@@ -151,8 +151,14 @@ worker.
   the lettering never sits on a bulb. Its enclosure has a narrow bevel, flush
   fasteners and a dark recessed face. Glass lamps stay fixed in their channels;
   a separately masked light chase passes over them rather than sliding the bulbs.
-- The RFAI logo (3.45 rem, with a soft cyan/pink glow breathing behind it over
-  4.8 s - opacity and scale only, off in CALM) and the CREDITS / OFFLINE chips
+- The RFAI logo (3.45 rem) has a soft cyan/pink halo behind it. Silent, the halo
+  breathes over 4.8 s (opacity and scale only). With music it follows the beat:
+  it brightens from 34% to at most 86% and swells, and the logo itself swells
+  up to 4.5%, on each kick (`logoGlow` in `dsp.js`, driven from `visualiser.js`;
+  the crowd screen does the same from the bass level the control window sends).
+  It follows the beat only, never loudness ripples, so it cannot move faster than
+  the beat gate allows, and it hands back to the breathing about 2.5 s after the
+  music stops. Off in CALM. The logo and the CREDITS / OFFLINE chips
   are each centred in the clear space between an arch leg and the sign, and
   dropped .55 rem so they clear the arch's top bar and curved corners (checked
   at six window sizes: at least 6 px of clear space everywhere). The two chips
@@ -322,7 +328,14 @@ runs 1.8x faster (about 1.4 s).
 **Audio-reactive** (`visualiser.js`, one shared `requestAnimationFrame` loop,
 capped at 30 fps): neon spectrum bars with peak caps (36 bars, log-spaced up to 15 kHz - MP3s carry almost nothing above that, so no bar sits dead), twin needle VU meters,
 bubble tubes that speed up with the music, grid scroll speed and bulb chase speed
-(`playbackRate` of the CSS animations), and a soft bass swell on the cabinet glow.
+(`playbackRate` of the CSS animations), a soft bass swell on the cabinet glow,
+and the logo halo. **Beat detection** listens to the bass only: the music runs
+through a 140 Hz low-pass into its own analyser (`audio.js: beatAnalyser`) and
+`createBeatDetector` (`dsp.js`) calls a beat when that bass level jumps 15%
+above its own 0.4 s average (volume slider divided out, small floor for
+silence). Tuned on the real songs at about one beat per kick, 1.2 - 1.8 a second.
+The earlier detector read the full spectrum, which loud masters keep near its
+ceiling, so it never fired on these songs and the bass swell sat still.
 
 **Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
 transform only), the LED ticker rolling **one skate joke at a time** (each
@@ -362,7 +375,11 @@ LED reads **FREE PLAY** (real arcade term).
 - Music-driven brightness goes through `dsp.js`: an **envelope** (attack 140 ms,
   release 420 ms) and a **beat gate** (340 ms minimum gap = at most 3 pulses a
   second). The bass swell is an opacity *swell* on a soft glow layer between
-  0.16 and 0.50, never an on/off flash. Both are unit-tested.
+  0.16 and 0.50, never an on/off flash. Both are unit-tested. The beat itself
+  comes from the bass-only detector (about 1.2 - 1.8 beats a second on the real
+  songs, hard-capped at 3 by the gate). The logo halo is a small area (about 110 px
+  across) that follows the beat only: measured on real songs, 1.4 clean swells a
+  second, at least 372 ms apart.
 - Neon flicker dips only to about half brightness, a burst holds at most two
   dips, on a few words of signage only.
 - The boot sequence was changed from trivia's: the screen flicker now has dips at
@@ -533,7 +550,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `rotation.js` | House rotation: shuffled deck (every song once, never repeat the last 5) or in tracks.js order (pure) |
 | `copy.js` | All rotating text pools and the rotator (pure) |
 | `format.js` | LED clock formatting, volume curve (pure) |
-| `dsp.js` | Spectrum bands, loudness, envelope, beat gate (pure) |
+| `dsp.js` | Spectrum bands, loudness, envelope, beat detector and gate, logo glow (pure) |
 | `lights.js` | FULL / CALM decision (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
 | `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |

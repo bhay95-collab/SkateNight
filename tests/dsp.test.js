@@ -105,3 +105,39 @@ test('groupBands can stop at a top bin so no bar covers empty treble', () => {
   const uncapped = groupBands(data, 36);
   assert.ok(uncapped[35] === 0, 'without the cap the top bars sit flat');
 });
+
+test('the logo halo answers the beat softly: never dark, never a flash', async () => {
+  const { logoGlow } = await import('../dsp.js');
+  const rest = logoGlow(0);
+  const peak = logoGlow(1);
+  assert.ok(rest.haloOpacity >= 0.34 - 1e-9, 'the halo never goes dark');
+  assert.ok(peak.haloOpacity <= 0.86 + 1e-9, 'and never past 86%');
+  assert.ok(peak.logoScale <= 1.045 + 1e-9 && rest.logoScale === 1, 'the logo swells at most 4.5%');
+  assert.ok(peak.haloScale <= 1.12 + 1e-9 && rest.haloScale >= 0.94 - 1e-9);
+  assert.deepEqual(logoGlow(NaN), rest, 'junk in, calm out');
+  assert.ok(logoGlow(5).haloOpacity <= 0.86 + 1e-9, 'out-of-range input is clamped');
+  assert.equal(logoGlow(0.5, 0.9).haloOpacity, logoGlow(0.5, 0).haloOpacity, 'loudness never moves the halo, only the beat');
+});
+
+test('the beat detector finds drum hits in the bass, ignores a steady level, and never exceeds 3 a second', async () => {
+  const { createBeatDetector } = await import('../dsp.js');
+  const run = (levelAt, seconds = 20) => {
+    const d = createBeatDetector();
+    let beats = 0; const times = [];
+    for (let ms = 0; ms < seconds * 1000; ms += 33) {
+      if (d.step(levelAt(ms), ms, 33)) { beats += 1; times.push(ms); }
+    }
+    return { beats, times };
+  };
+  // 110 bpm kick: a quick swell of 0.2 over a 0.05 bed, every 545 ms
+  const kick = run((ms) => 0.05 + (ms % 545 < 120 ? 0.15 * Math.sin((Math.PI * (ms % 545)) / 120) : 0));
+  const perSecond = kick.beats / 20;
+  assert.ok(perSecond > 1.2 && perSecond < 2.4, `about one beat per kick, got ${perSecond}/s`);
+  assert.ok(kick.times.every((t, i) => i === 0 || t - kick.times[i - 1] >= 340), 'beats are at least 340 ms apart (max 3 a second)');
+  assert.ok(run(() => 0.08).beats <= 1, 'a steady level is not a beat (at most the very first reading)');
+  assert.equal(run(() => 0).beats, 0, 'silence never fires');
+  assert.equal(run(() => 0.005).beats, 0, 'a level under the floor never fires');
+  // a runaway 10-hits-a-second pattern is still capped at 3 a second
+  const fast = run((ms) => 0.05 + (ms % 100 < 40 ? 0.2 : 0));
+  assert.ok(fast.beats / 20 <= 3 + 1e-9, `fast pattern capped, got ${fast.beats / 20}/s`);
+});

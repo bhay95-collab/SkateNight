@@ -356,12 +356,16 @@ body.on-attract .rig{ visibility:hidden; }
    top bar and its curved corners. */
 .marquee-left{ position:relative; justify-self:center; display:flex; align-items:center; top:.55rem; }
 .marquee-logo{ position:relative; z-index:1; display:block; width:3.45rem; height:3.45rem; filter:drop-shadow(0 0 .35rem rgba(37,232,226,.4)); }
-/* a soft glow breathing behind the logo: opacity and scale only, once every 4.8 s */
-.marquee-left::before{
-  content:""; position:absolute; inset:-1rem; border-radius:50%; pointer-events:none;
-  background:radial-gradient(circle, rgba(37,232,226,.3), rgba(255,45,149,.1) 52%, transparent 72%);
+/* a soft halo behind the logo: opacity and scale only. Silent, it breathes once
+   every 4.8 s; with music, visualiser.js sets data-live and drives it from the
+   beat (inline opacity / scale), and the logo itself swells a touch. */
+.logo-halo{
+  position:absolute; inset:-1rem; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, rgba(37,232,226,.52), rgba(255,45,149,.2) 52%, transparent 74%);
   opacity:.5; animation:logo-breathe 4.8s ease-in-out infinite;
 }
+.logo-halo[data-live]{ animation:none; }
+.marquee-logo{ will-change:transform; }
 @keyframes logo-breathe{ 0%,100%{ opacity:.32; transform:scale(.94); } 50%{ opacity:.78; transform:scale(1.06); } }
 .marquee-status{ position:relative; top:.55rem; justify-self:center; display:flex; flex-direction:column; align-items:stretch; gap:.35rem; }
 .marquee-status .led-chip{ min-width:0; justify-content:center; }
