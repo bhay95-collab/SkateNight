@@ -18,13 +18,14 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v3';
+const SHELL_CACHE = 'skatenight-shell-v4';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
 const SHELL_FILES = [
   './',
   'index.html',
+  'cabinet.js',
   'styles.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
   'fx.js', 'lights.js', 'mechanism.js', 'neon.js', 'player.js', 'queue.js',

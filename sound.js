@@ -27,6 +27,67 @@ const rawFiles = new Map();      // name -> ordered { path, bytes } candidates
 const buffers = new Map();       // name -> decoded sound, ready to play
 let fetching = null;
 
+// The asset pack already has headroom. These trims keep frequent controls and
+// the changer behind the coin/relay accents, without touching the music bus.
+const MIX = {
+  coin: { gain: 0.95, variation: 0.008 },
+  key: { gain: 0.80, variation: 0.018 },
+  confirm: { gain: 0.92, variation: 0 },
+  whirr: { gain: 0.82, variation: 0 },
+  thud: { gain: 0.90, variation: 0 },
+  buzz: { gain: 0.80, variation: 0 },
+  page: { gain: 0.85, variation: 0.012 },
+  flicker: { gain: 0.70, variation: 0 },
+};
+const activeVoices = new Map();
+const RELEASE_SECONDS = 0.014;
+
+/* One voice per action. Fast presses still respond immediately, but the old
+   tail fades instead of accumulating. File and live-model voices share this
+   path, and finished sources release their audio graph connections. */
+function createVoice(name) {
+  const e = getEngine();
+  if (!e) return null;
+  const { ctx, sfxBus } = e;
+  activeVoices.get(name)?.release();
+  const { gain: level, variation } = MIX[name];
+  const output = ctx.createGain();
+  output.gain.setValueAtTime(level, ctx.currentTime);
+  output.connect(sfxBus);
+  const sources = new Set();
+  const voice = {
+    ctx, output,
+    rate: 1 + (Math.random() * 2 - 1) * variation,
+    track(source, ...nodes) {
+      sources.add(source);
+      source.onended = () => {
+        source.disconnect();
+        nodes.forEach((n) => n.disconnect());
+        sources.delete(source);
+        if (!sources.size) {
+          output.disconnect();
+          if (activeVoices.get(name) === voice) activeVoices.delete(name);
+        }
+      };
+    },
+    release() {
+      const t = ctx.currentTime;
+      output.gain.cancelScheduledValues(t);
+      output.gain.setValueAtTime(level, t);
+      output.gain.linearRampToValueAtTime(0.0001, t + RELEASE_SECONDS);
+      for (const source of sources) {
+        try { source.stop(t + RELEASE_SECONDS); } catch { /* already finished */ }
+      }
+      if (!sources.size) {
+        output.disconnect();
+        if (activeVoices.get(name) === voice) activeVoices.delete(name);
+      }
+    },
+  };
+  activeVoices.set(name, voice);
+  return voice;
+}
+
 /* Fetch early, without a sound card. Optional MP3s always take priority over
    the bundled WAVs, including when downloads finish in the opposite order. */
 export function preloadSfxFiles() {
@@ -71,49 +132,52 @@ export const recordedSfx = () => [...buffers.keys()];
 
 /* Play a file-backed effect if there is one. maxSeconds trims a long file
    with a quick fade (the whirr has to fit the record changer's move). */
-function playFile(name, maxSeconds) {
+function playFile(name, voice, maxSeconds) {
   const buf = buffers.get(name);
-  const e = getEngine();
-  if (!buf || !e) return false;
-  const { ctx, sfxBus } = e;
+  if (!buf) return false;
+  const { ctx, output, rate } = voice;
   const t = ctx.currentTime;
   const src = ctx.createBufferSource();
   src.buffer = buf;
+  src.playbackRate.setValueAtTime(rate, t);
   const gain = ctx.createGain();
-  src.connect(gain).connect(sfxBus);
+  // Tiny attack protects against a replacement file with an abrupt boundary.
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.linearRampToValueAtTime(1, t + 0.003);
+  src.connect(gain).connect(output);
+  voice.track(src, gain);
   src.start(t);
-  if (maxSeconds && buf.duration > maxSeconds) {
-    gain.gain.setValueAtTime(1, t + Math.max(0, maxSeconds - 0.12));
+  if (maxSeconds && buf.duration / rate > maxSeconds) {
+    gain.gain.setValueAtTime(1, t + Math.max(0.003, maxSeconds - 0.12));
     gain.gain.linearRampToValueAtTime(0.0001, t + maxSeconds);
     src.stop(t + maxSeconds + 0.02);
   }
   return true;
 }
 
-function tone({ freq, to = freq, type = 'sine', at = 0, dur = 0.15, peak = 0.1 }) {
-  const e = getEngine();
-  if (!e) return;
-  const { ctx, sfxBus } = e;
-  const t = ctx.currentTime + at;
+function tone(voice, { freq, to = freq, type = 'sine', at = 0, dur = 0.15, peak = 0.1 }) {
+  const { ctx, output, rate } = voice;
+  const t = ctx.currentTime + at / rate;
+  dur /= rate;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = type;
-  osc.frequency.setValueAtTime(freq, t);
-  if (to !== freq) osc.frequency.exponentialRampToValueAtTime(Math.max(to, 1), t + dur);
+  osc.frequency.setValueAtTime(freq * rate, t);
+  if (to !== freq) osc.frequency.exponentialRampToValueAtTime(Math.max(to * rate, 1), t + dur);
   gain.gain.setValueAtTime(0.0001, t);
   gain.gain.exponentialRampToValueAtTime(peak, t + 0.012);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(gain).connect(sfxBus);
+  osc.connect(gain).connect(output);
+  voice.track(osc, gain);
   osc.start(t);
   osc.stop(t + dur + 0.05);
 }
 
 // A short burst of filtered noise: thud-ish when low, tick-ish when high.
-function thump({ at = 0, dur = 0.08, peak = 0.5, freq = 1600 }) {
-  const e = getEngine();
-  if (!e) return;
-  const { ctx, sfxBus } = e;
-  const t = ctx.currentTime + at;
+function thump(voice, { at = 0, dur = 0.08, peak = 0.5, freq = 1600 }) {
+  const { ctx, output, rate } = voice;
+  const t = ctx.currentTime + at / rate;
+  dur /= rate;
   const len = Math.ceil(ctx.sampleRate * dur);
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
   const data = buf.getChannelData(0);
@@ -122,69 +186,72 @@ function thump({ at = 0, dur = 0.08, peak = 0.5, freq = 1600 }) {
   src.buffer = buf;
   const filter = ctx.createBiquadFilter();
   filter.type = 'bandpass';
-  filter.frequency.value = freq;
+  filter.frequency.value = freq * rate;
   filter.Q.value = 0.9;
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(peak, t);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(filter).connect(gain).connect(sfxBus);
+  src.connect(filter).connect(gain).connect(output);
+  voice.track(src, filter, gain);
   src.start(t);
   src.stop(t + dur + 0.05);
 }
 
-const safe = (fn) => (...args) => {
-  try { fn(...args); } catch (err) { console.warn('[sound]', err); }
+const effect = (name, fallback) => (...args) => {
+  let voice;
+  try {
+    if (!buffers.has(name) && !fallback) return;
+    voice = createVoice(name);
+    if (!voice || playFile(name, voice, name === 'whirr' ? args[0] ?? 0.9 : undefined)) return;
+    fallback(voice, ...args);
+  } catch (err) {
+    voice?.release();
+    console.warn('[sound]', err);
+  }
 };
 
 export const sfx = {
-  coin: safe(() => {
-    if (playFile('coin')) return;
+  coin: effect('coin', (voice) => {
     for (const [at, peak] of [[0, 0.12], [0.065, 0.09], [0.145, 0.10], [0.24, 0.07]]) {
-      thump({ freq: 2100, dur: 0.035, peak, at });
+      thump(voice, { freq: 2100, dur: 0.035, peak, at });
     }
-    tone({ freq: 2353, at: 0.145, dur: 0.10, peak: 0.025 });
-    thump({ freq: 470, dur: 0.055, peak: 0.10, at: 0.28 });
+    tone(voice, { freq: 2353, at: 0.145, dur: 0.10, peak: 0.025 });
+    thump(voice, { freq: 470, dur: 0.055, peak: 0.10, at: 0.28 });
   }),
 
-  key: safe(() => {
-    if (playFile('key')) return;
-    thump({ freq: 2300, dur: 0.012, peak: 0.13 });
-    thump({ freq: 680, dur: 0.035, peak: 0.11, at: 0.008 });
+  key: effect('key', (voice) => {
+    thump(voice, { freq: 2300, dur: 0.012, peak: 0.13 });
+    thump(voice, { freq: 680, dur: 0.035, peak: 0.11, at: 0.008 });
   }),
 
-  confirm: safe(() => {
-    if (playFile('confirm')) return;
-    thump({ freq: 1000, dur: 0.03, peak: 0.12 });
-    thump({ freq: 1450, dur: 0.025, peak: 0.11, at: 0.095 });
-    thump({ freq: 700, dur: 0.02, peak: 0.04, at: 0.12 });
+  confirm: effect('confirm', (voice) => {
+    thump(voice, { freq: 1000, dur: 0.03, peak: 0.12 });
+    thump(voice, { freq: 1450, dur: 0.025, peak: 0.11, at: 0.095 });
+    thump(voice, { freq: 700, dur: 0.02, peak: 0.04, at: 0.12 });
   }),
 
-  whirr: safe((seconds = 0.9) => {
-    if (playFile('whirr', seconds)) return;
-    tone({ freq: 135, to: 180, dur: seconds * 0.55, peak: 0.025 });
-    tone({ freq: 180, to: 140, at: seconds * 0.55, dur: seconds * 0.45, peak: 0.023 });
-    for (let i = 0; i < 6; i++) thump({ at: (seconds / 6) * i, dur: 0.03, peak: 0.025, freq: 1900 });
+  whirr: effect('whirr', (voice, seconds = 0.9) => {
+    tone(voice, { freq: 135, to: 180, dur: seconds * 0.55, peak: 0.025 });
+    tone(voice, { freq: 180, to: 140, at: seconds * 0.55, dur: seconds * 0.45, peak: 0.023 });
+    for (let i = 0; i < 6; i++) thump(voice, { at: (seconds / 6) * i, dur: 0.03, peak: 0.025, freq: 1900 });
   }),
 
-  thud: safe(() => {
-    if (playFile('thud')) return;
-    thump({ freq: 850, dur: 0.035, peak: 0.065 });
-    thump({ freq: 1700, dur: 0.015, peak: 0.015, at: 0.025 });
+  thud: effect('thud', (voice) => {
+    thump(voice, { freq: 850, dur: 0.035, peak: 0.065 });
+    thump(voice, { freq: 1700, dur: 0.015, peak: 0.015, at: 0.025 });
   }),
 
-  buzz: safe(() => {
-    if (playFile('buzz')) return;
-    thump({ freq: 370, dur: 0.065, peak: 0.12 });
-    thump({ freq: 370, dur: 0.065, peak: 0.10, at: 0.13 });
+  buzz: effect('buzz', (voice) => {
+    thump(voice, { freq: 370, dur: 0.065, peak: 0.12 });
+    thump(voice, { freq: 370, dur: 0.065, peak: 0.10, at: 0.13 });
   }),
 
-  page: safe(() => {
-    if (playFile('page')) return;
-    thump({ freq: 1600, dur: 0.025, peak: 0.10 });
-    thump({ freq: 530, dur: 0.045, peak: 0.13, at: 0.20 });
-    thump({ freq: 2100, dur: 0.015, peak: 0.035, at: 0.23 });
+  page: effect('page', (voice) => {
+    thump(voice, { freq: 1600, dur: 0.025, peak: 0.10 });
+    thump(voice, { freq: 530, dur: 0.045, peak: 0.13, at: 0.20 });
+    thump(voice, { freq: 2100, dur: 0.015, peak: 0.035, at: 0.23 });
   }),
 
   // Keep the legacy hook without introducing ambient interference during music.
-  flicker: safe(() => { playFile('flicker'); }),
+  flicker: effect('flicker'),
 };

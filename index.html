@@ -172,7 +172,7 @@
 
     <section class="panel queue-panel" aria-label="Up next">
       <h2 class="panel-title tab-tilt-b">Up Next</h2>
-      <div class="queue screen" id="queue-screen">
+      <div class="queue screen" id="queue-screen" tabindex="0" aria-label="Upcoming songs">
         <ol class="queue-list" id="queue-list"></ol>
       </div>
       <p class="queue-note">Your picks play first.<br>We'll keep the records turning.</p>
@@ -182,10 +182,10 @@
   </main>
 
   <footer class="deck" aria-label="Operator controls">
-    <div class="deck-group">
-      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">&#9664; BACK</button>
+    <div class="deck-group transport">
+      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">&#9664;&#xfe0e; BACK</button>
       <button type="button" class="btn btn-gold" id="btn-play"><span id="btn-play-text">START</span></button>
-      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP &#9654;</button>
+      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP &#9654;&#xfe0e;</button>
     </div>
 
     <div class="deck-group deck-faders">
@@ -196,12 +196,20 @@
     <div class="deck-group deck-tools">
       <button type="button" class="btn btn-deck" id="btn-shuffle" aria-pressed="true" title="Shuffle: every song plays once before any repeats (S). Off = play in the order of tracks.js">SHUFFLE: ON</button>
       <button type="button" class="btn btn-deck" id="btn-crowd" title="Open the crowd screen for the projector: drag it there, then click it to go fullscreen">CROWD</button>
-      <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
       <button type="button" class="btn btn-deck" id="btn-lights" aria-pressed="false">LIGHTS: FULL</button>
-      <span class="crate-unit">
-        <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
-        <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
-      </span>
+      <details class="utility-drawer" id="cabinet-tools">
+        <summary>TOOLS</summary>
+        <div class="utility-panel" role="group" aria-label="Cabinet tools">
+          <p>Cabinet tools</p>
+          <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
+          <span class="crate-unit">
+            <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
+            <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
+          </span>
+          <small>Save the songs before the night.</small>
+          <button type="button" class="btn btn-deck" id="btn-keys">KEYBOARD SHORTCUTS</button>
+        </div>
+      </details>
     </div>
   </footer>
 
@@ -231,6 +239,7 @@
 </div>
 
 <script type="module" src="neon.js"></script>
+<script type="module" src="cabinet.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

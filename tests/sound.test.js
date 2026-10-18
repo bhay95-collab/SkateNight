@@ -38,16 +38,25 @@ test('original effects are compact PCM with conservative peaks and clean boundar
   assert.ok(totalBytes < 130_000, 'the complete pack remains small enough to precache');
 });
 
-test('file priorities and failures preserve mechanical effects without blocking music', async (t) => {
+test('mechanical effects remain responsive, restrained and independent of music', async (t) => {
   const savedWindow = globalThis.window;
   const savedFetch = globalThis.fetch;
   const savedWarn = console.warn;
+  const savedRandom = Math.random;
   const parameter = () => ({
     value: 0,
-    setValueAtTime() {}, setTargetAtTime() {},
-    linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {},
+    events: [],
+    setValueAtTime(value, time) { this.events.push(['set', value, time]); },
+    setTargetAtTime(value, time) { this.events.push(['target', value, time]); },
+    linearRampToValueAtTime(value, time) { this.events.push(['linear', value, time]); },
+    exponentialRampToValueAtTime(value, time) { this.events.push(['exponential', value, time]); },
+    cancelScheduledValues(time) { this.events.push(['cancel', time]); },
   });
-  const node = () => ({ connect() { return this; } });
+  const node = () => ({
+    connections: [], disconnected: false,
+    connect(target) { this.connections.push(target); return target; },
+    disconnect() { this.disconnected = true; },
+  });
   class FakeContext {
     currentTime = 0;
     sampleRate = 22050;
@@ -62,7 +71,11 @@ test('file priorities and failures preserve mechanical effects without blocking 
     createAnalyser() { return node(); }
     createChannelSplitter() { return node(); }
     createBufferSource() {
-      const source = { ...node(), start() {}, stop() {} };
+      const source = {
+        ...node(), playbackRate: parameter(), stops: [], starts: [],
+        start(at) { this.starts.push(at); },
+        stop(at) { this.stops.push(at); },
+      };
       this.sources.push(source);
       return source;
     }
@@ -81,7 +94,7 @@ test('file priorities and failures preserve mechanical effects without blocking 
   try {
     globalThis.window = { AudioContext: FakeContext };
     console.warn = () => {};
-    const { ctx } = unlockAudio();
+    const { ctx, sfxBus, musicBus } = unlockAudio();
     let sequence = 0;
     const load = async (files) => {
       globalThis.fetch = async (path) => ({
@@ -110,6 +123,78 @@ test('file priorities and failures preserve mechanical effects without blocking 
       const sound = await load({ 'sfx/whirr.wav': 3 });
       assert.doesNotThrow(() => sound.sfx.whirr(0.4));
       assert.equal(ctx.sources.at(-1).buffer.marker, 3);
+      assert.ok(Math.abs(ctx.sources.at(-1).stops[0] - ctx.currentTime - 0.42) < 1e-9);
+    });
+
+    await t.test('effects keep a restrained individual mix on the separate effects bus', async () => {
+      const sound = await load(Object.fromEntries(originalNames.map((name, i) => [`sfx/${name}.wav`, i + 1])));
+      const levels = {};
+      const musicEvents = musicBus.gain.events.length;
+      for (const name of originalNames) {
+        sound.sfx[name]();
+        const source = ctx.sources.at(-1);
+        const output = source.connections[0].connections[0];
+        assert.equal(output.connections[0], sfxBus, `${name}: uses effects volume`);
+        levels[name] = output.gain.events[0][1];
+        assert.ok(levels[name] > 0 && levels[name] < 1, `${name}: conservative trim`);
+      }
+      assert.ok(levels.key < levels.coin, 'frequent selector contacts sit behind the coin accent');
+      assert.ok(levels.whirr < levels.confirm, 'the motor stays behind the relay confirmation');
+      assert.equal(musicBus.gain.events.length, musicEvents, 'no music ducking or volume automation');
+    });
+
+    await t.test('repeat keys, pages and motor cues crossfade old tails without delaying new input', async () => {
+      const sound = await load({ 'sfx/key.wav': 1, 'sfx/page.wav': 2, 'sfx/whirr.wav': 3, 'sfx/coin.wav': 4 });
+      sound.sfx.coin();
+      const coin = ctx.sources.at(-1);
+      for (const name of ['key', 'page', 'whirr']) {
+        ctx.currentTime += 1;
+        sound.sfx[name](0.6);
+        const old = ctx.sources.at(-1);
+        const oldOutput = old.connections[0].connections[0];
+        ctx.currentTime += 0.01;
+        sound.sfx[name](0.6);
+        const latest = ctx.sources.at(-1);
+        const fade = oldOutput.gain.events.find((event) => event[0] === 'linear');
+        assert.ok(fade[1] < 0.001, `${name}: fades the previous tail`);
+        assert.ok(fade[2] - ctx.currentTime <= 0.02, `${name}: quick click-free release`);
+        assert.equal(old.stops.at(-1), fade[2], `${name}: releases the previous source`);
+        assert.deepEqual(latest.starts, [ctx.currentTime], `${name}: new action starts immediately`);
+        old.onended();
+        assert.equal(old.disconnected, true, `${name}: old source cleaned up`);
+        assert.equal(oldOutput.disconnected, true, `${name}: old channel cleaned up`);
+        assert.equal(latest.connections[0].connections[0].disconnected, false, `${name}: newer voice survives old cleanup`);
+      }
+      assert.deepEqual(coin.stops, [], 'different actions can still sound together');
+    });
+
+    await t.test('mechanical variation is subtle and never changes motor or needle speed', async () => {
+      const sound = await load(Object.fromEntries(originalNames.map((name, i) => [`sfx/${name}.wav`, i + 1])));
+      for (const name of originalNames) {
+        const rates = [];
+        for (const random of [0, 1]) {
+          Math.random = () => random;
+          sound.sfx[name]();
+          rates.push(ctx.sources.at(-1).playbackRate.events[0][1]);
+        }
+        assert.ok(rates.every((rate) => rate >= 0.98 && rate <= 1.02), `${name}: no noticeable pitch shift`);
+        if (['key', 'page', 'coin'].includes(name)) assert.ok(rates[0] < rates[1], `${name}: small contact variation`);
+        else assert.deepEqual(rates, [1, 1], `${name}: stable mechanical cue`);
+      }
+      Math.random = savedRandom;
+    });
+
+    await t.test('finished files disconnect and do not leave a stale motor to fade on the next move', async () => {
+      const sound = await load({ 'sfx/whirr.wav': 3 });
+      sound.sfx.whirr();
+      const source = ctx.sources.at(-1);
+      const envelope = source.connections[0];
+      const output = envelope.connections[0];
+      source.onended();
+      assert.ok(source.disconnected && envelope.disconnected && output.disconnected);
+      const stopCount = source.stops.length;
+      sound.sfx.whirr();
+      assert.equal(source.stops.length, stopCount, 'completed source is removed from the active channel');
     });
 
     await t.test('missing and unreadable assets retain live fallback; ambient flicker stays silent', async () => {
@@ -124,6 +209,24 @@ test('file priorities and failures preserve mechanical effects without blocking 
       for (const name of originalNames) assert.doesNotThrow(() => sound.sfx[name]());
     });
 
+    await t.test('live fallback contacts also release repeated tails and all their nodes', async () => {
+      const sound = await load({});
+      const before = ctx.sources.length;
+      sound.sfx.page();
+      const previous = ctx.sources.slice(before);
+      const output = previous[0].connections[0].connections[0].connections[0];
+      ctx.currentTime += 0.01;
+      sound.sfx.page();
+      for (const source of previous) {
+        assert.equal(source.stops.at(-1), ctx.currentTime + 0.014, 'scheduled contacts are cancelled with their old carrier');
+        source.onended();
+        assert.ok(source.disconnected);
+        assert.ok(source.connections[0].disconnected, 'filter disconnected');
+        assert.ok(source.connections[0].connections[0].disconnected, 'envelope disconnected');
+      }
+      assert.equal(output.disconnected, true, 'shared channel released after its last contact');
+    });
+
     await t.test('network failures settle without rejecting setup', async () => {
       globalThis.fetch = async () => { throw new Error('offline'); };
       const sound = await import(`../sound.js?sample-test=${++sequence}`);
@@ -134,5 +237,6 @@ test('file priorities and failures preserve mechanical effects without blocking 
     globalThis.window = savedWindow;
     globalThis.fetch = savedFetch;
     console.warn = savedWarn;
+    Math.random = savedRandom;
   }
 });

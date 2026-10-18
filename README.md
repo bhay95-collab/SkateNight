@@ -195,7 +195,7 @@ place; follow these steps only if you want to swap it for a new one.
 
 - [ ] Open the site in **Google Chrome** (best supported).
 - [ ] Press **INSERT COIN** (click it, or press any key).
-- [ ] Press **LOAD THE CRATES** (bottom right). The thin strip along the bottom of that button fills and the little
+- [ ] Open **TOOLS** (bottom right), then press **LOAD THE CRATES**. The thin strip along the bottom of that button fills and the little
       light at the top right changes to **OFFLINE READY**. This saves every
       song on the laptop so the night runs even if the venue wifi dies. Press it
       again after you add songs.
@@ -237,7 +237,9 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 - The arrival runs for its full 13-second hold and reveal. It cannot be skipped.
   Once completed, it does not replay when refreshing the same browser tab.
   CALM keeps the same arrival duration with static diagnostics.
-- **FULLSCREEN** and **LOAD THE CRATES** are directly available on the operator deck.
+- **TOOLS** holds FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. Click it
+  or use Enter/Space; Escape or a click outside closes it. Music, effects,
+  shuffle, crowd and lights stay directly available on the deck.
 - **START** begins with the house rotation. It does **not** start automatically,
   so you can test volume first.
 - **Pick a song by its code only**, like a real jukebox. The left third of the

@@ -20,14 +20,20 @@ record-change choreography, the **PRECISION RECORD CHANGER** / **45 RPM · STERE
 labels, the queue note, and the coin animation. The full thirteen-second arrival
 remains unskippable in both FULL and CALM.
 
+The neon refinement keeps this palette, composition and reactive lighting.
+Directional highlights, lower cabinet edges and deeper screen recesses give the
+plastic more depth. Gold section legends are smaller and level, with fewer
+decorative borders. Requests and house suggestions both stay bright enough to
+read; their labels and controls establish priority.
+
 ## Material system
 
 Everything on screen is built from a short list of physical materials. Nothing
 else gets invented without extending this list first.
 
-- **Cabinet** (`.panel`, `.deck`, `.tube`) - a purple face panel with a *hard
-  offset shadow* (`--drop`, `0 .35rem 0 rgba(0,0,0,.45)`), never a soft glow.
-  Panels do not float; they sit on the page like moulded plastic.
+- **Cabinet** (`.panel`, `.deck`, `.tube`) - purple moulded plastic with a hard
+  lower edge, restrained contact shadow and a highlight from the top left.
+  Glow belongs to the lighting, while solid surfaces retain their depth.
 - **Screen** (`.screen`, `.led`, `.ticker`, `.queue`, `.readout`, `.mech`) - a
   recessed near-black CRT display for anything with a number or a queue on it.
   Inset shadow, scanlines and a curved-glass highlight. Numbers are
@@ -45,9 +51,9 @@ else gets invented without extending this list first.
   in `lights.js`): one or two dips, at most 60% darker, under a second, bursts
   25-70 s apart, never in CALM. These visual dips are silent by default;
   `sfx.flicker` is only an optional custom-audio compatibility hook.
-- **Title tab** (`.panel-title`, `.tab`) - a gold tab "screwed on" to the top
-  edge of a panel at a slight tilt, alternating direction (`.tab-tilt-a` /
-  `.tab-tilt-b`) so no two look mass-produced.
+- **Title tab** (`.panel-title`, `.tab`) - a small, level gold legend on the top
+  edge. Bungee keeps its arcade character; reduced size and simpler framing
+  leave the marquee and song title as the strongest labels.
 - **Arcade button** (`.btn-gold`, `.btn-select`, `.btn-deck`, `.key`) - a hard
   drop shadow that collapses on `:active` as the button physically travels down.
 - **Neon tube** (`.wordmark`, `.w-cyan`, `.w-mag`, `.neon`) - white core plus
@@ -157,10 +163,17 @@ worker.
 - About 3 songs per album fit without scrolling at 1280 x 720; a 4th scrolls
   inside the strip window. A **▼ MORE** tag shows while songs are hidden below,
   and a fully typed code outlines its strip in cyan and scrolls it into view.
-- FULLSCREEN, LIGHTS, CROWD and LOAD THE CRATES remain directly accessible on
-  the original operator deck.
+- Transport, music/effects faders, SHUFFLE, CROWD and LIGHTS remain on the deck.
+  TOOLS groups FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. The native
+  disclosure supports mouse, Enter and Space, closes on Escape or an outside
+  click, and never submits a pending song code or changes playback. Offline
+  status and errors stay visible at the top of the cabinet.
 - UP NEXT keeps the note **Your picks play first. / We'll keep the records
-  turning.** House suggestions remain under IF NOBODY PICKS.
+  turning.** Requests have a YOUR PICKS heading and cyan position chips. House
+  suggestions remain under IF NOBODY PICKS, with full-opacity pale-lilac titles
+  and clear cyan metadata. Both stay readable over the recessed near-black
+  window; decorative scanlines are subdued there. Real requests can scroll
+  when needed, while extra house suggestions are trimmed first.
 
 ## Restraint (the October refinement pass)
 
@@ -368,10 +381,10 @@ than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
   `pickInOrder`: the order of `tracks.js`, wrapping round. The choice is saved in
   `localStorage` (`sn-shuffle`); the default is on.
 - **House plan** (`app.js: planHouse`): the house rotation picks ahead, enough
-  to fill UP NEXT's spare rows, and keeps those picks, so the greyed rows under
+  to fill UP NEXT's spare rows, and keeps those picks, so the labelled rows under
   IF NOBODY PICKS are exactly what will play. Songs in the queue are left out of
   the plan; a song someone picks drops out of it once it plays (in order mode
-  carries on from that song instead). Greyed rows that would not fit on screen
+  carries on from that song instead). House rows that would not fit on screen
   are trimmed from the end.
 - **Skip** takes the queue head or the house pick. **Back** keeps a 50-song
   history: after 3 s it restarts the song, before that it goes to the previous
@@ -408,6 +421,11 @@ arrival itself is silent. Audio failures must never stop the music.
 
 The original WAV pack is precached with the app shell. Effects sit below the
 music, with the needle landing and motor quieter than the coin and switches.
+Per-effect gain trims balance frequent keys and movement against coin/relay
+accents. Coin, key and page cues have less than 2% pitch variation. Repeating an
+action responds immediately and fades its previous tail over 14 ms, so motors
+and rapid key presses do not accumulate. Finished sources release their audio
+nodes. The effects fader remains independent; music gain and timing are untouched.
 Do not add constant vinyl noise, mains hum or random crackling over songs.
 Compare final levels through the venue speakers. See `sfx/README.md` for source,
 lengths and replacement instructions.
@@ -468,6 +486,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | File | Purpose |
 |---|---|
 | `index.html` | Page structure: boot overlay, attract screen, background world, the machine |
+| `cabinet.js` | Native TOOLS disclosure, keyboard activation, dismissal and shortcut help |
 | `styles.css` | All styling and every `@keyframes` (single stylesheet, tokens at the top) |
 | `app.js` | The conductor: state, queue flow, keypad, keyboard, attract, crates |
 | `tracks.js` | **The one file Ben edits** |

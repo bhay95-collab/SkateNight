@@ -11,6 +11,20 @@ priority over the bundled WAV. A missing or unreadable MP3 falls back to the WAV
 then to a quiet live Web Audio model if neither file works. Failures never stop
 music playback. Both originals and replacements use the separate SFX volume.
 
+The cabinet mix gives each action its own conservative gain trim. Frequently
+pressed keys, page catches, and the changer stay behind the coin and relay
+accents. Coin, key, and page playback varies by less than 2% per action to avoid
+an identical repeated contact; the motor, needle, and confirmation keep a fixed
+speed. These are small changes to the existing sounds, not additional melodies
+or layers.
+
+Repeating the same action starts its new sound immediately and fades its old
+tail over 14 ms. This prevents rapid browsing and interrupted changer moves
+from building up a pile of sounds. Different actions can still overlap, and
+finished sources disconnect from the audio graph. The same mix and repeat
+handling apply to live fallbacks. None of this changes music volume, playback
+timing, or the record-change sequence.
+
 | File | When it plays | Ideal length |
 |---|---|---|
 | `coin.mp3` | Coin chute rattle and landing | 0.5 - 0.7 s |
