@@ -192,4 +192,21 @@ export const tracks = [
 
   // K4 - Vol. IX
   { id: 'the-word-is-a-lighthouse',    title: 'The Word Is a Lighthouse',    volume: 'vol-ix',   file: 'audio/the-word-is-a-lighthouse.mp3' },
+
+  // ---- Songs 40-44: a fourth song on Vol. X, then a fifth on Vol. I - IV ----
+
+  // L4 - Vol. X
+  { id: 'god-be-thanked',      title: 'God Be Thanked',      volume: 'vol-x',   file: 'audio/god-be-thanked.mp3' },
+
+  // A5 - Vol. I
+  { id: 'the-shepherds-song',  title: "The Shepherd's Song", volume: 'vol-i',   file: 'audio/the-shepherds-song.mp3' },
+
+  // B5 - Vol. II
+  { id: 'you-are-the-lord',    title: 'You Are the Lord',    volume: 'vol-ii',  file: 'audio/you-are-the-lord.mp3' },
+
+  // C5 - Vol. III
+  { id: 'bethel',              title: 'Bethel',              volume: 'vol-iii', file: 'audio/bethel.mp3' },
+
+  // D5 - Vol. IV
+  { id: 'clouds-of-glory',     title: 'Clouds of Glory',     volume: 'vol-iv',  file: 'audio/clouds-of-glory.mp3' },
 ];
