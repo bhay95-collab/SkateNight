@@ -224,7 +224,7 @@ swings back edge-on into its slot in the ring, sleeve returns to the rack.
 
 **Record carousel** (`carousel.js`): every song's record stands on edge in a
 ring round the platter, seen from above (like looking down into a Wurlitzer),
-each tipped with its album's sleeve colour, in `tracks.js` order. One canvas,
+each with a bold band of its album's sleeve colour, in `tracks.js` order (the platter is 7.3 em so the ring has room to read). One canvas,
 painted once; turning it is a CSS rotation, always clockwise, at least 45°
 (`carouselTarget`, tested). Clipped to a circle so the turning square canvas
 never pokes out.

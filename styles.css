@@ -637,7 +637,7 @@ body.on-attract .rig{ visibility:hidden; }
 }
 .gripper.is-picking{ box-shadow:0 .1em .2em rgba(0,0,0,.6), 0 0 .5em rgba(37,232,226,.7); }
 .platter{
-  position:absolute; z-index:1; right:.9em; top:.5em; width:7.8em; aspect-ratio:1; border-radius:50%;
+  position:absolute; z-index:1; right:1.15em; top:.75em; width:7.3em; aspect-ratio:1; border-radius:50%;   /* a little smaller, so the carousel ring round it has room to read */
   background:radial-gradient(circle, #2c1c44 0 62%, #1b1030 63% 100%);
   box-shadow:0 .22em 0 rgba(0,0,0,.6), inset 0 0 0 .2em var(--cab-edge);
 }
