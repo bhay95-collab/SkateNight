@@ -246,4 +246,9 @@ export const tracks = [
 
   // C6 - Vol. III
   { id: 'fire-of-love',        title: 'Fire of Love',        volume: 'vol-iii',  file: 'audio/fire-of-love.mp3' },
+
+  // ---- Song 54: a sixth song on Vol. IV ----
+
+  // D6 - Vol. IV
+  { id: 'communion-chorus',    title: 'Communion Chorus',    volume: 'vol-iv',   file: 'audio/communion-chorus.mp3' },
 ];
