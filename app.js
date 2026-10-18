@@ -71,12 +71,13 @@ async function main() {
     return;
   }
   initLights();
-  preloadSfxFiles();                                 // any sfx/*.mp3 recordings, fetched early
-  safely('screen-flicker', () => startScreenFlicker(document.getElementById('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
+  preloadSfxFiles();                                 // original effects and optional MP3 overrides
+  safely('screen-flicker', () => startScreenFlicker($('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
   $('btn-lights').addEventListener('click', () => { flipLights(); sfx.key(); });
 
   // Boot overlay is opaque from first paint; the machine assembles behind it.
   const boot = startBoot($('boot'));
+  let bootDone = !boot.played;
   const attractScreen = $('attract');
   attractScreen.hidden = false;
 
@@ -876,15 +877,16 @@ async function main() {
   }
 
   async function startNight() {
-    if (started) return;
+    if (started || !bootDone) return;
     started = true;
     clearInterval(attractLineTimer);
     const engine = unlockAudio();                      // the click is the browser's required gesture
     engineReady = Boolean(engine);
     if (engineReady) {
+      // A quick keyboard selection must have a player even while effects decode.
+      player = createPlayer({ onEnded, onTime, onError, onDuration });
       await Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]);   // so a recorded coin plays first time
       safely('coin', () => sfx.coin());
-      player = createPlayer({ onEnded, onTime, onError, onDuration });
       visualiser = createVisualiser({ tap: (d) => { if (crowdOpen) link.send('levels', d); } });
       safely('visualiser', () => visualiser.start());
       setupMediaSession({
@@ -926,13 +928,11 @@ async function main() {
   });
 
   /* ---------------- boot, then the attract screen ---------------- */
-  let bootDone = !boot.played;
   if (boot.played) {
-    boot.finished.then(() => { bootDone = true; });
-    // Any press during the power-on skips ahead to INSERT COIN.
-    const skipBoot = () => boot.skip();
-    window.addEventListener('keydown', skipBoot, { once: true });
-    window.addEventListener('pointerdown', skipBoot, { once: true });
+    boot.finished.then(() => {
+      bootDone = true;
+      attractScreen.focus({ preventScroll: true });
+    });
     try { await Promise.race([document.fonts.ready, delay(2500)]); } catch { /* fonts are a nicety */ }
     boot.reveal();
   }

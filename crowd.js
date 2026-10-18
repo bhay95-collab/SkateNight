@@ -7,13 +7,13 @@
    from the control window over link.js: what is playing, UP NEXT, the
    rack page, every record-changer move, SELECTION ACCEPTED, the song
    clock and the meter levels. Its own touches: the ticker jokes, the
-   bubble tubes, the arch and the screen flicker (silent here).
+   bubble tubes, the arch and the silent screen flicker.
    ============================================================ */
 import { createUI, createTicker } from './ui.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
-import { initLights, followLights, startBoot, startScreenFlicker, safely } from './fx.js';
+import { initLights, followLights, onCalmChange, startBoot, startScreenFlicker, safely } from './fx.js';
 import { SKATE_JOKES, IDLE_JOKES, createRotator } from './copy.js';
 import { LIGHTS_KEY } from './lights.js';
 import { createLink } from './link.js';
@@ -28,7 +28,7 @@ export function runCrowd(library) {
   $('attract').hidden = true;
   document.title = 'Skate by Faith - Crowd Screen';
   initLights();
-  startBoot($('boot'));
+  const boot = startBoot($('boot'));
 
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
   const volumeById = new Map(library.volumes.map((v) => [v.id, v]));
@@ -53,6 +53,7 @@ export function runCrowd(library) {
   const isMusicOn = () => state.phase === 'playing' || state.phase === 'changing';
   const ticker = createTicker({ textEl: $('ticker-text'), nextText: () => (isMusicOn() ? nextJoke() : nextIdleJoke()) });
   ticker.start();
+  onCalmChange(() => ticker.restart());
 
   let levels = null;
   const visualiser = createVisualiser({ source: () => levels });
@@ -110,4 +111,6 @@ export function runCrowd(library) {
   });
   link.send('hello');
   if (!link.available) ui.setMessage?.('THIS BROWSER CANNOT LINK THE SCREENS', 'bad');
+  // Match the operator's full arrival instead of waiting for the recovery cap.
+  boot.reveal();
 }

@@ -240,6 +240,7 @@ export function createUI({ library, getStatus, handlers }) {
   function renderQueue(queue, houseLine = [], modeLabel = 'HOUSE SHUFFLE') {
     const list = $('queue-list');
     list.replaceChildren();
+    if (queue.length) list.append(el('li', { class: 'q-divider q-requests' }, 'YOUR PICKS'));
     queue.slice(0, QUEUE_ROWS).forEach((id, i) => {
       const t = trackById.get(id);
       if (!t) return;
@@ -251,7 +252,7 @@ export function createUI({ library, getStatus, handlers }) {
     });
     const more = queue.length - QUEUE_ROWS;
     if (more > 0) list.append(el('li', { class: 'q-more' }, `+${more} MORE WAITING`));
-    // Spare rows show the house rotation's plan, greyed: what plays if nobody picks.
+    // Spare rows show the labelled house plan; both groups remain readable.
     const spare = QUEUE_ROWS - Math.min(queue.length, QUEUE_ROWS);
     const house = houseLine.slice(0, spare).map((id) => trackById.get(id)).filter(Boolean);
     if (spare > 0) {
@@ -262,7 +263,7 @@ export function createUI({ library, getStatus, handlers }) {
         el('span', { class: 'q-pos led' }, String(queue.length + i + 1)),
         queueText(t)));
     });
-    // Long titles can make the plan taller than the screen: drop greyed rows from the end until it fits.
+    // Long titles can make the plan taller than the screen: trim house rows first.
     const box = $('queue-screen');
     while (box.scrollHeight > box.clientHeight + 1 && list.lastElementChild?.classList.contains('is-house')) {
       list.lastElementChild.remove();

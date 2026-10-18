@@ -27,7 +27,7 @@ real artwork or songs: power-on, INSERT COIN, choosing a song, now playing.)*
 | `tracks.js` | The list of albums (volumes) and songs | **Yes - the only file you edit** |
 | `audio/` | The MP3 files | **Yes - upload songs here** |
 | `covers/` | The album cover pictures | **Yes - upload covers here** |
-| `sfx/` | Your own sound effects (optional) | Only to swap a sound |
+| `sfx/` | Original mechanical effects; optional custom replacements | Only to swap a sound |
 | `rfai-logo.png` | The RFAI headphone-robot logo | Only to swap it |
 | everything else | The machine itself | No |
 
@@ -195,7 +195,7 @@ place; follow these steps only if you want to swap it for a new one.
 
 - [ ] Open the site in **Google Chrome** (best supported).
 - [ ] Press **INSERT COIN** (click it, or press any key).
-- [ ] Press **LOAD THE CRATES** (bottom right). The thin strip along the bottom of that button fills and the little
+- [ ] Open **TOOLS** (bottom right), then press **LOAD THE CRATES**. The thin strip along the bottom of that button fills and the little
       light at the top right changes to **OFFLINE READY**. This saves every
       song on the laptop so the night runs even if the venue wifi dies. Press it
       again after you add songs.
@@ -234,6 +234,12 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 
 ## How it behaves
 
+- The arrival runs for its full 13-second hold and reveal. It cannot be skipped.
+  Once completed, it does not replay when refreshing the same browser tab.
+  CALM keeps the same arrival duration with static diagnostics.
+- **TOOLS** holds FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. Click it
+  or use Enter/Space; Escape or a click outside closes it. Music, effects,
+  shuffle, crowd and lights stay directly available on the deck.
 - **START** begins with the house rotation. It does **not** start automatically,
   so you can test volume first.
 - **Pick a song by its code only**, like a real jukebox. The left third of the
@@ -249,7 +255,8 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   change jokes, edit the `SKATE_JOKES` list in `copy.js`: ALL CAPS, 64
   characters at most, one per line in quote marks with a comma after.
 - UP NEXT plays **first in, first out**. Use the arrows to move a song up and the
-  cross to remove one.
+  cross to remove one. The note says **Your picks play first. We'll keep the
+  records turning.**
 - When UP NEXT is empty, the **house rotation** picks the next song itself, so the
   rink is never silent. The **SHUFFLE** button chooses how:
   - **SHUFFLE: ON** (the default): a shuffled deck. **Every song plays once before
@@ -271,7 +278,12 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   says **FREE PLAY**.
 - After **60 seconds** with nobody touching anything, the machine runs a light
   show. Touch any key to stop it.
-- Switching songs fades out and in. You hear no hard cuts.
+- Switching songs fades out and in. You hear no hard cuts. The precision changer
+  slows into its pickup position, lifts and transfers each record, then lowers
+  the needle. The visible record spins at **45 rpm**.
+- The coin animation and seven original mechanical sound effects accompany the
+  keys, selection relay, changer, needle and page carrier. **Effects** has its own
+  volume slider; custom MP3s in `sfx/` can replace individual sounds.
 
 ### Keyboard
 
@@ -338,9 +350,9 @@ Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
 1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`
 sub-path):
 
-- `npm test` - 62 tests, all passing (queue, codes, `tracks.js` validation,
+- `npm test` covers the queue, codes, `tracks.js` validation,
   house rotation and shuffle deck, in-order mode, copy pools, audio maths,
-  lights switch, CSS safety rules).
+  lights switch, CSS safety rules, unskippable arrival, and sound assets/fallbacks.
 - Boot, INSERT COIN, selection by keyboard / keypad code, UP NEXT, house
   rotation, record changer frames, now-playing readouts, idle attract mode.
 - Natural song change: about 40 ms between songs. Skip: about 1.2-1.4 s (the

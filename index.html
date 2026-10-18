@@ -69,6 +69,7 @@
     </div>
 
     <div class="marquee-sign">
+      <div class="marquee-chase" aria-hidden="true"></div>
       <h1 class="wordmark"><span class="w-cyan">Skate</span> <span class="by">by</span> <span class="w-mag">Faith</span></h1>
       <p class="wordmark-sub">Not by Sight &mdash; An 80s Rollerskate Night</p>
       <div class="sign-flash" id="sign-flash" aria-hidden="true">
@@ -134,21 +135,29 @@
 
       <div class="mech screen" id="mech" data-phase="empty">
         <div class="mech-wall" aria-hidden="true"></div>
+        <div class="mech-sleeve-well" aria-hidden="true"></div>
         <div class="mech-slot" id="mech-slot"><div class="mech-sleeve" id="mech-sleeve"></div></div>
-        <div class="carousel" aria-hidden="true">
-          <span class="carousel-clip"><canvas class="carousel-ring" id="carousel"></canvas></span>
-          <i class="gripper" id="gripper"></i>
-        </div>
-        <div class="platter" id="platter">
-          <div class="record-mover" id="record-mover">
-            <div class="record" id="record">
-              <div class="record-label" id="record-label"></div>
-              <div class="record-hole"></div>
-            </div>
+        <div class="changer-assembly">
+          <div class="carousel" aria-hidden="true">
+            <span class="carousel-clip"><canvas class="carousel-ring" id="carousel"></canvas></span>
+            <i class="gripper" id="gripper"></i>
           </div>
+          <div class="platter" id="platter">
+            <div class="record-mover" id="record-mover">
+              <div class="record" id="record">
+                <div class="record-label" id="record-label"></div>
+                <div class="record-hole"></div>
+              </div>
+            </div>
+            <i class="spindle" aria-hidden="true"></i>
+          </div>
+          <i class="arm-mount" aria-hidden="true"></i>
+          <i class="arm-rest" aria-hidden="true"></i>
+          <div class="arm" id="arm"><i class="arm-counterweight"></i><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
         </div>
-        <div class="arm" id="arm"><i class="arm-bar"></i><i class="arm-head"></i><i class="arm-pivot"></i></div>
       </div>
+
+      <div class="mech-nameplate" aria-hidden="true"><span>PRECISION RECORD CHANGER</span><b>45 RPM · STEREO</b></div>
 
       <div class="np-info">
         <p class="np-title" id="np-title">PRESS PLAY</p>
@@ -170,19 +179,20 @@
 
     <section class="panel queue-panel" aria-label="Up next">
       <h2 class="panel-title tab-tilt-b">Up Next</h2>
-      <div class="queue screen" id="queue-screen">
+      <div class="queue screen" id="queue-screen" tabindex="0" aria-label="Upcoming songs">
         <ol class="queue-list" id="queue-list"></ol>
       </div>
+      <p class="queue-note">Your picks play first.<br>We'll keep the records turning.</p>
     </section>
 
     <div class="tube" id="tube-r" aria-hidden="true"><canvas></canvas></div>
   </main>
 
   <footer class="deck" aria-label="Operator controls">
-    <div class="deck-group">
-      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">&#9664; BACK</button>
+    <div class="deck-group transport">
+      <button type="button" class="btn btn-deck" id="btn-back" title="Back: restart this song, or press again to go to the previous one (P or Left arrow)">&#9664;&#xfe0e; BACK</button>
       <button type="button" class="btn btn-gold" id="btn-play"><span id="btn-play-text">START</span></button>
-      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP &#9654;</button>
+      <button type="button" class="btn btn-deck" id="btn-skip" title="Next song (N or Right arrow)">SKIP &#9654;&#xfe0e;</button>
     </div>
 
     <div class="deck-group deck-faders">
@@ -193,12 +203,20 @@
     <div class="deck-group deck-tools">
       <button type="button" class="btn btn-deck" id="btn-shuffle" aria-pressed="true" title="Shuffle: every song plays once before any repeats (S). Off = play in the order of tracks.js">SHUFFLE: ON</button>
       <button type="button" class="btn btn-deck" id="btn-crowd" title="Open the crowd screen for the projector: drag it there, then click it to go fullscreen">CROWD</button>
-      <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
       <button type="button" class="btn btn-deck" id="btn-lights" aria-pressed="false">LIGHTS: FULL</button>
-      <span class="crate-unit">
-        <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
-        <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
-      </span>
+      <details class="utility-drawer" id="cabinet-tools">
+        <summary>TOOLS</summary>
+        <div class="utility-panel" role="group" aria-label="Cabinet tools">
+          <p>Cabinet tools</p>
+          <button type="button" class="btn btn-deck" id="btn-fs" title="Fullscreen (F)">FULLSCREEN</button>
+          <span class="crate-unit">
+            <button type="button" class="btn btn-deck" id="btn-crates">LOAD THE CRATES</button>
+            <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
+          </span>
+          <small>Save the songs before the night.</small>
+          <button type="button" class="btn btn-deck" id="btn-keys">KEYBOARD SHORTCUTS</button>
+        </div>
+      </details>
     </div>
   </footer>
 
@@ -228,6 +246,7 @@
 </div>
 
 <script type="module" src="neon.js"></script>
+<script type="module" src="cabinet.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -4,8 +4,8 @@
 
    LIGHTS: FULL / CALM is the one place that decides whether decorative
    motion happens. Every effect asks isCalm() and, when calm, jumps to its
-   FINISHED state instead of animating (trivia's "motion off, not motion
-   lite" rule). CSS handles the pure-CSS animations through
+   FINISHED state instead of animating. The arrival keeps its full hold
+   in a static presentation. CSS handles the pure-CSS animations through
    html[data-lights="calm"]; JavaScript effects check isCalm() themselves.
    ============================================================ */
 import { BOOT_POOL, sample } from './copy.js';
@@ -147,30 +147,49 @@ function renderBootLog(overlay, holdMs) {
   };
 
   log.innerHTML = rows
-    .map((html, i) => `<span class="ln" style="animation-delay:${delayFor(i).toFixed(2)}s">${html}</span>`)
+    .map((html, i) => `<span class="ln" style="opacity:1;animation-delay:${delayFor(i).toFixed(2)}s">${html}</span>`)
     .join('');
 }
 
-/* Returns { reveal(), skip() }. reveal() lifts the overlay once the machine
-   is ready (after the minimum hold). skip() lifts it right now. */
+/* Input belongs to the cabinet only after arrival. Inert keeps focus out of
+   the hidden controls; capture guards also cover the window's shortcuts and
+   the crowd screen's fullscreen gesture. Preserve existing inert states. */
+function holdArrivalInput(overlay) {
+  const background = Array.from(document.body.children)
+    .filter((el) => el !== overlay && !el.contains(overlay))
+    .map((el) => ({ el, inert: el.inert }));
+  for (const { el } of background) el.inert = true;
+  const events = ['keydown', 'keyup', 'pointerdown', 'pointerup', 'click', 'dblclick', 'contextmenu', 'input', 'change'];
+  const block = (event) => { event.preventDefault(); event.stopImmediatePropagation(); };
+  for (const name of events) window.addEventListener(name, block, { capture: true, passive: false });
+  return () => {
+    for (const name of events) window.removeEventListener(name, block, { capture: true });
+    for (const { el, inert } of background) el.inert = inert;
+  };
+}
+
+/* reveal() schedules the complete arrival once the machine is ready. There
+   is deliberately no skip API. A refresh in the same tab does not replay it. */
 export function startBoot(overlay, { minMs = 13000, capMs = 17000 } = {}) {
-  const none = { reveal() {}, skip() {}, played: false };
+  const none = { reveal() {}, played: false };
   if (!overlay) return none;
-  if (calm) { overlay.hidden = true; return none; }
 
   try {
     if (sessionStorage.getItem(BOOT_FLAG)) { overlay.hidden = true; return none; }
-    sessionStorage.setItem(BOOT_FLAG, '1');
   } catch { /* storage blocked - just boot */ }
 
   overlay.hidden = false;
   renderBootLog(overlay, BOOT_LOG_MS);
+  const screen = overlay.querySelector('.boot-screen');
+  if (screen) screen.style.opacity = '1';            // static CALM presentation
+  const releaseInput = holdArrivalInput(overlay);
   overlay.classList.remove('is-done');
   void overlay.offsetWidth;
   overlay.classList.add('is-booting');
 
   const started = performance.now();
   let done = false;
+  let revealTimer = null;
   let onDone = () => {};
   const finished = new Promise((r) => { onDone = r; });
 
@@ -178,21 +197,27 @@ export function startBoot(overlay, { minMs = 13000, capMs = 17000 } = {}) {
     if (done) return;
     done = true;
     clearTimeout(cap);
+    clearTimeout(revealTimer);
     overlay.classList.remove('is-booting');
     overlay.classList.add('is-done');             // white flash + fade-out
     setTimeout(() => {
       overlay.hidden = true;
       overlay.classList.remove('is-done');
+      // Only a completed arrival counts: reloading during warm-up cannot skip it.
+      try { sessionStorage.setItem(BOOT_FLAG, '1'); } catch { /* storage blocked */ }
+      releaseInput();
       onDone();
     }, 640);                                     // must outlast boot-out
   };
 
-  const cap = setTimeout(finish, capMs);
+  const cap = setTimeout(finish, Math.max(minMs, capMs));
 
   return {
     played: true,
     finished,
-    reveal() { setTimeout(finish, Math.max(0, minMs - (performance.now() - started))); },
-    skip() { finish(); },
+    reveal() {
+      if (done || revealTimer !== null) return;
+      revealTimer = setTimeout(finish, Math.max(0, minMs - (performance.now() - started)));
+    },
   };
 }

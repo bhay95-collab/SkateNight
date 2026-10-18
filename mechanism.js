@@ -33,7 +33,7 @@ export const EJECT_MS = 1000;
 export const CALM_SWAP_MS = 200;
 
 // Tonearm angles in degrees: parked, outer groove, inner groove.
-const ARM_PARK = 3;
+const ARM_PARK = -5;
 const ARM_START = 17;
 const ARM_END = 30;
 
@@ -97,6 +97,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
   function rects() {
     const slotRect = slot.getBoundingClientRect();
     const platRect = platter.getBoundingClientRect();
+    const gripRect = gripper?.getBoundingClientRect();
     const rackEl = currentVolume ? getRackSleeve(currentVolume.id) : null;
     const rackRect = rackEl ? rackEl.getBoundingClientRect() : null;
     let flip;
@@ -109,11 +110,16 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     } else {
       flip = { x: -slotRect.width * 0.6, y: -slotRect.height * 0.2, s: 0.3 };
     }
-    return { flip, radius: platRect.width / 2 };
+    const radius = platRect.width / 2;
+    return {
+      flip, radius,
+      pickupX: gripRect ? gripRect.left + gripRect.width / 2 - (platRect.left + radius) : -radius * 1.22,
+      pickupY: gripRect ? gripRect.top + gripRect.height / 2 - (platRect.top + platRect.height / 2) : 0,
+    };
   }
 
   // The record standing edge-on in the ring at the gripper, relative to the platter centre.
-  const edgeOn = (radius) => tf(-radius * 0.94, 0, 1).replace(/scale\(1\)/, 'scale(0.07, 0.94)');
+  const edgeOn = (x, y) => tf(x, y, 1).replace(/scale\(1\)/, 'scale(0.07, 0.94)');
 
   const tf = (x, y, s = 1, r = 0) => `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
 
@@ -160,7 +166,8 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const tDrop = f.drop * T;
     const tArm = f.arm * T;
     const tDown = tSleeve + tRise + tDrop;
-    const { flip, radius } = rects();
+    const { flip, radius, pickupX, pickupY } = rects();
+    const lift = radius * 0.2;
     const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
 
     setPhase('playing');         // the finished layout; the animations below paint over it
@@ -172,13 +179,21 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
         [{ transform: tf(flip.x, flip.y, flip.s), opacity: 0.85 }, { transform: tf(0, 0, 1), opacity: 1 }],
         opts(0, tSleeve)),
       ring.animate(
-        [{ transform: `rotate(${fromDeg}deg)` }, { transform: `rotate(${toDeg}deg)` }],
+        [
+          { transform: `rotate(${fromDeg}deg)`, offset: 0 },
+          // The index motor brakes before its final, slow approach to the
+          // pickup. Never overshoot or reverse a clockwise-only magazine.
+          { transform: `rotate(${Math.max(fromDeg, toDeg - 2)}deg)`, offset: 0.86 },
+          { transform: `rotate(${toDeg}deg)`, offset: 1 },
+        ],
         opts(0, tSleeve * 0.94, EASE_IN_OUT)),
       mover.animate(
         [
-          { transform: edgeOn(radius), opacity: 0, offset: 0 },
-          { transform: edgeOn(radius), opacity: 1, offset: 0.06 },
-          { transform: `translate(${-radius * 0.4}px, -14px) scale(0.72, 1.06)`, opacity: 1, offset: tRise / (tRise + tDrop) },
+          { transform: edgeOn(pickupX, pickupY), opacity: 0, offset: 0 },
+          { transform: edgeOn(pickupX, pickupY), opacity: 1, offset: 0.08 },
+          { transform: `translate(${pickupX * 0.8}px, ${pickupY - lift}px) scale(0.25, 0.96)`, opacity: 1, offset: 0.34 },
+          { transform: `translate(${pickupX * 0.3}px, ${-lift * 0.65}px) scale(0.82, 1.02)`, opacity: 1, offset: tRise / (tRise + tDrop) },
+          { transform: tf(0, -radius * 0.02, 1), opacity: 1, offset: 0.9 },
           { transform: tf(0, 0, 1), opacity: 1, offset: 1 },
         ],
         opts(tSleeve, tRise + tDrop, EASE_IN_OUT)),
@@ -187,8 +202,8 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
         opts(tDown, tArm, EASE_IN_OUT)),
     ];
 
-    gripper?.classList.add('is-picking');
     const timers = [
+      setTimeout(() => gripper?.classList.add('is-picking'), tSleeve * 0.84),
       setTimeout(() => { outIndex = index; paintRing(); }, tSleeve),     // the record leaves the ring
       setTimeout(() => gripper?.classList.remove('is-picking'), tDown),
       setTimeout(() => record.classList.add('is-spinning'), tDown),
@@ -210,7 +225,8 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       return;
     }
     const T = EJECT_MS / speed;
-    const { flip, radius } = rects();
+    const { flip, radius, pickupX, pickupY } = rects();
+    const lift = radius * 0.2;
     const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
     const currentArm = parseFloat(arm.style.getPropertyValue('--arm-angle')) || ARM_START;
 
@@ -222,9 +238,11 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       mover.animate(
         [
           { transform: tf(0, 0, 1), opacity: 1, offset: 0 },
-          { transform: `translate(${-radius * 0.4}px, -14px) scale(0.72, 1.06)`, opacity: 1, offset: 0.4 },
-          { transform: edgeOn(radius), opacity: 1, offset: 0.92 },
-          { transform: edgeOn(radius), opacity: 0, offset: 1 },
+          { transform: tf(0, -radius * 0.02, 1), opacity: 1, offset: 0.1 },
+          { transform: `translate(${pickupX * 0.3}px, ${-lift * 0.65}px) scale(0.82, 1.02)`, opacity: 1, offset: 0.4 },
+          { transform: `translate(${pickupX * 0.8}px, ${pickupY - lift}px) scale(0.25, 0.96)`, opacity: 1, offset: 0.7 },
+          { transform: edgeOn(pickupX, pickupY), opacity: 1, offset: 0.92 },
+          { transform: edgeOn(pickupX, pickupY), opacity: 0, offset: 1 },
         ],
         opts(0.22 * T, 0.36 * T, EASE_IN_OUT)),
       slot.animate(
@@ -234,11 +252,14 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
         opts(0.55 * T, 0.45 * T)),
     ];
     const timers = [
+      setTimeout(() => gripper?.classList.add('is-picking'), 0.22 * T),
       setTimeout(() => record.classList.remove('is-spinning'), 0.22 * T),
       setTimeout(() => { outIndex = -1; paintRing(); }, 0.58 * T),         // back in its slot in the ring
+      setTimeout(() => gripper?.classList.remove('is-picking'), 0.58 * T),
     ];
     await runSequence(anims, T + 30, timers, () => {
       record.classList.remove('is-spinning');
+      gripper?.classList.remove('is-picking');
       setArm(ARM_PARK);
       setPhase('empty');
     });

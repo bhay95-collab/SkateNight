@@ -14,14 +14,26 @@ The creative direction is decided and should not be changed casually:
 > covers** live *inside* it as worn record sleeves - old vinyl in a glowing
 > machine. Both identities stay intact. **Never recolour the covers neon.**
 
+The neon cabinet, original layout, colourful carousel and music-reactive world
+are the visual direction. Retain the original mechanical sound pack, precision
+record-change choreography, the **PRECISION RECORD CHANGER** / **45 RPM · STEREO**
+labels, the queue note, and the coin animation. The full thirteen-second arrival
+remains unskippable in both FULL and CALM.
+
+The neon refinement keeps this palette, composition and reactive lighting.
+Directional highlights, lower cabinet edges and deeper screen recesses give the
+plastic more depth. Gold section legends are smaller and level, with fewer
+decorative borders. Requests and house suggestions both stay bright enough to
+read; their labels and controls establish priority.
+
 ## Material system
 
 Everything on screen is built from a short list of physical materials. Nothing
 else gets invented without extending this list first.
 
-- **Cabinet** (`.panel`, `.deck`, `.tube`) - a purple face panel with a *hard
-  offset shadow* (`--drop`, `0 .35rem 0 rgba(0,0,0,.45)`), never a soft glow.
-  Panels do not float; they sit on the page like moulded plastic.
+- **Cabinet** (`.panel`, `.deck`, `.tube`) - purple moulded plastic with a hard
+  lower edge, restrained contact shadow and a highlight from the top left.
+  Glow belongs to the lighting, while solid surfaces retain their depth.
 - **Screen** (`.screen`, `.led`, `.ticker`, `.queue`, `.readout`, `.mech`) - a
   recessed near-black CRT display for anything with a number or a queue on it.
   Inset shadow, scanlines and a curved-glass highlight. Numbers are
@@ -37,11 +49,11 @@ else gets invented without extending this list first.
   (`crt-roll`, 9 s), and now and then the whole screen dips like an old monitor
   on a tired supply (`startScreenFlicker` in `fx.js`, planned by `planFlicker`
   in `lights.js`): one or two dips, at most 60% darker, under a second, bursts
-  25-70 s apart, never in CALM. Each dip carries a faint electrical crackle
-  (`sfx.flicker`).
-- **Title tab** (`.panel-title`, `.tab`) - a gold tab "screwed on" to the top
-  edge of a panel at a slight tilt, alternating direction (`.tab-tilt-a` /
-  `.tab-tilt-b`) so no two look mass-produced.
+  25-70 s apart, never in CALM. These visual dips are silent by default;
+  `sfx.flicker` is only an optional custom-audio compatibility hook.
+- **Title tab** (`.panel-title`, `.tab`) - a small, level gold legend on the top
+  edge. Bungee keeps its arcade character; reduced size and simpler framing
+  leave the marquee and song title as the strongest labels.
 - **Arcade button** (`.btn-gold`, `.btn-select`, `.btn-deck`, `.key`) - a hard
   drop shadow that collapses on `:active` as the button physically travels down.
 - **Neon tube** (`.wordmark`, `.w-cyan`, `.w-mag`, `.neon`) - white core plus
@@ -136,7 +148,9 @@ worker.
   NEXT** (two thirds, split 1.38 : 0.62) | tube.
 - The marquee sign is centred on the page (wordmark 2.45 rem, subtitle .72 rem,
   both centred inside the sign) with the bulb rows hugging the sign's edges so
-  the lettering never sits on a bulb.
+  the lettering never sits on a bulb. Its enclosure has a narrow bevel, flush
+  fasteners and a dark recessed face. Glass lamps stay fixed in their channels;
+  a separately masked light chase passes over them rather than sliding the bulbs.
 - PICK A SONG is one panel: the rack page on top (one album at a time - a big
   sleeve as tall as the page, capped at 46% of the width so the title strips
   keep room for two-line titles, with arrows to flip albums) and the selector
@@ -151,6 +165,17 @@ worker.
 - About 3 songs per album fit without scrolling at 1280 x 720; a 4th scrolls
   inside the strip window. A **▼ MORE** tag shows while songs are hidden below,
   and a fully typed code outlines its strip in cyan and scrolls it into view.
+- Transport, music/effects faders, SHUFFLE, CROWD and LIGHTS remain on the deck.
+  TOOLS groups FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. The native
+  disclosure supports mouse, Enter and Space, closes on Escape or an outside
+  click, and never submits a pending song code or changes playback. Offline
+  status and errors stay visible at the top of the cabinet.
+- UP NEXT keeps the note **Your picks play first. / We'll keep the records
+  turning.** Requests have a YOUR PICKS heading and cyan position chips. House
+  suggestions remain under IF NOBODY PICKS, with full-opacity pale-lilac titles
+  and clear cyan metadata. Both stay readable over the recessed near-black
+  window; decorative scanlines are subdued there. Real requests can scroll
+  when needed, while extra house suggestions are trimmed first.
 
 ## Restraint (the October refinement pass)
 
@@ -166,11 +191,15 @@ record changer and the readouts carry the show; the world around it stays dim.
   behind the cabinet), neon glows, LEDs, the spectrum (82%), the bubble tubes
   (liquid 5-24%, slower bubbles), the paper strips and the VU faces (warm, not white).
 - Slowed: the LED ticker (4.2 rem a second, readable from the back), bulb chase
-  (2.6 s), neon flicker dips only to 80% so a word never looks switched off.
+  (4.6 s before music-reactive rate adjustment), neon flicker dips only to 80% so a word never looks switched off.
 - Framed: trivia's CRT bezel at .7 rem with four corner fasteners and an inner
   shadow, with the machine inset from it, so the page reads as a cabinet screen.
-- Boot: trivia's pacing - a 13 s hold with the self-test printing across 10 s
-  (17 s cap, 18 s CSS failsafe). Header line: SKATE BY FAITH JUKEBOX.
+- Boot: trivia's pacing - a full, unskippable 13 s hold with the self-test
+  printing across 10 s, then the 640 ms reveal (17 s recovery cap, 18 s CSS
+  failsafe). Header line: SKATE BY FAITH JUKEBOX. Keyboard and pointer input
+  cannot reach controls behind the arrival. CALM holds the same duration with
+  static diagnostics. A completed arrival is remembered once per tab; reloading
+  during warm-up starts the full sequence again.
 - VU meters: landscape windows; the scale and the needle's pivot are computed
   from the smaller side so nothing is ever cut off.
 
@@ -182,7 +211,7 @@ Before adding anything new, ask what it replaces.
 
 ## Crowd screen (two windows)
 
-The **CROWD SCREEN** button opens `index.html?view=crowd` (`crowd.js`) for the
+The **CROWD** button opens `index.html?view=crowd` (`crowd.js`) for the
 projector, with the laptop showing the full control window. The crowd screen:
 - plays **no sound** and has **no controls** (no deck, selector, queue buttons,
   status chips or key legend); its tab reads THE RACK, and the rack fills the
@@ -217,17 +246,39 @@ Web Animations (compositor only):
 
 | t (normal speed) | What happens |
 |---|---|
-| 0 - 0.47 s | The volume's **sleeve slides out of the rack** to the mechanism window (FLIP from the big rack sleeve if that album is showing, otherwise from its letter key) while the **record carousel turns** clockwise until the chosen record reaches the chrome gripper at 9 o'clock (lit cyan while it works). Whirr. |
-| 0.47 - 1.0 s | The **record swings out of the ring**, turning from edge-on to face-up as it crosses the platter, lifted slightly. Its slot in the ring stays empty while it plays. |
-| 1.0 - 1.2 s | The record **drops** onto the platter and starts **spinning** (33 1/3 rpm = 1.8 s per turn) with the cover as its label. |
-| 1.0 - 1.5 s | The **tonearm swings** across; **needle-drop thud** at 1.5 s. |
+| 0 - 0.47 s | The volume's **sleeve slides out of the rack** to the mechanism window (FLIP from the big rack sleeve if that album is showing, otherwise from its letter key) while the **record carousel turns** clockwise to the chrome gripper at 9 o'clock. The index motor slows for its final approach; the gripper engages before pickup. Whirr. |
+| 0.47 - 0.81 s | The **record lifts out of the ring**, turning from edge-on to face-up while travelling towards the spindle. Its slot in the ring stays empty while it plays. |
+| 0.81 - 1.0 s | The record **settles onto the spindle** and starts **spinning at 45 rpm** (1⅓ s per turn) with the cover as its label. The gripper releases. |
+| 1.0 - 1.5 s | The **tonearm swings** across after the record settles; **needle-drop thud** at 1.5 s. |
 
 At the end of a song the same moves run in reverse (1.0 s): arm lifts, record
-swings back edge-on into its slot in the ring, sleeve returns to the rack.
+lifts before turning edge-on, the gripper catches it into its slot in the ring,
+and the sleeve returns to the rack. The mechanical window retains the small
+**PRECISION RECORD CHANGER** and **45 RPM · STEREO** labels.
+
+The changer has a satin-black sleeve cradle and a separate mechanical mounting
+plate behind the glass. Its platter uses a ribbed rubber mat, machined rim,
+raised hub and spindle. The tonearm has a fixed bearing mount, counterweight,
+metal shaft, separate cartridge and visible stylus. In the parked position
+(-5°), the cartridge rests outside the magazine; the playing arc remains 17–30°.
+
+All fixed hardware shares an unscaled 10 em coordinate space. The 8.9 em magazine
+and 7.3 em platter are concentric at (5 em, 5 em), and the assembly sizes to the
+actual window with container units. Deliberate clearance keeps the magazine,
+gripper and full tonearm sweep inside the case. Do not restore the former
+8.9 em ring in an 8.8 em case, or use clipping to conceal a clearance failure.
+Only the sleeve intentionally travels outside the window during transfer.
+
+Pickup/return offsets come from the measured gripper and platter centres. Lift
+height scales with platter radius, so the record meets the picker and spindle
+at every supported size. Avoid scale transforms on the assembly: animation
+translations use measured CSS pixels. Audio scheduling remains independent.
 
 **Record carousel** (`carousel.js`): every song's record stands on edge in a
 ring round the platter, seen from above (like looking down into a Wurlitzer),
-each with a bold band of its album's sleeve colour, in `tracks.js` order (the platter is 7.3 em so the ring has room to read). One canvas,
+each with a bold band of its album's sleeve colour, in `tracks.js` order. Recessed
+cradles, bevelled black vinyl edges, indexing marks and restrained cyan/magenta
+inlays give the magazine depth while retaining those colours. One canvas,
 painted once; turning it is a CSS rotation, always clockwise, at least 45°
 (`carouselTarget`, tested). Clipped to a circle so the turning square canvas
 never pokes out.
@@ -307,8 +358,8 @@ LED reads **FREE PLAY** (real arcade term).
 
 Audit list - every `@keyframes` in `styles.css` and its rate:
 `crt-roll` 9 s (one band, whole screen), `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
-1.6 s (small dots moving), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
-`ball-turn` 9 s, `record-spin` 1.8 s, `dot-pulse` 1.2 s (small LED),
+4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
+`ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
 `attract-blink` 1.15 s,
 `coin-drop` once, `score-pop` once, boot sequence once per tab.
 Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
@@ -325,11 +376,12 @@ than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
 - CSS: `html[data-lights="calm"]` switches every animation and transition off.
   JavaScript effects ask `isCalm()` and jump to the finished picture:
   the changer shows the record already on the platter, the ticker holds still
-  text (swapped every 8 s), the visualisers draw one quiet still frame, the
-  the boot sequence is skipped, the mirror-light spots hold still.
+  text (swapped every 8 s), the visualisers draw one quiet still frame, and
+  the mirror-light spots hold still. The boot retains its full arrival duration
+  with static diagnostics.
 - Every animation has a calm equivalent; a new animation must add both halves.
 - Functional readouts (the clock, the progress tube, the queue) still update in
-  calm - they are information, not decoration.
+  CALM - they are information, not decoration.
 
 ### Errors never stop the music
 
@@ -351,10 +403,10 @@ than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
   `pickInOrder`: the order of `tracks.js`, wrapping round. The choice is saved in
   `localStorage` (`sn-shuffle`); the default is on.
 - **House plan** (`app.js: planHouse`): the house rotation picks ahead, enough
-  to fill UP NEXT's spare rows, and keeps those picks, so the greyed rows under
+  to fill UP NEXT's spare rows, and keeps those picks, so the labelled rows under
   IF NOBODY PICKS are exactly what will play. Songs in the queue are left out of
   the plan; a song someone picks drops out of it once it plays (in order mode
-  carries on from that song instead). Greyed rows that would not fit on screen
+  carries on from that song instead). House rows that would not fit on screen
   are trimmed from the end.
 - **Skip** takes the queue head or the house pick. **Back** keeps a 50-song
   history: after 3 s it restarts the song, before that it goes to the previous
@@ -367,28 +419,40 @@ than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
 ## Sound
 
 Two separate volume paths: music and effects (`audio.js`). Both pass through a
-gentle limiter so a loud track meeting a loud beep cannot hurt the speakers.
-Effects are **synthesised** with Web Audio (`sound.js`, ported from trivia)
-unless a recording is supplied: an MP3 in `sfx/` named after the effect
-(`sfx/coin.mp3` etc., see `sfx/README.md`) replaces that one effect. Files are
-fetched at page load, decoded on the first click, and a file that will not
-decode falls back to the built-in sound. A long `whirr` file is faded out to
-fit the changer's move. Missing files show as 404s in the browser console -
-harmless. **Off until a person clicks** - the click
-on INSERT COIN is the browser's required gesture.
+gentle limiter. Seven small **original physically modelled WAVs** are supplied;
+they are not field recordings and contain no third-party samples.
+`scripts/generate-sfx.py` reproduces them with Python's standard library.
+
+A custom `sfx/<name>.mp3` takes priority over the supplied WAV. A missing or
+undecodable file falls back to that WAV, then a quiet live Web Audio model.
+Files are fetched early and decoded after the first click. Long `whirr` files
+fade to fit the changer's move. Missing optional MP3s may show harmless 404s.
+Effects remain **off until a person clicks** INSERT COIN after arrival; the
+arrival itself is silent. Audio failures must never stop the music.
 
 | Effect | The one moment it belongs to |
 |---|---|
-| `coin` | A coin drops into the slot |
-| `key` | A keypad button is pressed |
-| `confirm` | A song was added to the queue |
-| `whirr` | The record mechanism moving (and the carousel turning) |
-| `page` | The rack's album page flips over (a clack) |
-| `thud` | The needle lands on the record |
-| `buzz` | Something is out of order / refused |
-| `flicker` | The screen dips - a faint electrical crackle, one per dip, quiet on purpose |
+| `coin` | A coin rattles down the metal chute and lands |
+| `key` | A keypad switch makes dry contact |
+| `confirm` | A song is accepted with a selection-relay latch |
+| `whirr` | The record mechanism and carousel motor move |
+| `page` | The rack's paper carrier releases and catches |
+| `thud` | The needle lands gently on the record |
+| `buzz` | A muted solenoid refuses a selection |
+| `flicker` | Silent compatibility hook unless a custom MP3 is supplied |
 
-Do not reuse one for another moment, and do not add an effect without a
+The original WAV pack is precached with the app shell. Effects sit below the
+music, with the needle landing and motor quieter than the coin and switches.
+Per-effect gain trims balance frequent keys and movement against coin/relay
+accents. Coin, key and page cues have less than 2% pitch variation. Repeating an
+action responds immediately and fades its previous tail over 14 ms, so motors
+and rapid key presses do not accumulate. Finished sources release their audio
+nodes. The effects fader remains independent; music gain and timing are untouched.
+Do not add constant vinyl noise, mains hum or random crackling over songs.
+Compare final levels through the venue speakers. See `sfx/README.md` for source,
+lengths and replacement instructions.
+
+Do not reuse one effect for another moment, and do not add an effect without a
 one-sentence reason a skater would recognise.
 
 ## Content tone
@@ -444,6 +508,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | File | Purpose |
 |---|---|
 | `index.html` | Page structure: boot overlay, attract screen, background world, the machine |
+| `cabinet.js` | Native TOOLS disclosure, keyboard activation, dismissal and shortcut help |
 | `styles.css` | All styling and every `@keyframes` (single stylesheet, tokens at the top) |
 | `app.js` | The conductor: state, queue flow, keypad, keyboard, attract, crates |
 | `tracks.js` | **The one file Ben edits** |
@@ -455,7 +520,8 @@ from 10 metres). Everything about reading and validating that file lives in
 | `dsp.js` | Spectrum bands, loudness, envelope, beat gate (pure) |
 | `lights.js` | FULL / CALM decision (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
-| `sound.js` | Synthesised effects, or recordings from `sfx/` |
+| `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |
+| `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
 | `carousel.js` | The record carousel: turn maths (pure) and its drawing |
 | `arch.js` | The arched cabinet crown |
 | `crowd.js` | The crowd screen (projector window): mirrors the control window |
