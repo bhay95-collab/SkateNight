@@ -47,6 +47,7 @@ test('the screen flicker is photosensitive-safe', async () => {
     const plan = planFlicker(rng);
     const peaks = plan.keyframes.filter((k) => k.opacity > 0);
     assert.ok(plan.dips >= 1 && plan.dips <= 2, 'one or two dips per burst');
+    assert.equal(plan.dipStartsMs.length, plan.dips, 'one crackle per dip');
     assert.ok(plan.duration < 1000, 'a burst is over within a second, so it holds at most 2 flashes');
     assert.ok(plan.nextInMs >= FLICKER.minGapMs, 'bursts are far apart');
     assert.ok(Math.max(...peaks.map((k) => k.opacity)) <= FLICKER.maxDim, 'never goes more than 60% dark');

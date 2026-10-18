@@ -195,7 +195,7 @@ place; follow these steps only if you want to swap it for a new one.
 
 - [ ] Open the site in **Google Chrome** (best supported).
 - [ ] Press **INSERT COIN** (click it, or press any key).
-- [ ] Press **LOAD THE CRATES** (bottom right). The meter fills and the little
+- [ ] Press **LOAD THE CRATES** (bottom right). The thin strip along the bottom of that button fills and the little
       light at the top right changes to **OFFLINE READY**. This saves every
       song on the laptop so the night runs even if the venue wifi dies. Press it
       again after you add songs.

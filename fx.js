@@ -60,13 +60,15 @@ export const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* The whole monitor dips now and then (planFlicker in lights.js holds the
    safety rules). Skipped in CALM and while the tab is hidden. */
-export function startScreenFlicker(layer) {
+export function startScreenFlicker(layer, { onBurst } = {}) {
   if (!layer || typeof layer.animate !== 'function') return;
   const next = () => {
     const plan = planFlicker();
     setTimeout(() => {
       safely('screen-flicker', () => {
-        if (!calm && !document.hidden) layer.animate(plan.keyframes, { duration: plan.duration, easing: 'linear' });
+        if (calm || document.hidden) return;
+        layer.animate(plan.keyframes, { duration: plan.duration, easing: 'linear' });
+        if (onBurst) onBurst(plan);
       });
       next();
     }, plan.nextInMs);

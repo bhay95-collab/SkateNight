@@ -10,17 +10,19 @@
      whirr    the record mechanism moving (gear sweep)
      thud     the needle dropping onto the record
      buzz     something is OUT OF ORDER / refused (low rude buzz)
+     flicker  the screen dipping (a faint electrical crackle)
 
    Your own recordings: put an MP3 named after the effect in the sfx/
    folder (sfx/coin.mp3, sfx/key.mp3, sfx/confirm.mp3, sfx/whirr.mp3,
-   sfx/thud.mp3, sfx/buzz.mp3) and it plays instead of the built-in sound.
+   sfx/thud.mp3, sfx/buzz.mp3, sfx/flicker.mp3) and it plays instead of the
+   built-in sound.
    Any effect without a file keeps the built-in one.
 
    Every effect is wrapped so a sound failure can never stop the music.
    ============================================================ */
 import { getEngine } from './audio.js';
 
-export const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz'];
+export const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker'];
 const rawFiles = new Map();      // name -> the MP3's bytes (fetched at page load)
 const buffers = new Map();       // name -> decoded sound, ready to play
 let fetching = null;
@@ -161,5 +163,16 @@ export const sfx = {
     if (playFile('buzz')) return;
     tone({ freq: 120, to: 54, type: 'sawtooth', dur: 0.32, peak: 0.3 });
     tone({ freq: 62, to: 44, type: 'square', dur: 0.32, peak: 0.2 });
+  }),
+
+  // Quiet on purpose: the room should half-notice it, never be startled.
+  flicker: safe((dipStartsMs = [0]) => {
+    if (playFile('flicker')) return;
+    for (const ms of dipStartsMs) {
+      const at = ms / 1000;
+      thump({ freq: 3400, dur: 0.035, peak: 0.07, at });                          // the spark
+      tone({ freq: 118, to: 96, type: 'sawtooth', dur: 0.14, peak: 0.035, at });  // mains hum sagging
+      thump({ freq: 900, dur: 0.06, peak: 0.04, at: at + 0.03 });
+    }
   }),
 };

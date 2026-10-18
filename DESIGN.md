@@ -26,13 +26,19 @@ else gets invented without extending this list first.
   recessed near-black CRT display for anything with a number or a queue on it.
   Inset shadow, scanlines and a curved-glass highlight. Numbers are
   `JetBrains Mono` tabular.
+- **VU meters** read loudness on a decibel scale like a real meter
+  (`vuLevel` in `dsp.js`: -30 dBFS at the left stop, -12 dBFS pinned right,
+  float samples, about 300 ms ballistics) with the MUSIC slider taken back out,
+  so a typical song sits just right of centre and the beats swing it at any
+  volume.
 - **Monitor glass** (`.crt-glass`, `.crt-flicker`) - effects of the projector
   "screen" itself, so they cover the whole page inside the bezel, never one
   panel at a time: one faint bright band rolling down the whole screen
   (`crt-roll`, 9 s), and now and then the whole screen dips like an old monitor
   on a tired supply (`startScreenFlicker` in `fx.js`, planned by `planFlicker`
   in `lights.js`): one or two dips, at most 60% darker, under a second, bursts
-  25-70 s apart, never in CALM.
+  25-70 s apart, never in CALM. Each dip carries a faint electrical crackle
+  (`sfx.flicker`).
 - **Title tab** (`.panel-title`, `.tab`) - a gold tab "screwed on" to the top
   edge of a panel at a slight tilt, alternating direction (`.tab-tilt-a` /
   `.tab-tilt-b`) so no two look mass-produced.
@@ -337,6 +343,7 @@ on INSERT COIN is the browser's required gesture.
 | `whirr` | The record mechanism moving |
 | `thud` | The needle lands on the record |
 | `buzz` | Something is out of order / refused |
+| `flicker` | The screen dips - a faint electrical crackle, one per dip, quiet on purpose |
 
 Do not reuse one for another moment, and do not add an effect without a
 one-sentence reason a skater would recognise.

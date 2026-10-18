@@ -24,7 +24,7 @@
      - Every draw is wrapped: an error in one effect switches that effect
        off quietly instead of reaching the music.
    ============================================================ */
-import { groupBands, rmsFromTimeDomain, createEnvelope, createBeatGate } from './dsp.js';
+import { groupBands, rmsFromFloat, vuLevel, createEnvelope, createBeatGate } from './dsp.js';
 import { getEngine } from './audio.js';
 import { isCalm, onCalmChange, safely } from './fx.js';
 import { clamp } from './format.js';
@@ -70,8 +70,8 @@ export function createVisualiser() {
   const $ = (id) => document.getElementById(id);
   const engine = getEngine();
   const freq = engine ? new Uint8Array(engine.analyser.frequencyBinCount) : new Uint8Array(0);
-  const timeL = engine ? new Uint8Array(engine.analyserL.fftSize) : new Uint8Array(0);
-  const timeR = engine ? new Uint8Array(engine.analyserR.fftSize) : new Uint8Array(0);
+  const timeL = engine ? new Float32Array(engine.analyserL.fftSize) : new Float32Array(0);
+  const timeR = engine ? new Float32Array(engine.analyserR.fftSize) : new Float32Array(0);
 
   // ---- element handles
   const glow = $('cab-glow');
@@ -82,7 +82,7 @@ export function createVisualiser() {
   // ---- smoothing state
   const bassEnv = createEnvelope({ attackMs: 140, releaseMs: 420 });
   const energyEnv = createEnvelope({ attackMs: 200, releaseMs: 900 });
-  const vuEnv = [createEnvelope({ attackMs: 70, releaseMs: 380 }), createEnvelope({ attackMs: 70, releaseMs: 380 })];
+  const vuEnv = [createEnvelope({ attackMs: 60, releaseMs: 300 }), createEnvelope({ attackMs: 60, releaseMs: 300 })];   // about a real VU's 300 ms
   const kickGate = createBeatGate({ minGapMs: 340 });
   let bassAvg = 0;
   let kickUntil = 0;
@@ -286,11 +286,12 @@ export function createVisualiser() {
     let rmsR = 0;
     if (engine) {
       engine.analyser.getByteFrequencyData(freq);
-      engine.analyserL.getByteTimeDomainData(timeL);
-      engine.analyserR.getByteTimeDomainData(timeR);
+      engine.analyserL.getFloatTimeDomainData(timeL);
+      engine.analyserR.getFloatTimeDomainData(timeR);
       levels = groupBands(freq, BAR_COUNT);
-      rmsL = rmsFromTimeDomain(timeL);
-      rmsR = rmsFromTimeDomain(timeR);
+      const gain = engine.musicBus.gain.value;
+      rmsL = vuLevel(rmsFromFloat(timeL), gain);
+      rmsR = vuLevel(rmsFromFloat(timeR), gain);
     }
     let bass = 0;
     let total = 0;
@@ -310,8 +311,8 @@ export function createVisualiser() {
     // 3. draw (each guarded)
     safely('spectrum', () => drawSpectrum(levels, step));
     safely('vu', () => {
-      drawVu(vus[0], vuEnv[0].step(Math.pow(rmsL, 0.7) * 1.25, step), 'L');
-      drawVu(vus[1], vuEnv[1].step(Math.pow(rmsR, 0.7) * 1.25, step), 'R');
+      drawVu(vus[0], vuEnv[0].step(rmsL, step), 'L');
+      drawVu(vus[1], vuEnv[1].step(rmsR, step), 'R');
     });
     let tubeCol = null;
     safely('tubes', () => {

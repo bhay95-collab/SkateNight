@@ -64,7 +64,7 @@ async function loadLibrary() {
 async function main() {
   initLights();
   preloadSfxFiles();                                 // any sfx/*.mp3 recordings, fetched early
-  safely('screen-flicker', () => startScreenFlicker(document.getElementById('crt-flicker')));
+  safely('screen-flicker', () => startScreenFlicker(document.getElementById('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
   $('btn-lights').addEventListener('click', () => { flipLights(); sfx.key(); });
 
   // Boot overlay is opaque from first paint; the machine assembles behind it.

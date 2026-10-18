@@ -44,6 +44,30 @@ export function rmsFromTimeDomain(bytes) {
   return Math.min(1, Math.sqrt(sum / n));
 }
 
+/* Same, from the analyser's float samples (-1..1): finer than 8-bit bytes,
+   which matters for the quiet passages a VU needle should still show. */
+export function rmsFromFloat(samples) {
+  const n = samples.length;
+  if (n === 0) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += samples[i] * samples[i];
+  return Math.min(1, Math.sqrt(sum / n));
+}
+
+/* Where a VU needle sits (0 = far left, 1 = pinned right) for a loudness.
+   Read on a decibel scale like a real meter, with the MUSIC slider taken back
+   out (the analyser listens after it), so the needles swing the same at any
+   volume. Typical mastered songs average about -18 dBFS: that lands near the
+   middle of the scale, and the loud beats push into the red. */
+export const VU_FLOOR_DB = -30;
+export const VU_TOP_DB = -12;
+export function vuLevel(rms, busGain = 1) {
+  const level = rms / Math.max(busGain, 0.05);
+  if (!(level > 0)) return 0;
+  const db = 20 * Math.log10(level);
+  return Math.min(1, Math.max(0, (db - VU_FLOOR_DB) / (VU_TOP_DB - VU_FLOOR_DB)));
+}
+
 /* A follower that rises quickly and falls slowly, like a VU meter. */
 export function createEnvelope({ attackMs, releaseMs }) {
   let value = 0;

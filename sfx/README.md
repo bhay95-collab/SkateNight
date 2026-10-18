@@ -12,6 +12,7 @@ sound stays.
 | `whirr.mp3` | The record changer moving (sleeve out, record across, eject) | about 1 s - longer files are faded out to fit |
 | `thud.mp3` | The needle dropping onto the record | 0.2 - 0.4 s |
 | `buzz.mp3` | Wrong code / song out of order | 0.3 - 0.5 s |
+| `flicker.mp3` | The screen flickering (every 25-70 s) - keep it quiet | under 0.6 s |
 
 Tips: trim the silence at the start (so it plays the instant you press),
 keep files small (under 100 KB each), and make them roughly the same loudness.

@@ -37,10 +37,12 @@ export function planFlicker(rng = Math.random) {
   const between = (lo, hi) => lo + rng() * (hi - lo);
   const dips = rng() < 0.45 ? 2 : 1;
   const steps = [{ t: 0, o: 0 }];
+  const dipStartsMs = [];
   let t = 0;
   for (let i = 0; i < dips; i++) {
     if (i > 0) { t += between(110, 190); steps.push({ t, o: 0 }); }   // back on briefly between the two dips
     const depth = between(0.3, FLICKER.maxDim);
+    dipStartsMs.push(Math.round(t));
     t += 45; steps.push({ t, o: depth });               // drop
     t += between(30, 160); steps.push({ t, o: depth * 0.8 });   // hold (a long hold reads as the screen blinking off)
     t += 70; steps.push({ t, o: 0 });                   // recover
@@ -48,6 +50,7 @@ export function planFlicker(rng = Math.random) {
   const duration = Math.round(t);
   return {
     dips,
+    dipStartsMs,                                       // when each dip begins (for the electrical crackle)
     duration,
     keyframes: steps.map((s) => ({ opacity: Number(s.o.toFixed(3)), offset: t ? s.t / t : 0 })),
     nextInMs: Math.round(between(FLICKER.minGapMs, FLICKER.maxGapMs)),

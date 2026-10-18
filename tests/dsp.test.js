@@ -84,3 +84,15 @@ test('slewTo limits how far a value can move per frame', () => {
   assert.equal(slewTo(1, 0, 0.1), 0.9);
   assert.equal(slewTo(0.5, 0.52, 0.1), 0.52);
 });
+
+test('vuLevel reads loudness in decibels and ignores the MUSIC slider', async () => {
+  const { vuLevel, rmsFromFloat } = await import('../dsp.js');
+  const at = (db) => 10 ** (db / 20);
+  assert.equal(vuLevel(0), 0);
+  assert.equal(vuLevel(at(-40)), 0, 'very quiet rests on the stop');
+  assert.ok(vuLevel(at(-18)) > 0.5 && vuLevel(at(-18)) < 0.75, 'a typical song sits just right of middle, like 0 VU');
+  assert.ok(vuLevel(at(-12)) > 0.8, 'loud beats reach the red');
+  assert.equal(vuLevel(at(-3)), 1);
+  assert.ok(Math.abs(vuLevel(at(-18) * 0.4, 0.4) - vuLevel(at(-18))) < 1e-9, 'same needle at any volume');
+  assert.ok(Math.abs(rmsFromFloat(new Float32Array([0.5, -0.5, 0.5, -0.5])) - 0.5) < 1e-9);
+});
