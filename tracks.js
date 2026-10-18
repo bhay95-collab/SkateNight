@@ -175,4 +175,21 @@ export const tracks = [
 
   // D4 - Vol. IV
   { id: 'shine-in-our-hearts',   title: 'Shine in Our Hearts',   volume: 'vol-iv',  file: 'audio/shine-in-our-hearts.mp3' },
+
+  // ---- Songs 35-39: a fourth song on Vol. V - IX ----
+
+  // E4 - Vol. V
+  { id: 'where-are-the-eagles',        title: 'Where Are the Eagles',        volume: 'vol-v',    file: 'audio/where-are-the-eagles.mp3' },
+
+  // G4 - Vol. VI
+  { id: 'coming-alive',                title: 'Coming Alive',                volume: 'vol-vi',   file: 'audio/coming-alive.mp3' },
+
+  // H4 - Vol. VII
+  { id: 'holding-on',                  title: 'Holding On',                  volume: 'vol-vii',  file: 'audio/holding-on.mp3' },
+
+  // J4 - Vol. VIII
+  { id: 'rejoice-in-the-lord-always',  title: 'Rejoice in the Lord Always',  volume: 'vol-viii', file: 'audio/rejoice-in-the-lord-always.mp3' },
+
+  // K4 - Vol. IX
+  { id: 'the-word-is-a-lighthouse',    title: 'The Word Is a Lighthouse',    volume: 'vol-ix',   file: 'audio/the-word-is-a-lighthouse.mp3' },
 ];

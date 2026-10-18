@@ -132,7 +132,7 @@ Vol. VI is **G**, not F. This table is also written at the top of
 `tracks.js`. Moving a song up or down the list changes its code.
 
 **Where to put new songs:** spread them evenly, fewest songs first (right
-now Vol. I - IV have 4 songs and Vol. V - X have 3; the plan for 45 is Vol. I - V
+now Vol. I - IX have 4 songs and Vol. X has 3; the plan for 45 is Vol. I - V
 with 5 and Vol. VI - X with 4). Add each new song at the **end** of the
 `tracks = [` list, so no existing code changes. An album with more than 3 songs
 still works: its strips scroll on the laptop (mouse wheel or trackpad), a small
