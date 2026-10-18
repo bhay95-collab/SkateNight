@@ -1,20 +1,33 @@
-# Sound effects (optional)
+# Cabinet sound effects
 
-Drop an MP3 in this folder with one of these exact names and the jukebox
-plays it instead of its built-in sound. Leave a name out and the built-in
-sound stays.
+The seven bundled WAVs are original, physically inspired sound models, authored
+for this cabinet. They are **not field recordings** and use no third-party
+samples: deterministic noise and damped resonances suggest metal, plastic,
+relays, paper carriers, and a small motor. Regenerate the exact mono 22.05 kHz /
+16-bit PCM files with `python3 scripts/generate-sfx.py` (standard library only).
+
+To use your own recording, add an MP3 with the same name. A readable MP3 takes
+priority over the bundled WAV. A missing or unreadable MP3 falls back to the WAV,
+then to a quiet live Web Audio model if neither file works. Failures never stop
+music playback. Both originals and replacements use the separate SFX volume.
 
 | File | When it plays | Ideal length |
 |---|---|---|
-| `coin.mp3` | INSERT COIN and the COIN button | 0.5 - 1 s |
-| `key.mp3` | Every keypad / selector button press | under 0.1 s |
-| `confirm.mp3` | A song is added to UP NEXT | 0.2 - 0.4 s |
-| `whirr.mp3` | The record changer moving (sleeve out, record across, eject) | about 1 s - longer files are faded out to fit |
-| `thud.mp3` | The needle dropping onto the record | 0.2 - 0.4 s |
-| `buzz.mp3` | Wrong code / song out of order | 0.3 - 0.5 s |
-| `page.mp3` | The album page in the rack flipping over (arrows or a letter key) | 0.2 - 0.4 s |
-| `flicker.mp3` | The screen flickering (every 25-70 s) - keep it quiet | under 0.6 s |
+| `coin.mp3` | Coin chute rattle and landing | 0.5 - 0.7 s |
+| `key.mp3` | Dry selector switch | under 0.1 s |
+| `confirm.mp3` | Selection relay double latch | 0.2 - 0.3 s |
+| `whirr.mp3` | Changer motor (long files fade to fit the movement) | about 1 s |
+| `thud.mp3` | Gentle needle landing | 0.1 - 0.2 s |
+| `buzz.mp3` | Muted refused-selection solenoid | 0.2 - 0.4 s |
+| `page.mp3` | Carrier catch releasing and landing | 0.2 - 0.4 s |
 
-Tips: trim the silence at the start (so it plays the instant you press),
-keep files small (under 100 KB each), and make them roughly the same loudness.
-Use only sounds you have the right to use (CC0 / royalty-free).
+The original pack totals about 124 KB. Peaks are deliberately conservative;
+the needle landing and motor are quieter than the coin and switches. There is
+no continuous vinyl noise or electrical crackle. The legacy `flicker` API stays
+silent unless a custom `flicker.mp3` is supplied and explicitly called.
+
+For replacements, trim leading silence, keep files small, and compare loudness
+against the supplied pack. Do not normalize all effects to full scale: they
+should sit below the music. Use sounds you have the right to use. Assess final
+SFX volume through the venue's speakers; browser playback alone cannot establish
+the right level for a room.

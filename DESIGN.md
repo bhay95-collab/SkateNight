@@ -1,472 +1,183 @@
-# Design system - the jukebox
+# Skate by Faith — Roller Palace RP–85
 
-Skate by Faith ("Not by Sight - An 80s Rollerskate Night") is an 1980s arcade
-jukebox that plays a playlist at a church roller-skate night, on one laptop plugged into a projector. It is a sibling of
-the trivia quiz machine (`bhay95-collab/trivia_fridays`) and reuses its visual
-DNA on purpose. This file records the material system, motion rules, safety
-rules and constraints so future changes stay **one coherent object** instead of
-drifting back toward generic defaults.
+The site is an imagined premium jukebox for an eighties roller rink. It keeps
+the RFAI identity and real worn record sleeves inside a single substantial
+cabinet. It is a deliberate revival design, rather than a replica of a named
+historic machine.
 
-The creative direction is decided and should not be changed casually:
+## Art direction
 
-> The **machine** is full 80s arcade neon (synthwave grid horizon, neon tubes,
-> CRT glass, hard-shadow plastic cabinet, chasing bulbs). The **RFAI album
-> covers** live *inside* it as worn record sleeves - old vinyl in a glowing
-> machine. Both identities stay intact. **Never recolour the covers neon.**
+The machine is dark enamel and aubergine, smoked glass, chrome rails, warm
+lamplight, paper title strips, and translucent selector keys. Cyan and magenta
+belong to particular electrical circuits. Artwork keeps its original colours.
 
-## Material system
+The hierarchy is cabinet identity, current song, mechanism, selection, upcoming
+songs, then operator utilities. Avoid floating interface cards, uniformly glowing
+borders, screen interference over physical materials, or additional permanent
+visualisers. Every fitting should have a plausible purpose.
 
-Everything on screen is built from a short list of physical materials. Nothing
-else gets invented without extending this list first.
+### Materials and palette
 
-- **Cabinet** (`.panel`, `.deck`, `.tube`) - a purple face panel with a *hard
-  offset shadow* (`--drop`, `0 .35rem 0 rgba(0,0,0,.45)`), never a soft glow.
-  Panels do not float; they sit on the page like moulded plastic.
-- **Screen** (`.screen`, `.led`, `.ticker`, `.queue`, `.readout`, `.mech`) - a
-  recessed near-black CRT display for anything with a number or a queue on it.
-  Inset shadow, scanlines and a curved-glass highlight. Numbers are
-  `JetBrains Mono` tabular.
-- **VU meters** read loudness on a decibel scale like a real meter
-  (`vuLevel` in `dsp.js`: -30 dBFS at the left stop, -12 dBFS pinned right,
-  float samples, about 300 ms ballistics) with the MUSIC slider taken back out,
-  so a typical song sits just right of centre and the beats swing it at any
-  volume.
-- **Monitor glass** (`.crt-glass`, `.crt-flicker`) - effects of the projector
-  "screen" itself, so they cover the whole page inside the bezel, never one
-  panel at a time: one faint bright band rolling down the whole screen
-  (`crt-roll`, 9 s), and now and then the whole screen dips like an old monitor
-  on a tired supply (`startScreenFlicker` in `fx.js`, planned by `planFlicker`
-  in `lights.js`): one or two dips, at most 60% darker, under a second, bursts
-  25-70 s apart, never in CALM. Each dip carries a faint electrical crackle
-  (`sfx.flicker`).
-- **Title tab** (`.panel-title`, `.tab`) - a gold tab "screwed on" to the top
-  edge of a panel at a slight tilt, alternating direction (`.tab-tilt-a` /
-  `.tab-tilt-b`) so no two look mass-produced.
-- **Arcade button** (`.btn-gold`, `.btn-select`, `.btn-deck`, `.key`) - a hard
-  drop shadow that collapses on `:active` as the button physically travels down.
-- **Neon tube** (`.wordmark`, `.w-cyan`, `.w-mag`, `.neon`) - white core plus
-  coloured halos, for **signage only**. Never for body copy, the song title or
-  the clock.
-- **Grid horizon** (`.synth-horizon`) - the synthwave world the cabinet sits in:
-  faint perspective grid in the lowest band, starfield in the side gutters, one
-  thin horizon line, glass vignette and whisper scanlines. Kept at trivia's
-  level: atmospheric as a whole, invisible while reading.
-  One fixed layer at the back. Its grid speed follows the music.
-- **Bubble tubes** (`.tube`) - Wurlitzer-1015-style arches either side of the
-  Now Playing panel with rising bubbles and slow colour-cycling.
-- **Sleeve** (`.sleeve`) - the new material: a worn paper record sleeve with a
-  hard shadow, scuffed inner edge and a faint **ring-wear** circle (the pale
-  mark a record rubs into a sleeve) laid over it. The real RFAI covers already
-  *are* worn sleeves (paper edge, stickers, price tags), so the artwork fills
-  the card edge to edge and the jukebox adds nothing but the ring-wear. Only the
-  plain fallback sleeve (cover missing) gets a **price-sticker chip** ($1.29 /
-  $1.49 / $1.99 / SPECIAL BUY!, picked from the volume id so it never changes). Everything inside a sleeve is sized in
-  `cqw` so one design works from the changer window to the big rack page. If the cover
-  picture is missing, a plain printed front is drawn instead (`.sleeve.is-bare`).
-  Title strips (`.strip`) are the same paper.
+- **Enamel:** `--ink #17131F`, `--cab #241D2C`, `--cab-2 #33273B`.
+  One continuous fascia, seams, consistent metal trim and subtle surface grain.
+- **Smoked glass:** `--screen #100F14`. Recessed mechanical and electronic
+  apertures, restrained highlights, shadows at the edges. No scanlines on paper,
+  metal or artwork, and no random whole-page electrical dips.
+- **Metal:** layered warm greys with a consistent highlight direction. The
+  magazine, gripper, platter, arm, selector mount and outer rails use the same
+  construction language. Small fasteners and a lower speaker grille establish
+  the physical enclosure.
+- **Paper and lamps:** `--cream #F0E6D2`, amber `--gold #F5B846`. The actual covers
+  already contain their wear and price stickers; never repaint or duplicate
+  those stickers. Extra ring wear stays subtle.
+- **Circuits:** cyan `#54DDD5` for live readouts and focus; magenta `#EF4B99` for
+  selected interaction. Left/right light rails hold cyan/magenta. The crown is
+  a warm circuit. Decorative lighting never obscures useful information.
+- **Errors:** `--red #FF5470`, plus readable text. State is never colour alone.
 
-Do not introduce soft glassmorphism, AI-purple gradient blur, or **side-tab
-accent borders** (a thick colour bar down one edge of a card). Selected states
-use a full ring, never a side stripe.
-
-## Palette
-
-The cabinet tokens are trivia's, **exactly**:
-
-```
---ink       #140722   page background base
---ink-2     #1D0B33   sign interior
---cab       #2B1147   cabinet face (dark end of gradient)
---cab-2     #38175C   cabinet face (light end of gradient)
---cab-edge  #4A2670   cabinet border / bezel
---screen    #0C0516   recessed display background
---magenta   #FF2D95   act here / selected
---cyan      #25E8E2   numbers, LEDs, focus rings
---gold      #FFC531   the ONE biggest button (Insert Coin / Start)
---cream     #FFF3DE   body text on dark
---dim       #A98CC4   secondary text, metadata
---red       #FF5470   out of order / refused - nothing else
-```
-
-Sleeve tokens (used **only** on sleeve and sticker materials, plus the record
-label and the volume code chips):
-
-```
---sl-gold   #D09A25   mustard of Vol. II, III, VI, VII
---sl-rust   #C8461E   orange-red stripe and frame (Vol. II)
---sl-paper  #E2D8C6   cream card (Vol. I, III, IV, X)
---sl-sepia  #6D5036   sepia photography
---sl-ink    #1E1510   print ink
---sl-wine   #7A1F2B   maroon of Vol. VI
---sl-teal   #3E8F8A   Vol. V, VII, X
---sl-mauve  #9B6A87   Vol. IV, IX
-```
-
-> All ten covers (Vol. I-X) are in `covers/`; every sleeve colour was sampled
-> from them by eye. Volumes are lettered in list order, skipping F, I, N, O, P, S:
-> I=A II=B III=C IV=D V=E VI=G VII=H VIII=J IX=K X=L.
-
-**One accent per job, never swapped:** magenta means "act here / selected",
-cyan means "this is a number or a light", gold means "this is the biggest
-button on the screen". INSERT COIN is the only gold button on the attract
-screen; START / PAUSE is the only gold button on the machine. SELECT is magenta.
-
-## Typography
-
-- **Display:** Bungee - wordmark, panel tabs, song title, buttons that need to
-  shout.
-- **Body:** Barlow (400 / 500 / 700) - **not** Inter or Space Grotesk.
-- **Numerals:** JetBrains Mono, `font-variant-numeric: tabular-nums`, for every
-  number, time, selection code and LED readout, so digits never jitter.
-
-All three are **self-hosted** in `fonts/` (latin subset, woff2), so the machine
-needs no internet to look right. The page is also pre-cached by the service
-worker.
+Bungee remains the signature on the marquee and welcome screen. Barlow carries
+song titles and printed hardware labels; JetBrains Mono carries numbers and
+readouts. All fonts are local, so the cabinet works offline.
 
 ## Layout
 
-- The whole machine is sized in `rem`, and the root font size follows the
-  window: `min(window width / 64, window height / 36)`. A 16:9 projector shows
-  the same picture at any resolution. The design canvas is **64 x 36 rem**
-  (1280 x 720 at 20 px per rem). Check every change at **1280 x 720**.
-- `body` never scrolls. The only internal scrolling is the title-strip list when
-  a volume has more songs than fit.
-- Rows: marquee, LED ticker, cabinet, operator deck, key legend.
-- Cabinet columns: tube | **PICK A SONG** (one third) | **NOW PLAYING** + **UP
-  NEXT** (two thirds, split 1.38 : 0.62) | tube.
-- The marquee sign is centred on the page (wordmark 2.45 rem, subtitle .72 rem,
-  both centred inside the sign) with the bulb rows hugging the sign's edges so
-  the lettering never sits on a bulb.
-- PICK A SONG is one panel: the rack page on top (one album at a time - a big
-  sleeve as tall as the page, capped at 46% of the width so the title strips
-  keep room for two-line titles, with arrows to flip albums) and the selector
-  underneath (readout, letter keys wearing a dimmed copy of their cover, number
-  keys, CLR / DEL / SELECT / COIN).
-- Pressing a letter key (or typing it) flips the rack to that album, so the
-  operator sees its songs while finishing the code.
-- The most important things are the largest: song title (Bungee), the LED clock,
-  the UP NEXT titles and the ticker. The strips are reference material for the
-  operator; status (NOW / Q2 / OUT OF ORDER) is a small tag clipped onto the
-  strip's corner so titles keep the full width.
-- About 3 songs per album fit without scrolling at 1280 x 720; a 4th scrolls
-  inside the strip window. A **▼ MORE** tag shows while songs are hidden below,
-  and a fully typed code outlines its strip in cyan and scrolls it into view.
+The main widescreen view uses a continuous frame, marquee, announcement strip,
+selection bay, hero record window, upcoming list, operator deck and speaker
+plinth. At 1280×720, all essential controls and three title strips fit without
+page scrolling. Additional album tracks scroll within the paper-strip window.
 
-## Restraint (the October refinement pass)
+The crowd screen has more room for the mechanism and current song, no controls,
+and larger readouts. The rack shows all its paper strips; the sleeve shrinks as
+needed. The same HTML and IDs support both windows, but the proportions differ.
 
-The first build had every effect at full strength and read as "everything has
-been added". The rule now is **one machine, quietly lit**: the cabinet, the
-record changer and the readouts carry the show; the world around it stays dim.
+The 4:3 arrangement stacks the rack's sleeve above its strips and centres the
+mechanism vertically. Narrow screens use an intentional scrolling arrangement,
+with now playing first. Desktop remains the primary projector workflow.
 
-- Removed: RFAI PRESENTS (header tab and INSERT COIN screen), the roller-skater
-  silhouettes, the hanging mirror ball, the outrun sun, the bloom around the marquee sign and bubble tubes, the platter glow.
-- Dimmed to trivia's levels: the rolling grid (opacity 0.16, lowest band only,
-  7 s per cell, music speeds it up to 1.6x at most), stars (gutters only), the
-  horizon line, the bass swell (0.14-0.34), mirror-light spots (7, half as bright,
-  behind the cabinet), neon glows, LEDs, the spectrum (82%), the bubble tubes
-  (liquid 5-24%, slower bubbles), the paper strips and the VU faces (warm, not white).
-- Slowed: the LED ticker (4.2 rem a second, readable from the back), bulb chase
-  (2.6 s), neon flicker dips only to 80% so a word never looks switched off.
-- Framed: trivia's CRT bezel at .7 rem with four corner fasteners and an inner
-  shadow, with the machine inset from it, so the page reads as a cabinet screen.
-- Boot: trivia's pacing - a 13 s hold with the self-test printing across 10 s
-  (17 s cap, 18 s CSS failsafe). Header line: SKATE BY FAITH JUKEBOX.
-- VU meters: landscape windows; the scale and the needle's pivot are computed
-  from the smaller side so nothing is ever cut off.
+The operator deck keeps transport, music/effects levels, shuffle, crowd and
+lights immediately available. SETUP discloses fullscreen and LOAD THE CRATES.
+Native disclosure keyboard behaviour is preserved by `cabinet.js`; Escape and
+outside clicks close it. Offline readiness and library errors remain visible
+at the top of the operator cabinet.
 
-- Selection is by code only (keypad or keyboard). The title strips are read-only
-  paper, as on a real Wurlitzer/Seeburg; the rack arrows and letter keys only
-  flip which album's strips are showing.
+The queue displays up to six actual requests and up to three house suggestions
+in spare slots. House suggestions have an explicit IF NOBODY PICKS label and
+remain readable. Real requests always play first. The queue can scroll when
+necessary; suggested entries at the bottom are trimmed to the available space.
 
-Before adding anything new, ask what it replaces.
+## Arrival and interaction
 
-## Crowd screen (two windows)
+**The thirteen-second arrival is intentional and cannot be skipped.** Its
+self-test prints over ten seconds, then the cabinet completes the full hold and
+existing 640 ms reveal. A warm-up bar accompanies the original diagnostics.
+Keyboard and pointer input cannot activate controls behind the arrival. CALM
+retains the same hold with static diagnostics. A completed arrival is remembered once per tab,
+so reloading during the event does not impose another wait. Reloading during
+the initial warm-up starts that full sequence again. The recovery cap
+and CSS failsafe remain safeguards for failed initialisation.
 
-The **CROWD SCREEN** button opens `index.html?view=crowd` (`crowd.js`) for the
-projector, with the laptop showing the full control window. The crowd screen:
-- plays **no sound** and has **no controls** (no deck, selector, queue buttons,
-  status chips or key legend); its tab reads THE RACK, and the rack fills the
-  column - a big sleeve over larger strips - following the control window's page.
-  Nobody can scroll this window, so every strip always shows: the strips take
-  the height they need and the sleeve shrinks to fit (tested with 5 songs on
-  an album);
-- mirrors everything the room should see over a `BroadcastChannel` (`link.js`):
-  state (playing, UP NEXT and the house plan, rack page), every record-changer
-  move, SELECTION ACCEPTED, the song clock (about 4 times a second) and the
-  meter levels (30 a second, only once a crowd screen has said hello);
-- catches up when opened mid-song (a `snapshot` reply to its `hello`: the
-  record is shown already playing);
-- follows the LIGHTS setting (shared `localStorage`, `storage` event);
-- runs its own ticker jokes, bubble tubes, arch and (silent) screen flicker;
-- goes fullscreen on a click or F, and hides the pointer when fullscreen.
-If the control window is minimised the browser pauses its drawing, so the
-crowd screen's meters freeze until it is shown again.
+INSERT COIN is the browser gesture that unlocks sound. Its click/key must happen
+after arrival; the diagnostic sequence is silent. Credits are decorative and
+never prevent a selection. Album letters and song numbers remain generated
+from `tracks.js`; F, I, N, O, P and S stay reserved or omitted.
 
-## Motion
+Keys physically depress and remain latched while a code is being entered.
+Selection is by code, not by clicking the paper. A brief acknowledgement and
+local light transfer accompany an accepted pick. Album navigation retains the
+hinged page movement and catch sound.
 
-Port of trivia's effects, then the jukebox mechanics on top.
+## Mechanism and motion
 
-**Ported from trivia:** CRT power-on boot with a random self-test (`startBoot`),
-neon flicker with a random pattern/speed/phase per tube (`neon.js`), the synth
-horizon (grid, stars, glow line), CRT glass roll band, chasing marquee
-bulbs, the blinking attract prompt, score-reel count-ups (`countUp`, used for
-the credits counter).
+The magazine is drawn to canvas when needed, with recessed graphite, chrome
+rails, individual cradles, coloured index tabs and mounting fasteners. Its
+rotation is a CSS transform and always clockwise, slowing into final indexing.
+The gripper engages for pickup/return; the record lifts before turning face-up,
+settles onto the spindle, and returns in the reverse sequence. The tonearm
+advances with playback. The visible record rotates at **45 rpm** (1⅓ s/turn).
 
-**Record mechanism** (`mechanism.js`) - on selection, one scheduled timeline of
-Web Animations (compositor only):
+Timing contracts are unchanged: 1.5 s normal load, 1 s normal eject; skip uses
+1.8× speed. Natural changeover pre-rolls eject 2.5 s and loading 1.5 s before the
+end. Music is scheduled independently of animations. A stalled effect must
+never delay playback. WAAPI animations are cancelled after their sequence.
 
-| t (normal speed) | What happens |
-|---|---|
-| 0 - 0.47 s | The volume's **sleeve slides out of the rack** to the mechanism window (FLIP from the big rack sleeve if that album is showing, otherwise from its letter key) while the **record carousel turns** clockwise until the chosen record reaches the chrome gripper at 9 o'clock (lit cyan while it works). Whirr. |
-| 0.47 - 1.0 s | The **record swings out of the ring**, turning from edge-on to face-up as it crosses the platter, lifted slightly. Its slot in the ring stays empty while it plays. |
-| 1.0 - 1.2 s | The record **drops** onto the platter and starts **spinning** (33 1/3 rpm = 1.8 s per turn) with the cover as its label. |
-| 1.0 - 1.5 s | The **tonearm swings** across; **needle-drop thud** at 1.5 s. |
+During music, VU meters, the spectrum and one gentle cabinet-light circuit react.
+The spectrum uses 36 logarithmically spaced bands capped at 15 kHz, avoiding
+empty high-frequency bars above the useful MP3 range.
+The tube drift and crown lighting keep steady rates. No scenery or lamps race
+to the beat. Idle browsing and a slow cabinet light sequence remain available.
 
-At the end of a song the same moves run in reverse (1.0 s): arm lifts, record
-swings back edge-on into its slot in the ring, sleeve returns to the rack.
+## CALM and performance
 
-**Record carousel** (`carousel.js`): every song's record stands on edge in a
-ring round the platter, seen from above (like looking down into a Wurlitzer),
-each with a bold band of its album's sleeve colour, in `tracks.js` order (the platter is 7.3 em so the ring has room to read). One canvas,
-painted once; turning it is a CSS rotation, always clockwise, at least 45°
-(`carouselTarget`, tested). Clipped to a circle so the turning square canvas
-never pokes out.
+Every decorative animation has a static equivalent. CSS disables animations
+and transitions in CALM; JavaScript effects show their finished state. The
+arrival retains its duration, functional clocks/progress still update, and the
+music remains independent. OS reduced-motion is the initial preference; the
+operator's stored LIGHTS choice takes precedence.
 
-**Cabinet details:**
-- **Arch** (`arch.js`): a glass tube rises out of each side bubble tube, beside
-  the ticker, and arches over the top behind the marquee sign. One SVG path
-  measured from the real tube positions, redrawn on resize; follows the tubes'
-  colour (`--tube-col`) with a few drifting bubbles (`arch-bubbles`, 14 s).
-- **Latching keys**: the selector letter (and its digits) stay pushed in and
-  lit cyan until the code is selected or cleared, like mechanical selector
-  buttons.
-- **SELECTION J3 ACCEPTED**: the marquee sign shows each accepted pick and its
-  title for 2.2 s, then hands back to the wordmark.
-- **Page flip**: the rack's album page flips over on its hinge (0.7 s, direction
-  follows album order) with a clack (`sfx.page`). During the song the
-tonearm creeps toward the middle of the record with progress.
+Keep brightness changes smoothed and gated, and avoid large-area flashing.
+Photosensitivity rules and CALM behaviour have automated checks. Neon signage
+uses only shallow brightness dips; the full cabinet never flickers at runtime.
 
-For a natural song change the changer **pre-rolls**: the eject starts 2.5 s
-before the end, the next record loads 1.5 s before the end, so the needle lands
-as the song ends. The last 1.2 s of every song fades out (`TAIL_FADE_SEC`), which
-hides the swap. Measured gap between songs: about 40 ms. On a skip the changer
-runs 1.8x faster (about 1.4 s).
-
-**Audio-reactive** (`visualiser.js`, one shared `requestAnimationFrame` loop,
-capped at 30 fps): neon spectrum bars with peak caps (36 bars, log-spaced up to 15 kHz - MP3s carry almost nothing above that, so no bar sits dead), twin needle VU meters,
-bubble tubes that speed up with the music, grid scroll speed and bulb chase speed
-(`playbackRate` of the CSS animations), and a soft bass swell on the cabinet glow.
-
-**Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
-transform only), the LED ticker rolling **one skate joke at a time** (each
-line crosses fully and leaves before the next enters; song changes never cut a
-line short, except music starting from silence, which swaps a "music stopped"
-joke for a skate joke), bubble tubes colour-cycling over 48 s. The song name lives in the
-NOW PLAYING panel, not the ticker.
-
-**Idle attract mode:** after 60 s with no input the machine runs a light show:
-bulbs chase faster, the rack turns to the next album every 9 s
-(`ATTRACT_PAGE_MS`; every album change slides in over 0.65 s, none in CALM)
-(and shows each cover in the changer window while nothing is playing). Any
-input ends it.
-
-**Coin:** a cream coin drops into the slot, clunk + ring, the credits counter
-ticks. Credits are cosmetic and never block a selection: with no credits the
-LED reads **FREE PLAY** (real arcade term).
-
-### Performance rules (3+ hours on a modest laptop)
-
-- Animate **only** `transform`, `opacity` and `background-position`.
-- Visualisers draw on `<canvas>` from preallocated buffers; **nothing is
-  allocated per frame**; no `shadowBlur` (glow is faked with a wider translucent
-  rect).
-- One shared animation loop; it stops when the tab is hidden and when lights
-  are CALM. Music never depends on it.
-- WAAPI animations are cancelled when their sequence ends (no accumulating
-  `fill: forwards` animations). Decks reuse
-  two `<audio>` elements and revoke each Blob URL when a song is replaced.
-- Soak-tested: see "Verification" in README.
-
-## Safety rules (non-negotiable)
-
-### Photosensitivity (WCAG 2.3.1: no more than 3 flashes in any second)
-
-- **Nothing flashes full-screen or large-area faster than 3 times a second.**
-- Music-driven brightness goes through `dsp.js`: an **envelope** (attack 140 ms,
-  release 420 ms) and a **beat gate** (340 ms minimum gap = at most 3 pulses a
-  second). The bass swell is an opacity *swell* on a soft glow layer between
-  0.16 and 0.50, never an on/off flash. Both are unit-tested.
-- Neon flicker dips only to about half brightness, a burst holds at most two
-  dips, on a few words of signage only.
-- The boot sequence was changed from trivia's: the screen flicker now has dips at
-  least 0.45 s apart, and the logo power-on flicker is spread over 1.4 s. The
-  single white boot flash happens once, at 85 % strength.
-- The blinking attract prompt is 0.87 Hz and only changes text colour.
-- The record's sheen is a low-contrast highlight rotating at 1.1 passes a second
-  over a small area.
-
-Audit list - every `@keyframes` in `styles.css` and its rate:
-`crt-roll` 9 s (one band, whole screen), `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
-1.6 s (small dots moving), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
-`ball-turn` 9 s, `record-spin` 1.8 s, `dot-pulse` 1.2 s (small LED),
-`attract-blink` 1.15 s,
-`coin-drop` once, `score-pop` once, boot sequence once per tab.
-Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
-1 s, bursts at least 25 s apart, never more than 60% darker - so never more
-than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
-
-### Calm lights (`prefers-reduced-motion` and the on-screen switch)
-
-- **Motion off, finished state shown** - not "motion lite" (trivia's rule).
-- Because the venue laptop's OS setting may not reflect the room, the header
-  deck has a **LIGHTS: FULL / CALM** switch. With nothing saved it follows the
-  OS (`prefers-reduced-motion`); once pressed, the choice is remembered in
-  `localStorage` (`sn-lights`) and wins.
-- CSS: `html[data-lights="calm"]` switches every animation and transition off.
-  JavaScript effects ask `isCalm()` and jump to the finished picture:
-  the changer shows the record already on the platter, the ticker holds still
-  text (swapped every 8 s), the visualisers draw one quiet still frame, the
-  the boot sequence is skipped, the mirror-light spots hold still.
-- Every animation has a calm equivalent; a new animation must add both halves.
-- Functional readouts (the clock, the progress tube, the queue) still update in
-  calm - they are information, not decoration.
-
-### Errors never stop the music
-
-- Audio is started on plain timers (`setTimeout`) and the audio element's own
-  `ended` event. It never awaits an animation promise.
-- Every effect is wrapped in `safely()`; a failing draw switches itself off with
-  a console warning.
-- A missing or unreadable MP3 becomes **OUT OF ORDER**, is dropped from the
-  queue and skipped by the house rotation. A typo in `tracks.js` shows a red
-  CHECK TRACKS.JS button with a plain-English list instead of crashing.
-- A start-up failure shows "START-UP PROBLEM - PRESS F5" on the INSERT COIN
-  screen rather than a dead page.
-
-## Playback controls: shuffle, skip, back
-
-- **Shuffle** (`rotation.js: pickShuffle`) is a shuffled deck: every playable song
-  plays once before any repeats, the last-5 rule still holds when the deck is
-  reshuffled, and songs picked from the queue count as played. Shuffle off uses
-  `pickInOrder`: the order of `tracks.js`, wrapping round. The choice is saved in
-  `localStorage` (`sn-shuffle`); the default is on.
-- **House plan** (`app.js: planHouse`): the house rotation picks ahead, enough
-  to fill UP NEXT's spare rows, and keeps those picks, so the greyed rows under
-  IF NOBODY PICKS are exactly what will play. Songs in the queue are left out of
-  the plan; a song someone picks drops out of it once it plays (in order mode
-  carries on from that song instead). Greyed rows that would not fit on screen
-  are trimmed from the end.
-- **Skip** takes the queue head or the house pick. **Back** keeps a 50-song
-  history: after 3 s it restarts the song, before that it goes to the previous
-  song and puts the song it left at the top of UP NEXT (`enqueueFront`), so Skip
-  returns to it. Both are ignored while the record changer is mid-swap.
-- Shortcuts: Left / P back, Right / N next, S shuffle, F fullscreen, Space play /
-  pause. These letters (F N P S) are therefore never used as volume letters. The
-  laptop's previous-track media key is wired to Back.
+Visualisers share one 30 fps loop with reusable buffers and bounded canvas
+resolution. Canvas decoration is drawn once when possible; moving parts use
+transform/opacity. Hidden windows pause drawing; audio does not depend on it.
+Full, CALM, wide, 4:3, long-title and crowd states all need browser validation.
 
 ## Sound
 
-Two separate volume paths: music and effects (`audio.js`). Both pass through a
-gentle limiter so a loud track meeting a loud beep cannot hurt the speakers.
-Effects are **synthesised** with Web Audio (`sound.js`, ported from trivia)
-unless a recording is supplied: an MP3 in `sfx/` named after the effect
-(`sfx/coin.mp3` etc., see `sfx/README.md`) replaces that one effect. Files are
-fetched at page load, decoded on the first click, and a file that will not
-decode falls back to the built-in sound. A long `whirr` file is faded out to
-fit the changer's move. Missing files show as 404s in the browser console -
-harmless. **Off until a person clicks** - the click
-on INSERT COIN is the browser's required gesture.
+Music and effects have independent levels and meet at the existing compressor.
+The supplied pack contains seven small **original physically modelled WAVs**,
+not field recordings. `scripts/generate-sfx.py` reproduces them using Python's
+standard library. `sfx/README.md` records the source, lengths and overrides.
 
-| Effect | The one moment it belongs to |
+- Coin: dry chute impacts and a short metallic tail.
+- Key: short, close switch contact.
+- Confirm: a relay latch, without an arcade melody.
+- Whirr: motor/gear movement, trimmed to fit its action.
+- Thud: a gentle needle landing, without a bass-drop effect.
+- Buzz: a muted mechanical refusal.
+- Page: catch release and landing.
+
+A custom `sfx/<name>.mp3` has priority. Missing or undecodable custom audio falls
+back to the supplied WAV, then a quiet live model. Failure cannot stop music.
+The public flicker effect remains a silent compatibility hook. Do not add
+constant crackle, mains hum, or random electrical sounds over the songs.
+
+The WAV pack and cabinet script are precached with the app shell for offline
+use. Real speakers/projector still require a venue sound and readability check.
+
+## Playback, offline and crowd contracts
+
+- `tracks.js` remains the simple hand-edited volumes/tracks data file. Codes and
+  durations are computed; malformed entries are reported and skipped.
+- Queue/shuffle/history semantics remain intact. Broken media is marked OUT OF
+  ORDER and skipped without taking the rest of the machine down.
+- LOAD THE CRATES caches music/covers and reports progress/readiness. Files are
+  refreshed by ETag/size and removed when no longer referenced.
+- Cached songs play from Blob URLs, not through the service worker. Do not route
+  song bytes through `sw.js` without separate reliability testing.
+- The app shell is network-first with a 3.5 s fallback timeout. Covers use their
+  saved copies; app fonts/scripts/original effects are precached.
+- The crowd window is silent and follows state, rack page, selections, mechanism,
+  clocks and meter levels over BroadcastChannel. It catches up through a snapshot.
+- The crowd window follows the saved lights choice and goes fullscreen on a
+  gesture after arrival. Minimise neither window during projection: browsers
+  may pause the operator drawing that supplies crowd meter levels.
+- Wake Lock and Media Session remain optional enhancements, with graceful failure.
+
+## Main surfaces
+
+| File | Responsibility |
 |---|---|
-| `coin` | A coin drops into the slot |
-| `key` | A keypad button is pressed |
-| `confirm` | A song was added to the queue |
-| `whirr` | The record mechanism moving (and the carousel turning) |
-| `page` | The rack's album page flips over (a clack) |
-| `thud` | The needle lands on the record |
-| `buzz` | Something is out of order / refused |
-| `flicker` | The screen dips - a faint electrical crackle, one per dip, quiet on purpose |
-
-Do not reuse one for another moment, and do not add an effect without a
-one-sentence reason a skater would recognise.
-
-## Content tone
-
-Warm, wholesome, playful, church-family friendly - written for a teenage church
-night: daft and funny, never at anyone's expense, light Bible nods only as
-encouragement (Peter on the water, Jericho's seven laps). **Rotating copy is the rule**
-(trivia's pattern): every line a person sees all night is held in a big pool in
-`copy.js` and dealt like a shuffled deck (`createRotator`) so nothing repeats
-until every line has been used, and the same line never appears twice in a row.
-Callers pick once and hold the line so nothing flickers.
-
-Pools: boot self-test (`BOOT_POOL`, 30 lines), ticker skate jokes while music
-plays (`SKATE_JOKES`, 117 - about 45 minutes before any repeat), ticker jokes
-while the music is stopped or paused (`IDLE_JOKES`, 20), attract lines (14),
-out-of-order messages (12). `tests/copy.test.js`
-checks size, uniqueness, ALL CAPS, length (readable from the back of the rink),
-and a family-friendly word guard.
-
-## Data boundaries
-
-One data file, `tracks.js`, is edited by hand by a non-developer. It is
-deliberately tiny: volumes `{ id, title, cover, accent }` and tracks
-`{ id, title, volume, file }`. **Durations are never typed** - they are read
-from each MP3's metadata. **Codes are never typed** - the letter comes from the
-volume's position, the number from the track's position within its volume. The
-codes skip F, N, P, S (keyboard shortcuts) and I and O (they look like 1 and 0
-from 10 metres). Everything about reading and validating that file lives in
-`codes.js` and is unit-tested, including every way a hand edit can go wrong.
-
-## Reliability design decisions
-
-- **Wake Lock** keeps the laptop awake; re-acquired when the tab returns.
-- **Media Session** gives working laptop media keys and an OS now-playing card.
-- **LOAD THE CRATES** saves every MP3 and cover into a browser cache with a
-  progress meter; the OFFLINE READY LED lights when everything is saved.
-  Pressing it again only re-downloads files whose ETag/size changed, and clears
-  files no longer in `tracks.js`.
-- **Saved songs play from Blob URLs, not through the service worker.** An early
-  version served MP3s from the cache through the service worker and Chrome's
-  media pipeline failed with `PIPELINE_ERROR_READ`; the cause was not isolated
-  in a standalone page, so the design avoids the interaction altogether.
-  `player.js` reads the saved copy, plays it from a Blob URL and revokes the URL
-  when the song is replaced. The service worker only handles the app itself and
-  the cover pictures. Do not route audio through `sw.js` again without testing
-  offline playback on a real laptop.
-- The app shell is **network-first with a 3.5 s timeout** so an edit to
-  `tracks.js` shows up as soon as the laptop is online, while a dying venue wifi
-  (which hangs rather than fails) falls back to the saved copy.
-
-## Surfaces
-
-| File | Purpose |
-|---|---|
-| `index.html` | Page structure: boot overlay, attract screen, background world, the machine |
-| `styles.css` | All styling and every `@keyframes` (single stylesheet, tokens at the top) |
-| `app.js` | The conductor: state, queue flow, keypad, keyboard, attract, crates |
-| `tracks.js` | **The one file Ben edits** |
-| `codes.js` | Reads `tracks.js` into the library; generates selection codes |
-| `queue.js` | UP NEXT list (pure) |
-| `rotation.js` | House rotation: shuffled deck (every song once, never repeat the last 5) or in tracks.js order (pure) |
-| `copy.js` | All rotating text pools and the rotator (pure) |
-| `format.js` | LED clock formatting, volume curve (pure) |
-| `dsp.js` | Spectrum bands, loudness, envelope, beat gate (pure) |
-| `lights.js` | FULL / CALM decision (pure) |
-| `audio.js` | Shared Web Audio engine, two volume paths, analysers |
-| `sound.js` | Synthesised effects, or recordings from `sfx/` |
-| `carousel.js` | The record carousel: turn maths (pure) and its drawing |
-| `arch.js` | The arched cabinet crown |
-| `crowd.js` | The crowd screen (projector window): mirrors the control window |
-| `link.js` | BroadcastChannel between the control window and the crowd screen |
-| `player.js` | Two audio decks, fades, gapless-feel, probing |
-| `mechanism.js` | The record changer animation |
-| `visualiser.js` | Shared loop, canvases, mirror light |
-| `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
-| `fx.js` | Calm switch, boot sequence, count-up |
-| `neon.js` | Desynced neon flicker |
-| `rink.js` | Wake lock, media session, service worker registration |
-| `crates.js` | LOAD THE CRATES, saved-copy lookup |
-| `sw.js` | Service worker (app shell + covers only) |
-| `tests/` | `node --test` suites for every pure module |
+| `index.html`, `styles.css` | Cabinet, materials, layouts, arrival and CSS motion |
+| `cabinet.js` | Native operator disclosure and dismissal behaviour |
+| `app.js`, `crowd.js`, `link.js` | Operator state and silent crowd mirroring |
+| `ui.js` | Sleeves, strips, keypad, readouts, queue and announcements |
+| `mechanism.js`, `carousel.js` | Record handling and magazine rendering |
+| `fx.js`, `lights.js`, `neon.js` | Arrival, CALM decision and bounded signage effects |
+| `sound.js`, `sfx/`, `scripts/generate-sfx.py` | Original mechanical effects and overrides |
+| `audio.js`, `player.js` | Audio engine, probing, two music decks and fades |
+| `visualiser.js`, `dsp.js`, `arch.js` | Meters, spectrum and restrained cabinet lighting |
+| `crates.js`, `sw.js`, `rink.js` | Offline readiness, app shell and browser enhancements |
+| `tracks.js`, `codes.js`, `queue.js`, `rotation.js`, `copy.js` | Library, pure rules and copy |
+| `tests/` | `npm test`, using Node's built-in runner |

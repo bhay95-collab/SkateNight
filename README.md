@@ -2,7 +2,7 @@
 
 **Not by Sight - An 80s Rollerskate Night**
 
-An 80s arcade jukebox, presented by RFAI, that plays your playlist at the
+A Roller Palace RP–85 jukebox, presented by RFAI, that plays your playlist at the
 roller-skate night.
 It is a website that runs on **one laptop** plugged into the projector. No
 accounts, no server, no database. You add songs by editing one file and uploading
@@ -195,7 +195,7 @@ place; follow these steps only if you want to swap it for a new one.
 
 - [ ] Open the site in **Google Chrome** (best supported).
 - [ ] Press **INSERT COIN** (click it, or press any key).
-- [ ] Press **LOAD THE CRATES** (bottom right). The thin strip along the bottom of that button fills and the little
+- [ ] Open **SETUP** (bottom right), then press **LOAD THE CRATES**. The thin strip along the bottom of that button fills and the little
       light at the top right changes to **OFFLINE READY**. This saves every
       song on the laptop so the night runs even if the venue wifi dies. Press it
       again after you add songs.
@@ -233,6 +233,11 @@ INSERT COIN -> START (and press CROWD again if the crowd screen was closed - an
 open crowd screen picks the jukebox back up on its own). The queue starts empty (the house rotation fills the gap).
 
 ## How it behaves
+
+- The arrival runs for its full 13-second hold and reveal. It cannot be skipped.
+  It plays once per browser tab; refreshing the same tab does not replay it.
+  CALM keeps the same arrival duration with static diagnostics.
+- **SETUP** holds fullscreen and LOAD THE CRATES; Escape or a click outside closes it.
 
 - **START** begins with the house rotation. It does **not** start automatically,
   so you can test volume first.
@@ -338,9 +343,9 @@ Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
 1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`
 sub-path):
 
-- `npm test` - 62 tests, all passing (queue, codes, `tracks.js` validation,
+- `npm test` - 77 tests, all passing (queue, codes, `tracks.js` validation,
   house rotation and shuffle deck, in-order mode, copy pools, audio maths,
-  lights switch, CSS safety rules).
+  lights switch, CSS safety rules, unskippable arrival, and sound assets/fallbacks).
 - Boot, INSERT COIN, selection by keyboard / keypad code, UP NEXT, house
   rotation, record changer frames, now-playing readouts, idle attract mode.
 - Natural song change: about 40 ms between songs. Skip: about 1.2-1.4 s (the

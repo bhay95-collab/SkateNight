@@ -6,10 +6,10 @@
    to a modest laptop) it reads the music's frequencies and loudness once,
    then feeds:
      - the neon SPECTRUM bars and the twin needle VU meters (canvas)
-     - the two BUBBLE TUBES (canvas), which also speed up with the music
-     - the grid speed and the bulb chase speed (animation playbackRate)
-     - the soft BASS PULSE on the cabinet glow (one element's opacity)
-     - the mirror-ball light spots
+     - the soft BASS PULSE on one cabinet light circuit (opacity only)
+
+   The bubble tubes move slowly at a fixed pace. Their cyan and magenta
+   circuits hold their colour; scenery and lamps never race with the beat.
 
    Rules this file lives by:
      - Only transform / opacity / background-position animate; canvases
@@ -36,24 +36,15 @@ const MAX_DPR = 1.5;
 
 // Neon colours as plain numbers so canvas can use them (mirror the CSS tokens).
 const COLORS = {
-  magenta: [255, 45, 149],
-  cyan: [37, 232, 226],
-  cream: [255, 243, 222],
+  magenta: [239, 75, 153],
+  cyan: [84, 221, 213],
+  cream: [240, 230, 210],
   red: [255, 84, 112],
-  ink: [20, 7, 34],
-  screen: [12, 5, 22],
+  ink: [23, 19, 31],
+  screen: [16, 15, 20],
 };
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t].map(Math.round);
-
-// Slow colour journey for the bubble tubes: magenta -> violet -> cyan -> mauve -> back.
-const TUBE_STOPS = [COLORS.magenta, [150, 90, 255], COLORS.cyan, [190, 100, 170]];
-function tubeColor(seconds) {
-  const period = 48;                                        // a full cycle takes 48 s
-  const p = ((seconds % period) / period) * TUBE_STOPS.length;
-  const i = Math.floor(p);
-  return mix(TUBE_STOPS[i % TUBE_STOPS.length], TUBE_STOPS[(i + 1) % TUBE_STOPS.length], p - i);
-}
 
 function sizeCanvas(canvas) {
   const rect = canvas.getBoundingClientRect();
@@ -223,7 +214,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   function drawTube(t, index, seconds, speed) {
     if (!t) return;
     const { ctx, w, h } = t;
-    const col = tubeColor(seconds + index * 12);
+    const col = index === 0 ? COLORS.cyan : COLORS.magenta;
     ctx.clearRect(0, 0, w, h);
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, rgb(col, 0.05));
@@ -250,31 +241,11 @@ export function createVisualiser({ source = null, tap = null } = {}) {
     return col;
   }
 
-  // ---------- slow-changing CSS pieces ----------
-  let animations = [];
-  const collectAnimations = () => {
-    animations = document.getAnimations().filter((a) => {
-      const n = a.animationName;
-      return n === 'grid-scroll' || n === 'bulb-chase' || n === 'star-twinkle';
-    });
-  };
-  let lastRate = -1;
-  let lastTubeCss = 0;
-  function applySpeed(energy, nowMs) {
-    const rate = Math.round((0.7 + energy * 0.9) * 10) / 10;
-    if (rate !== lastRate) {
-      lastRate = rate;
-      for (const a of animations) { try { a.playbackRate = rate; } catch { /* animation gone */ } }
-    }
-    return nowMs;
-  }
-
   // ---------- the frame ----------
   let rafId = 0;
   let lastFrame = 0;
   let t0 = performance.now();
   let running = false;
-  let lastRateTick = 0;
 
   function frame(now) {
     rafId = requestAnimationFrame(frame);
@@ -314,7 +285,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
     bassAvg += (bass - bassAvg) * 0.02;
     if (bass > bassAvg * 1.25 + 0.06 && kickGate.trigger(now)) kickUntil = now + 160;
     const pulse = bassEnv.step(now < kickUntil ? 1 : 0, step);
-    const energy = energyEnv.step(total * 1.6, step);
+    energyEnv.step(total * 1.6, step);
 
     // 3. draw (each guarded)
     safely('spectrum', () => drawSpectrum(levels, step));
@@ -322,32 +293,19 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       drawVu(vus[0], vuEnv[0].step(rmsL, step), 'L');
       drawVu(vus[1], vuEnv[1].step(rmsR, step), 'R');
     });
-    let tubeCol = null;
     safely('tubes', () => {
-      tubeCol = drawTube(tubes[0], 0, seconds, 1 + energy * 1.2);
-      drawTube(tubes[1], 1, seconds, 1 + energy * 1.2);
+      drawTube(tubes[0], 0, seconds, 0.65);
+      drawTube(tubes[1], 1, seconds, 0.65);
     });
 
     // 4. the soft bass swell on the cabinet glow (opacity only)
-    if (glow) glow.style.opacity = (0.14 + 0.2 * pulse).toFixed(3);
-
-    // 5. slower things, a few times a second
-    if (now - lastRateTick > 140) {
-      lastRateTick = now;
-      applySpeed(energy, now);
-      if (tubeCol && now - lastTubeCss > 1000) {
-        lastTubeCss = now;
-        document.documentElement.style.setProperty('--tube-glow', rgb(tubeCol, 0.3));
-        document.documentElement.style.setProperty('--tube-col', rgb(tubeCol, 1));
-      }
-    }
+    if (glow) glow.style.opacity = (0.12 + 0.12 * pulse).toFixed(3);
   }
 
   function start() {
     if (running || isCalm() || document.hidden) return;
     running = true;
     layout();
-    collectAnimations();
     lastFrame = 0;
     t0 = performance.now() - 1000 * 12;
     rafId = requestAnimationFrame(frame);
@@ -370,8 +328,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       drawTube(tubes[0], 0, 6, 0);
       drawTube(tubes[1], 1, 18, 0);
     });
-    if (glow) glow.style.opacity = '0.2';
-    for (const a of animations) { try { a.playbackRate = 1; } catch { /* gone */ } }
+    if (glow) glow.style.opacity = '0.18';
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -386,7 +343,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   });
 
   onCalmChange((calm) => {
-    if (calm) { stop(); drawStill(); } else { start(); setTimeout(collectAnimations, 400); }
+    if (calm) { stop(); drawStill(); } else start();
   });
 
   return {

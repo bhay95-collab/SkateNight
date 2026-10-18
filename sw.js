@@ -18,13 +18,14 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v1';
+const SHELL_CACHE = 'skatenight-shell-v2';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
 const SHELL_FILES = [
   './',
   'index.html',
+  'cabinet.js',
   'styles.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
   'fx.js', 'lights.js', 'mechanism.js', 'neon.js', 'player.js', 'queue.js',
@@ -32,6 +33,8 @@ const SHELL_FILES = [
   'rfai-logo.png',
   'fonts/bungee-400.woff2', 'fonts/barlow-400.woff2', 'fonts/barlow-500.woff2',
   'fonts/barlow-700.woff2', 'fonts/jetbrains-mono.woff2',
+  'sfx/coin.wav', 'sfx/key.wav', 'sfx/confirm.wav', 'sfx/whirr.wav',
+  'sfx/thud.wav', 'sfx/buzz.wav', 'sfx/page.wav',
 ];
 
 self.addEventListener('install', (event) => {
