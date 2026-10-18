@@ -330,6 +330,7 @@ export function createVisualiser() {
       if (tubeCol && now - lastTubeCss > 1000) {
         lastTubeCss = now;
         document.documentElement.style.setProperty('--tube-glow', rgb(tubeCol, 0.3));
+        document.documentElement.style.setProperty('--tube-col', rgb(tubeCol, 1));
       }
     }
   }

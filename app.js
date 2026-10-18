@@ -25,6 +25,7 @@ import { sfx, preloadSfxFiles, decodeSfxFiles } from './sound.js';
 import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
+import { mountArch } from './arch.js';
 import { createUI, createTicker } from './ui.js';
 import {
   keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker,
@@ -130,6 +131,7 @@ async function main() {
   ui.setNow(null);
   ui.renderQueue([], []);
   buildMirrorLight($('mirror-light'));
+  safely('arch', () => mountArch($('arch'), { rig: $('jukebox'), tubes: [$('tube-l'), $('tube-r')], cabinet: document.querySelector('.cabinet') }));
 
   if (problems.length) {
     const btn = $('btn-problems');
