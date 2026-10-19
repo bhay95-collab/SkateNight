@@ -263,9 +263,10 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   windows and one column on phones, with page scrolling to reach every control.
   Normal laptop and projector windows retain the three-column cabinet. Album
   artwork still uses the space left after its complete track list.
-- The scrolling LED strip under the sign rolls **one skate joke at a time**,
-  picked at random from 117 (no repeats until every one has had a turn), with
-  a separate set of 20 for when the music is stopped or paused. To add or
+- The scrolling LED strip under the sign rolls **one joke at a time**: skating,
+  church and youth-group life, snacks and retro comedy. It draws from 234 lines
+  (no repeats until every one has had a turn), with a separate set of 40 for
+  when the music is stopped or paused. To add or
   change jokes, edit the `SKATE_JOKES` list in `copy.js`: ALL CAPS, 64
   characters at most, one per line in quote marks with a comma after.
 - UP NEXT plays **first in, first out**. Its count includes every request, up to

@@ -589,16 +589,16 @@ one-sentence reason a skater would recognise.
 ## Content tone
 
 Warm, wholesome, playful, church-family friendly - written for a teenage church
-night: daft and funny, never at anyone's expense, light Bible nods only as
-encouragement (Peter on the water, Jericho's seven laps). **Rotating copy is the rule**
+night: daft and funny, never at anyone's expense, with light, respectful Bible
+nods (Peter on the water, Jericho's seven laps). **Rotating copy is the rule**
 (trivia's pattern): every line a person sees all night is held in a big pool in
 `copy.js` and dealt like a shuffled deck (`createRotator`) so nothing repeats
 until every line has been used, and the same line never appears twice in a row.
 Callers pick once and hold the line so nothing flickers.
 
-Pools: boot self-test (`BOOT_POOL`, 30 lines), ticker skate jokes while music
-plays (`SKATE_JOKES`, 117 - about 45 minutes before any repeat), ticker jokes
-while the music is stopped or paused (`IDLE_JOKES`, 20), attract lines (14),
+Pools: boot self-test (`BOOT_POOL`, 30 lines), ticker skate, church and general
+jokes while music plays (`SKATE_JOKES`, 234; every line runs before any repeat),
+ticker jokes while the music is stopped or paused (`IDLE_JOKES`, 40), attract lines (14),
 out-of-order messages (12). `tests/copy.test.js`
 checks size, uniqueness, ALL CAPS, length (readable from the back of the rink),
 and a family-friendly word guard.
