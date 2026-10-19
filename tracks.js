@@ -276,4 +276,21 @@ export const tracks = [
 
   // A7 - Vol. I
   { id: 'celebrate-the-saviour', title: 'Celebrate the Saviour', volume: 'vol-i',  file: 'audio/celebrate-the-saviour.mp3' },
+
+  // ---- Songs 62-66: a seventh song on Vol. II - VI ----
+
+  // B7 - Vol. II
+  { id: 'let-obedience',        title: 'Let Obedience',        volume: 'vol-ii',  file: 'audio/let-obedience.mp3' },
+
+  // C7 - Vol. III
+  { id: 'peace-be-to-this-house', title: 'Peace Be to This House', volume: 'vol-iii', file: 'audio/peace-be-to-this-house.mp3' },
+
+  // D7 - Vol. IV
+  { id: 'confidence',           title: 'Confidence',           volume: 'vol-iv',  file: 'audio/confidence.mp3' },
+
+  // E7 - Vol. V
+  { id: 'because-of-the-cross-of-christ', title: 'Because of the Cross of Christ', volume: 'vol-v', file: 'audio/because-of-the-cross-of-christ.mp3' },
+
+  // G7 - Vol. VI
+  { id: 'know-the-lord',        title: 'Know the Lord',        volume: 'vol-vi',  file: 'audio/know-the-lord.mp3' },
 ];
