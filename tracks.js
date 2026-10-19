@@ -259,4 +259,21 @@ export const tracks = [
 
   // G6 - Vol. VI
   { id: 'fight-the-good-fight-of-faith', title: 'Fight the Good Fight of Faith', volume: 'vol-vi', file: 'audio/fight-the-good-fight-of-faith.mp3' },
+
+  // ---- Songs 57-61: a sixth song on Vol. VII - X, then a seventh on Vol. I ----
+
+  // H6 - Vol. VII
+  { id: 'see-your-goodness',    title: 'See Your Goodness',    volume: 'vol-vii',  file: 'audio/see-your-goodness.mp3' },
+
+  // J6 - Vol. VIII
+  { id: 'fully-convinced',      title: 'Fully Convinced',      volume: 'vol-viii', file: 'audio/fully-convinced.mp3' },
+
+  // K6 - Vol. IX
+  { id: 'press-on',             title: 'Press On',             volume: 'vol-ix',   file: 'audio/press-on.mp3' },
+
+  // L6 - Vol. X
+  { id: 'love-is-believing',    title: 'Love Is Believing',    volume: 'vol-x',    file: 'audio/love-is-believing.mp3' },
+
+  // A7 - Vol. I
+  { id: 'celebrate-the-saviour', title: 'Celebrate the Saviour', volume: 'vol-i',  file: 'audio/celebrate-the-saviour.mp3' },
 ];
