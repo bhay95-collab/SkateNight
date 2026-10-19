@@ -13,6 +13,7 @@
    ============================================================ */
 import { getEngine } from './audio.js';
 import { getCachedBlob } from './crates.js';
+import { createVinylSurface } from './vinyl.js';
 
 // The last moments of every song fade to silence over this long, so the
 // record-changer animation can swap discs without a hard cut.
@@ -25,7 +26,10 @@ function makeDeck(engine) {
   const gain = engine.ctx.createGain();
   gain.gain.value = 0;
   source.connect(gain).connect(engine.musicBus);
-  return { audio, gain, trackId: null, tailArmed: false, killTimer: null, objectUrl: null, ready: Promise.resolve(), loadToken: 0 };
+  const vinyl = createVinylSurface(engine.ctx, gain);
+  engine.recordSurfaces.add(vinyl);
+  return { audio, gain, vinyl, needlePending: false, fadeInMs: 350,
+    trackId: null, tailArmed: false, killTimer: null, objectUrl: null, ready: Promise.resolve(), loadToken: 0 };
 }
 
 export function createPlayer(handlers = {}) {
@@ -55,6 +59,19 @@ export function createPlayer(handlers = {}) {
 
   decks.forEach((deck, i) => {
     const { audio } = deck;
+    audio.addEventListener('playing', () => {
+      if (i !== active) { audio.pause(); return; }
+      if (audio.paused || audio.ended) return;
+      // The browser really has audio to play: loading and buffering are silent.
+      if (deck.tailArmed && Number.isFinite(audio.duration)) {
+        rampGain(deck, 0, Math.max(0, audio.duration - audio.currentTime) * 1000);
+      } else rampGain(deck, 1, deck.fadeInMs);
+      deck.vinyl.start({ needle: deck.needlePending });
+      deck.needlePending = false;
+    });
+    for (const event of ['pause', 'waiting', 'ended', 'error', 'emptied']) {
+      audio.addEventListener(event, () => deck.vinyl.stop());
+    }
     audio.addEventListener('ended', () => {
       if (i === active && deck.trackId) handlers.onEnded?.(deck.trackId);
     });
@@ -128,15 +145,17 @@ export function createPlayer(handlers = {}) {
       if (deck.killTimer) { clearTimeout(deck.killTimer); deck.killTimer = null; }
       const loading = load(deck, track);
       deck.tailArmed = false;
+      deck.needlePending = true;
+      deck.fadeInMs = fadeInMs;
       const { g, now } = holdGain(deck);
       g.setValueAtTime(0.0001, now);
-      g.linearRampToValueAtTime(1, now + fadeInMs / 1000);
       try {
         await loading;
-        if (deck.trackId !== track.id) return false;   // pre-empted by a newer choice
+        if (deck !== activeDeck() || deck.trackId !== track.id) return false;   // pre-empted by a newer choice
         await deck.audio.play();
         return true;
       } catch (err) {
+        deck.vinyl.stop();
         handlers.onError?.(track.id, err);
         return false;
       }
@@ -163,7 +182,10 @@ export function createPlayer(handlers = {}) {
       if (!deck.trackId) return;
       deck.tailArmed = false;
       try { deck.audio.currentTime = 0; } catch { /* not seekable yet */ }
-      if (!deck.audio.paused) rampGain(deck, 1, 60);
+      if (!deck.audio.paused) {
+        rampGain(deck, 1, 60);
+        deck.vinyl.scratch();
+      } else deck.needlePending = true;
     },
 
     pause() {
@@ -179,8 +201,15 @@ export function createPlayer(handlers = {}) {
       if (!deck.trackId) return false;
       if (deck.killTimer) { clearTimeout(deck.killTimer); deck.killTimer = null; }
       deck.tailArmed = false;
-      rampGain(deck, 1, 160);
-      try { await deck.audio.play(); return true; } catch (err) { handlers.onError?.(deck.trackId, err); return false; }
+      deck.fadeInMs = 160;
+      // A quick second press can cancel pause's fade before pause() reaches the
+      // media element. play() then emits no new `playing` event: restore gain now.
+      if (!deck.audio.paused) rampGain(deck, 1, deck.fadeInMs);
+      try { await deck.audio.play(); return true; } catch (err) {
+        deck.vinyl.stop();
+        handlers.onError?.(deck.trackId, err);
+        return false;
+      }
     },
 
     get isPlaying() { const a = activeDeck().audio; return !a.paused && !a.ended; },

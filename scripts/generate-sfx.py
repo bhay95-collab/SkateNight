@@ -81,20 +81,30 @@ def main():
         impact(confirm, at, weight, [(821, 0.6, 1), (2137, 0.28, 0.6)], decay=0.012, grit=0.5)
     write("confirm", confirm, 0.18)
 
+    # A small geared changer: brush friction and softly chattering teeth carry
+    # the movement, with only a trace of the motor's tonal vibration. Avoid a
+    # dominant sine-wave drone, which sounds electronic rather than mechanical.
     motor = blank(1.12)
     phase = 0.0
     smooth = 0.0
+    brush = 0.0
     for i in range(len(motor)):
         t = i / RATE
         speed = min(1, t / 0.18) * min(1, (1.12 - t) / 0.20)
-        phase += TAU * (135 + 45 * speed) / RATE
-        smooth += 0.16 * (RNG.uniform(-1, 1) - smooth)
-        teeth = 0.74 + 0.26 * math.sin(TAU * 24 * t)
+        phase += TAU * (115 + 38 * speed) / RATE
+        noise = RNG.uniform(-1, 1)
+        smooth += 0.10 * (noise - smooth)
+        brush += 0.48 * (noise - brush)
+        # Unequal gear loading and broad friction give a restrained, uneven
+        # texture, rather than a repeating rattle or a constant hiss.
+        teeth = 0.74 + 0.17 * math.sin(TAU * (21 * t + 0.45 * t * t))
+        loading = 0.87 + 0.09 * math.sin(TAU * 3.7 * t) + 0.04 * math.sin(TAU * 8.3 * t)
         envelope = min(1, t / 0.045) * min(1, (1.12 - t) / 0.11)
-        motor[i] = envelope * (0.30 * math.sin(phase) + 0.11 * math.sin(phase * 3.03)
-                               + 0.075 * math.sin(phase * 5.07) + 0.65 * smooth * teeth)
-    impact(motor, 0.01, 0.42, [(629, 0.8, 1), (1831, 0.25, 0.7)], decay=0.01, grit=0.5)
-    impact(motor, 1.015, 0.28, [(557, 0.8, 1), (1493, 0.25, 0.7)], decay=0.01, grit=0.5)
+        friction = (0.72 * smooth + 0.16 * (brush - smooth)) * teeth * loading
+        vibration = 0.045 * math.sin(phase) + 0.018 * math.sin(phase * 3.03)
+        motor[i] = envelope * (friction + vibration * (0.45 + 0.55 * speed))
+    impact(motor, 0.01, 0.32, [(629, 0.8, 1), (1831, 0.25, 0.7)], decay=0.01, grit=0.5)
+    impact(motor, 1.015, 0.25, [(557, 0.8, 1), (1493, 0.25, 0.7)], decay=0.01, grit=0.5)
     write("whirr", motor, 0.105)
 
     # Felt-damped cartridge contact: no bass drop, pop, or continuous surface noise.

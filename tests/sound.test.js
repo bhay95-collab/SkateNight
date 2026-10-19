@@ -73,7 +73,7 @@ test('mechanical effects remain responsive, restrained and independent of music'
     createBufferSource() {
       const source = {
         ...node(), playbackRate: parameter(), stops: [], starts: [],
-        start(at) { this.starts.push(at); },
+        start(at, offset = 0) { this.starts.push(at); this.offset = offset; },
         stop(at) { this.stops.push(at); },
       };
       this.sources.push(source);
@@ -119,10 +119,27 @@ test('mechanical effects remain responsive, restrained and independent of music'
       assert.equal(ctx.sources.at(-1).buffer.marker, 2);
     });
 
-    await t.test('a missing custom MP3 uses the WAV and long movement audio can be trimmed', async () => {
+    await t.test('shortened original motor preserves its settling contact at constant pitch', async () => {
       const sound = await load({ 'sfx/whirr.wav': 3 });
+      const before = ctx.sources.length;
       assert.doesNotThrow(() => sound.sfx.whirr(0.4));
-      assert.equal(ctx.sources.at(-1).buffer.marker, 3);
+      const [body, tail] = ctx.sources.slice(before);
+      assert.equal(body.buffer.marker, 3);
+      assert.equal(tail.buffer.marker, 3);
+      assert.equal(body.starts[0], ctx.currentTime);
+      assert.ok(Math.abs(tail.offset - (tail.buffer.duration - 0.18)) < 1e-9, 'authored final contact retained');
+      assert.ok(Math.abs(tail.starts[0] - ctx.currentTime - 0.22) < 1e-9);
+      assert.ok(Math.abs(tail.stops[0] - ctx.currentTime - 0.4) < 1e-9, 'stops with the movement');
+      assert.ok(body.stops[0] > tail.starts[0], 'body and tail crossfade');
+      for (const source of [body, tail]) assert.equal(source.playbackRate.events[0][1], 1);
+    });
+
+    await t.test('custom motor recordings keep the documented fade-to-fit behavior', async () => {
+      const sound = await load({ 'sfx/whirr.mp3': 5, 'sfx/whirr.wav': 3 });
+      const before = ctx.sources.length;
+      sound.sfx.whirr(0.4);
+      assert.equal(ctx.sources.length, before + 1);
+      assert.equal(ctx.sources.at(-1).buffer.marker, 5);
       assert.ok(Math.abs(ctx.sources.at(-1).stops[0] - ctx.currentTime - 0.42) < 1e-9);
     });
 
@@ -149,18 +166,21 @@ test('mechanical effects remain responsive, restrained and independent of music'
       const coin = ctx.sources.at(-1);
       for (const name of ['key', 'page', 'whirr']) {
         ctx.currentTime += 1;
+        const beforeOld = ctx.sources.length;
         sound.sfx[name](0.6);
-        const old = ctx.sources.at(-1);
+        const oldSources = ctx.sources.slice(beforeOld);
+        const old = oldSources[0];
         const oldOutput = old.connections[0].connections[0];
         ctx.currentTime += 0.01;
+        const beforeLatest = ctx.sources.length;
         sound.sfx[name](0.6);
-        const latest = ctx.sources.at(-1);
+        const latest = ctx.sources[beforeLatest];
         const fade = oldOutput.gain.events.find((event) => event[0] === 'linear');
         assert.ok(fade[1] < 0.001, `${name}: fades the previous tail`);
         assert.ok(fade[2] - ctx.currentTime <= 0.02, `${name}: quick click-free release`);
         assert.equal(old.stops.at(-1), fade[2], `${name}: releases the previous source`);
         assert.deepEqual(latest.starts, [ctx.currentTime], `${name}: new action starts immediately`);
-        old.onended();
+        oldSources.forEach((source) => source.onended());
         assert.equal(old.disconnected, true, `${name}: old source cleaned up`);
         assert.equal(oldOutput.disconnected, true, `${name}: old channel cleaned up`);
         assert.equal(latest.connections[0].connections[0].disconnected, false, `${name}: newer voice survives old cleanup`);
@@ -186,15 +206,29 @@ test('mechanical effects remain responsive, restrained and independent of music'
 
     await t.test('finished files disconnect and do not leave a stale motor to fade on the next move', async () => {
       const sound = await load({ 'sfx/whirr.wav': 3 });
+      const before = ctx.sources.length;
       sound.sfx.whirr();
       const source = ctx.sources.at(-1);
       const envelope = source.connections[0];
       const output = envelope.connections[0];
-      source.onended();
+      ctx.sources.slice(before).forEach((entry) => entry.onended());
       assert.ok(source.disconnected && envelope.disconnected && output.disconnected);
       const stopCount = source.stops.length;
       sound.sfx.whirr();
       assert.equal(source.stops.length, stopCount, 'completed source is removed from the active channel');
+    });
+
+    await t.test('reset releases the entire motor without interrupting other actions', async () => {
+      const sound = await load({ 'sfx/whirr.wav': 3, 'sfx/coin.wav': 4 });
+      sound.sfx.coin();
+      const coin = ctx.sources.at(-1);
+      const before = ctx.sources.length;
+      sound.sfx.whirr(0.5);
+      const motor = ctx.sources.slice(before);
+      sound.sfx.stop('whirr');
+      assert.equal(motor.length, 2);
+      for (const source of motor) assert.equal(source.stops.at(-1), ctx.currentTime + 0.014);
+      assert.deepEqual(coin.stops, []);
     });
 
     await t.test('missing and unreadable assets retain live fallback; ambient flicker stays silent', async () => {

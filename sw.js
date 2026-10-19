@@ -18,7 +18,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v5';
+const SHELL_CACHE = 'skatenight-shell-v6';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -29,7 +29,7 @@ const SHELL_FILES = [
   'styles.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
   'fx.js', 'lights.js', 'mechanism.js', 'neon.js', 'player.js', 'queue.js',
-  'arch.js', 'carousel.js', 'crowd.js', 'link.js', 'rink.js', 'rotation.js', 'sound.js', 'tracks.js', 'ui.js', 'visualiser.js',
+  'arch.js', 'carousel.js', 'crowd.js', 'link.js', 'rink.js', 'rotation.js', 'sound.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
   'rfai-logo.png',
   'fonts/bungee-400.woff2', 'fonts/barlow-400.woff2', 'fonts/barlow-500.woff2',
   'fonts/barlow-700.woff2', 'fonts/jetbrains-mono.woff2',

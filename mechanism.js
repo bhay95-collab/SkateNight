@@ -64,7 +64,8 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
   window.addEventListener('resize', paintRing);
 
   let phase = 'empty';
-  let running = null;               // { anims, timers } of the sequence in flight
+  let running = null;               // { anims, timers, resolve } of the sequence in flight
+  let revision = 0;                 // a newer command invalidates any waiting swap
   let currentVolume = null;
   let getRackSleeve = () => null;
 
@@ -81,11 +82,15 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
   }
 
   function hardReset() {
+    revision++;
     if (running) {
-      running.timers.forEach(clearTimeout);
-      running.anims.forEach((a) => { try { a.cancel(); } catch { /* already gone */ } });
+      const cancelled = running;
       running = null;
+      cancelled.timers.forEach(clearTimeout);
+      cancelled.anims.forEach((a) => { try { a.cancel(); } catch { /* already gone */ } });
+      cancelled.resolve();
     }
+    sfx.stop?.('whirr');
     record.classList.remove('is-spinning');
     gripper?.classList.remove('is-picking');
     outIndex = -1;
@@ -123,10 +128,11 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
 
   const tf = (x, y, s = 1, r = 0) => `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
 
-  /* Run a scheduled sequence, then call `finish` and clean up. */
+  /* Finish at the published duration, so a swap's next movement stays in
+     step with app.js's independent music timer. */
   function runSequence(anims, ms, timers, finish) {
     return new Promise((resolve) => {
-      const state = { anims, timers };
+      const state = { anims, timers, resolve };
       running = state;
       const end = setTimeout(() => {
         if (running !== state) return resolve();      // pre-empted by a newer move
@@ -141,6 +147,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
 
   /* Bring the next record in. Resolves when the needle is down. */
   async function load(volume, { speed = 1, trackId = null } = {}) {
+    revision++;
     if (phase === 'playing' || running) hardReset();
     setCover(volume);
     const index = trackIndex.has(trackId) ? trackIndex.get(trackId) : -1;
@@ -211,12 +218,13 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     ];
     // Until the arm starts to move it stays parked; the animation's fill holds that.
     setArm(ARM_START);
-    await runSequence(anims, T + 30, timers, () => { setArm(ARM_START); });
+    await runSequence(anims, T, timers, () => { setArm(ARM_START); });
   }
 
   /* Take the record away again (arm lifts, record slides back under the
      sleeve, sleeve returns to the rack). */
   async function eject({ speed = 1 } = {}) {
+    revision++;
     if (running) { hardReset(); return; }      // pre-empting a move in flight: just clear the deck
     if (phase !== 'playing') return;
     if (isCalm()) {
@@ -257,7 +265,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       setTimeout(() => { outIndex = -1; paintRing(); }, 0.58 * T),         // back in its slot in the ring
       setTimeout(() => gripper?.classList.remove('is-picking'), 0.58 * T),
     ];
-    await runSequence(anims, T + 30, timers, () => {
+    await runSequence(anims, T, timers, () => {
       record.classList.remove('is-spinning');
       gripper?.classList.remove('is-picking');
       setArm(ARM_PARK);
@@ -270,7 +278,10 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     eject,
     /* Eject whatever is there, then load the new record. */
     async swap(volume, { speed = 1, trackId = null } = {}) {
-      await eject({ speed });
+      const ejection = eject({ speed });
+      const swapRevision = revision;
+      await ejection;
+      if (revision !== swapRevision) return; // reset or superseded while the old record left
       await load(volume, { speed, trackId });
     },
     loadMs: (speed = 1) => (isCalm() ? CALM_SWAP_MS : LOAD_MS / speed),

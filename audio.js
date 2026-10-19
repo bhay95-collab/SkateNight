@@ -9,6 +9,9 @@
                               spectrum bars, VU needles and light show)
        sound effects --> [SFX volume] ------> limiter --> speakers
 
+   Vinyl surface voices follow each music deck's fade and music volume,
+   with an additional trim that follows SFX volume.
+
    Browsers refuse to make sound until a person clicks or presses a key.
    unlockAudio() is called from that first click (the INSERT COIN press).
    ============================================================ */
@@ -63,7 +66,8 @@ export function unlockAudio() {
     bassPass1.connect(bassPass2);
     bassPass2.connect(beatAnalyser);
 
-    engine = { ctx, musicBus, sfxBus, analyser, analyserL, analyserR, beatAnalyser, musicLevel: 0.7, sfxLevel: 0.7 };
+    engine = { ctx, musicBus, sfxBus, analyser, analyserL, analyserR, beatAnalyser,
+      musicLevel: pendingMusic, sfxLevel: pendingSfx, recordSurfaces: new Set() };
     applyVolumes();
   }
   if (engine.ctx.state === 'suspended') engine.ctx.resume().catch(() => {});
@@ -86,7 +90,11 @@ export function setMusicLevel(v) {
 }
 export function setSfxLevel(v) {
   pendingSfx = v;
-  if (engine) { engine.sfxLevel = v; applyVolumes(); }
+  if (engine) {
+    engine.sfxLevel = v;
+    applyVolumes();
+    for (const surface of engine.recordSurfaces) surface.setLevel(v);
+  }
 }
 let pendingMusic = 0.7;
 let pendingSfx = 0.7;

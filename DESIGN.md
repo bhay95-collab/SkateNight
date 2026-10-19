@@ -458,8 +458,10 @@ they are not field recordings and contain no third-party samples.
 
 A custom `sfx/<name>.mp3` takes priority over the supplied WAV. A missing or
 undecodable file falls back to that WAV, then a quiet live Web Audio model.
-Files are fetched early and decoded after the first click. Long `whirr` files
-fade to fit the changer's move. Missing optional MP3s may show harmless 404s.
+Files are fetched early and decoded after the first click. The original motor
+uses brush friction, light gear texture and subdued engagement/settling contacts.
+Short moves crossfade its body into the authored ending at constant pitch;
+custom long `whirr` recordings fade to fit. Missing optional MP3s may show harmless 404s.
 Effects remain **off until a person clicks** INSERT COIN after arrival; the
 arrival itself is silent. Audio failures must never stop the music.
 
@@ -480,8 +482,27 @@ Per-effect gain trims balance frequent keys and movement against coin/relay
 accents. Coin, key and page cues have less than 2% pitch variation. Repeating an
 action responds immediately and fades its previous tail over 14 ms, so motors
 and rapid key presses do not accumulate. Finished sources release their audio
-nodes. The effects fader remains independent; music gain and timing are untouched.
-Do not add constant vinyl noise, mains hum or random crackling over songs.
+nodes. Cancelling a mechanism sequence settles its promise and releases the
+motor; stale swaps cannot reload a record after reset. Movement completion uses
+the published duration so the next load and needle cue stay aligned with the
+independent audio timer.
+
+`vinyl.js` adds a deliberately restrained record surface requested for playback:
+band-limited groove friction, sparse tiny dust contacts, and a short 240 ms
+needle-settling scrape. It is original procedural audio, with no external samples,
+mains hum or dramatic pops. A shared per-context buffer avoids per-track synthesis;
+the long surface loop starts at a random point and its seam is crossfaded.
+At 48 kHz, the raw surface measures about -59 dBFS RMS before the faders. Both
+EFFECTS and MUSIC attenuate the texture, so at the default 70% settings its
+steady level is about -71 dBFS before the limiter.
+
+Each deck owns its surface voice upstream of the deck fade and MUSIC bus. The
+EFFECTS fader scales the texture separately from the music, while cabinet effects
+retain their own bus. Actual media `playing` events start the surface and arm a
+scrape only for a new track; pause, waiting, ended, error and emptied release it.
+Resume and buffering recovery restart the surface without another scrape. BACK
+to the start replays the scrape. All voices fade out and disconnect, and synthesis
+failure leaves music playing. The service worker precaches `vinyl.js` for offline use.
 Compare final levels through the venue speakers. See `sfx/README.md` for source,
 lengths and replacement instructions.
 

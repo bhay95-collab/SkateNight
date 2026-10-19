@@ -287,6 +287,10 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 - The coin animation and seven original mechanical sound effects accompany the
   keys, selection relay, changer, needle and page carrier. **Effects** has its own
   volume slider; custom MP3s in `sfx/` can replace individual sounds.
+- Each track starts with a small needle-on-vinyl scrape, with very quiet record
+  surface noise underneath the song. **Effects** also controls this texture;
+  set it to zero to remove it. The vinyl follows music volume, fades and pauses,
+  and does not replay its opening scrape when resuming a paused song.
 
 ### Keyboard
 

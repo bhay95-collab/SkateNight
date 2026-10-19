@@ -25,6 +25,7 @@ import { getEngine } from './audio.js';
 export const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page'];
 const rawFiles = new Map();      // name -> ordered { path, bytes } candidates
 const buffers = new Map();       // name -> decoded sound, ready to play
+const filePaths = new Map();     // distinguish bundled motors from custom recordings
 let fetching = null;
 
 // The asset pack already has headroom. These trims keep frequent controls and
@@ -118,6 +119,7 @@ export async function decodeSfxFiles() {
     for (const { path, bytes } of candidates) {
       try {
         buffers.set(name, await e.ctx.decodeAudioData(bytes.slice(0)));
+        filePaths.set(name, path);
         return;
       } catch (err) {
         console.warn(`[sound] ${path} could not be read - trying the next sound source`, err);
@@ -137,6 +139,40 @@ function playFile(name, voice, maxSeconds) {
   if (!buf) return false;
   const { ctx, output, rate } = voice;
   const t = ctx.currentTime;
+  // Shorten only the steady middle of the original motor. The authored stop
+  // contact must survive faster moves, at its original pitch. Custom recordings
+  // retain the documented fade-to-fit behavior rather than guessing their shape.
+  if (name === 'whirr' && filePaths.get(name) === 'sfx/whirr.wav' && maxSeconds >= 0.25 && maxSeconds < buf.duration) {
+    const tail = 0.18;
+    const overlap = 0.025;
+    const join = maxSeconds - tail;
+    for (const ending of [false, true]) {
+      const src = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      src.buffer = buf;
+      src.playbackRate.setValueAtTime(1, t);
+      src.connect(gain).connect(output);
+      voice.track(src, gain);
+      if (!ending) {
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(1, t + 0.003);
+        gain.gain.setValueAtTime(1, t + join);
+        gain.gain.linearRampToValueAtTime(0, t + join + overlap);
+        src.start(t);
+        src.stop(t + join + overlap);
+      } else {
+        gain.gain.setValueAtTime(0, t + join);
+        gain.gain.linearRampToValueAtTime(1, t + join + overlap);
+        // Match the final sample's zero boundary; even the release stays within
+        // the movement rather than leaking into the needle-on-groove cue.
+        gain.gain.setValueAtTime(1, t + maxSeconds - 0.012);
+        gain.gain.linearRampToValueAtTime(0, t + maxSeconds);
+        src.start(t + join, buf.duration - tail);
+        src.stop(t + maxSeconds);
+      }
+    }
+    return true;
+  }
   const src = ctx.createBufferSource();
   src.buffer = buf;
   src.playbackRate.setValueAtTime(rate, t);
@@ -211,6 +247,7 @@ const effect = (name, fallback) => (...args) => {
 };
 
 export const sfx = {
+  stop(name) { activeVoices.get(name)?.release(); },
   coin: effect('coin', (voice) => {
     for (const [at, peak] of [[0, 0.12], [0.065, 0.09], [0.145, 0.10], [0.24, 0.07]]) {
       thump(voice, { freq: 2100, dur: 0.035, peak, at });
