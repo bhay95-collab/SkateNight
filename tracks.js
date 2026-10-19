@@ -251,4 +251,12 @@ export const tracks = [
 
   // D6 - Vol. IV
   { id: 'communion-chorus',    title: 'Communion Chorus',    volume: 'vol-iv',   file: 'audio/communion-chorus.mp3' },
+
+  // ---- Songs 55-56: a sixth song on Vol. V and VI ----
+
+  // E6 - Vol. V
+  { id: 'bought-with-a-price',           title: 'Bought with a Price',           volume: 'vol-v',  file: 'audio/bought-with-a-price.mp3' },
+
+  // G6 - Vol. VI
+  { id: 'fight-the-good-fight-of-faith', title: 'Fight the Good Fight of Faith', volume: 'vol-vi', file: 'audio/fight-the-good-fight-of-faith.mp3' },
 ];
