@@ -8,7 +8,7 @@
      - the neon SPECTRUM bars and the twin needle VU meters (canvas)
      - the two BUBBLE TUBES (canvas), which also speed up with the music
      - the grid speed and the bulb chase speed (animation playbackRate)
-     - the soft BASS PULSE on the cabinet glow (one element's opacity)
+     - the BASS PULSE across the monitor glass (one element's opacity)
      - the mirror-ball light spots
 
    Rules this file lives by:
@@ -30,6 +30,8 @@ import { isCalm, onCalmChange, safely } from './fx.js';
 import { clamp } from './format.js';
 
 const FRAME_MS = 1000 / 30;
+const GLOW_REST = 0.14;
+const GLOW_SWELL = 0.56;            // .14–.70 on translucent gradients, never an opaque flash
 const BAR_COUNT = 36;
 const SPECTRUM_TOP_HZ = 15000;      // the highest pitch the bars show (MP3s hold almost nothing above it)
 const MAX_DPR = 1.5;
@@ -88,7 +90,8 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   const tubeCanvases = [$('tube-l')?.querySelector('canvas'), $('tube-r')?.querySelector('canvas')];
 
   // ---- smoothing state
-  const bassEnv = createEnvelope({ attackMs: 140, releaseMs: 420 });
+  const makeBassEnvelope = () => createEnvelope({ attackMs: 140, releaseMs: 420 });
+  let bassEnv = makeBassEnvelope();
   const energyEnv = createEnvelope({ attackMs: 200, releaseMs: 900 });
   const vuEnv = [createEnvelope({ attackMs: 60, releaseMs: 300 }), createEnvelope({ attackMs: 60, releaseMs: 300 })];   // about a real VU's 300 ms
   const beat = createBeatDetector();                 // finds the kick in the bass-only signal, 340 ms apart at most
@@ -330,8 +333,9 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       drawTube(tubes[1], 1, seconds, 1 + energy * 1.2);
     });
 
-    // 4. the soft bass swell on the cabinet glow (opacity only)
-    if (glow) glow.style.opacity = (0.14 + 0.2 * pulse).toFixed(3);
+    // 4. a visible glass/edge swell across the whole cabinet (opacity only).
+    // Beat only: raw loudness would add ripples outside the beat gate.
+    if (glow) glow.style.opacity = (GLOW_REST + GLOW_SWELL * pulse).toFixed(3);
     safely('logo', () => driveLogo(pulse, energy));
 
     // 5. slower things, a few times a second
@@ -378,6 +382,9 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   function stop() {
     running = false;
     cancelAnimationFrame(rafId);
+    kickUntil = 0;
+    bassEnv = makeBassEnvelope();
+    if (glow) glow.style.opacity = String(GLOW_REST);
     clearLogo();
   }
 
@@ -393,7 +400,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       drawTube(tubes[0], 0, 6, 0);
       drawTube(tubes[1], 1, 18, 0);
     });
-    if (glow) glow.style.opacity = '0.2';
+    if (glow) glow.style.opacity = String(GLOW_REST);
     for (const a of animations) { try { a.playbackRate = 1; } catch { /* gone */ } }
   }
 

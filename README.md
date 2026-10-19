@@ -342,6 +342,10 @@ animation off and shows the finished picture instead (the clock, the progress ba
 and the queue still update). It starts in whichever mode the laptop's own "reduce
 motion" setting asks for, and remembers your choice.
 
+In **LIGHTS: FULL**, the whole screen gently swells with cyan/magenta edge
+light in time with the bass beat. It settles when the music stops; CALM holds
+the glow still.
+
 The effects are built to stay safe for people who are sensitive to flashing:
 nothing flashes faster than three times a second, and music-driven lights swell
 smoothly instead of strobing. Details are in `DESIGN.md`.

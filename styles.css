@@ -175,10 +175,18 @@ kbd{
 }
 @keyframes grid-scroll{ to{ background-position:0 4.4rem; } }
 
-/* the cabinet's own glow, swelled gently by the bass (opacity set by visualiser.js) */
+/* Bass-reactive light on the monitor glass, ABOVE the opaque cabinet. Broad
+   edge blooms and a faint full-screen sheen keep the swell visible without
+   moving the layout or washing out the record sleeves. Opacity is smoothed
+   by visualiser.js; this layer never catches a click. */
 .cab-glow{
-  position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.2;
-  background:radial-gradient(60% 55% at 50% 52%, rgba(255,45,149,.18), transparent 70%);
+  position:fixed; inset:0; z-index:42; pointer-events:none; opacity:.14;
+  background:
+    radial-gradient(ellipse 58% 85% at 0% 50%, rgba(37,232,226,.32), transparent 75%),
+    radial-gradient(ellipse 58% 85% at 100% 50%, rgba(255,45,149,.30), transparent 75%),
+    radial-gradient(ellipse 95% 75% at 50% 105%, rgba(255,45,149,.12), transparent 70%),
+    linear-gradient(rgba(255,243,222,.025), rgba(255,243,222,.025));
+  will-change:opacity;
 }
 
 /* mirror-ball light: a few faint spots drifting BEHIND the cabinet, glimpsed in the gaps */

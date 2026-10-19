@@ -369,7 +369,7 @@ runs 1.8x faster (about 1.4 s).
 **Audio-reactive** (`visualiser.js`, one shared `requestAnimationFrame` loop,
 capped at 30 fps): neon spectrum bars with peak caps (36 bars, log-spaced up to 15 kHz - MP3s carry almost nothing above that, so no bar sits dead), twin needle VU meters,
 bubble tubes that speed up with the music, grid scroll speed and bulb chase speed
-(`playbackRate` of the CSS animations), a soft bass swell on the cabinet glow,
+(`playbackRate` of the CSS animations), a bass swell across the monitor glass,
 and the logo halo. **Beat detection** listens to the bass only: the music runs
 through a 140 Hz low-pass into its own analyser (`audio.js: beatAnalyser`) and
 `createBeatDetector` (`dsp.js`) calls a beat when that bass level jumps 15%
@@ -377,6 +377,12 @@ above its own 0.4 s average (volume slider divided out, small floor for
 silence). Tuned on the real songs at about one beat per kick, 1.2 - 1.8 a second.
 The earlier detector read the full spectrum, which loud masters keep near its
 ceiling, so it never fired on these songs and the bass swell sat still.
+The screen glow sits above the opaque cabinet, below the CRT glass and bezel:
+broad cyan/magenta edge blooms and a faint full-screen sheen answer the same
+smoothed beat. The previous central glow sat behind the panels and was barely
+visible. Only the glow layer's opacity changes; controls, sleeves and text stay
+in place. Silence fades back to its resting glow; CALM and hidden tabs reset
+it immediately, including the pulse envelope.
 
 **Ambient:** a few faint mirror-ball light spots drifting *behind* the cabinet (CSS
 transform only), the LED ticker rolling **one skate joke at a time** (each
@@ -416,7 +422,8 @@ LED reads **FREE PLAY** (real arcade term).
 - Music-driven brightness goes through `dsp.js`: an **envelope** (attack 140 ms,
   release 420 ms) and a **beat gate** (340 ms minimum gap = at most 3 pulses a
   second). The bass swell is an opacity *swell* on a soft glow layer between
-  0.16 and 0.50, never an on/off flash. Both are unit-tested. The beat itself
+  0.14 and 0.70, with translucent gradients (at most 32% alpha per gradient),
+  never an on/off flash. The visualiser lifecycle and DSP are unit-tested. The beat itself
   comes from the bass-only detector (about 1.2 - 1.8 beats a second on the real
   songs, hard-capped at 3 by the gate). The logo halo is a small area (about 110 px
   across) that follows the beat only: measured on real songs, 1.4 clean swells a
