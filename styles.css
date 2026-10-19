@@ -508,16 +508,32 @@ body.on-attract .rig{ visibility:hidden; }
 .sr-only{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 
 .rack-panel{ flex:1; min-height:0; display:flex; flex-direction:column; gap:.45rem; }
-.rack-heading{ display:grid; grid-template-columns:var(--rack-cover-size, 4rem) minmax(0,1fr); gap:.65rem; align-items:center; flex:none; }
-.rack-heading .rack-sleeve{ width:var(--rack-cover-size, 4rem); height:var(--rack-cover-size, 4rem); justify-self:center; }
+/* The track list hugs its own rows (7 on a full album), and the heading above
+   it takes every remaining pixel: a bigger cover, and album controls that grow
+   with it. rack-layout.js sizes the cover from what is left. */
+.rack-heading{ display:grid; grid-template-columns:var(--rack-cover-size, 4rem) minmax(0,1fr); gap:.65rem; align-items:stretch; flex:1 1 auto; min-height:0; }
+.rack-heading .rack-sleeve{ width:var(--rack-cover-size, 4rem); height:var(--rack-cover-size, 4rem); justify-self:center; align-self:center; }
 .rack-heading[data-layout="stacked"]{ grid-template-columns:minmax(0,1fr); }
 .rack-heading[data-layout="stacked"] .rack-album{ width:100%; }
+/* with the cover above, the controls drop back to one compact row */
+.rack-heading[data-layout="stacked"] .rack-bar{
+  grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto; grid-template-areas:"prev label next";
+}
+.rack-heading[data-layout="stacked"] .rack-nav{ width:auto; min-width:2.4rem; height:auto; min-height:1.8rem; }
 .rack-heading[data-layout="none"]{ grid-template-columns:minmax(0,1fr); }
 .rack-heading[data-layout="none"] .rack-sleeve{ display:none; }
-.rack-album{ min-width:0; display:grid; gap:.6rem; }
-.rack-bar{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.5rem; }
+.rack-album{ min-width:0; min-height:0; display:grid; grid-template-rows:minmax(0,1fr) auto; gap:.5rem; }
+/* album name on top, then two chunky arrow keys that stretch to fill the height */
+.rack-bar{
+  display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:"label label" "prev next"; align-items:stretch; gap:.5rem; min-height:0;
+}
+.rack-bar .rack-label{ grid-area:label; align-self:center; }      /* natural height, never stretched (the layout measures it) */
+.rack-bar #rack-prev{ grid-area:prev; }
+.rack-bar #rack-next{ grid-area:next; }
 .rack-nav{
-  width:1.9rem; height:1.6rem; padding:0; cursor:pointer; font-size:.7rem; line-height:1;
+  width:100%; min-width:2.3rem; height:100%; min-height:1.8rem; max-height:3.6rem; align-self:center;
+  padding:0; cursor:pointer; font-size:.95rem; line-height:1;
   color:var(--cream); background:linear-gradient(180deg, var(--cab-2), var(--cab)); border:1px solid var(--cab-edge); border-radius:.4rem;
   box-shadow:0 .2rem 0 rgba(0,0,0,.55);
   transition:transform .08s var(--ease-out), box-shadow .08s var(--ease-out);
@@ -533,17 +549,18 @@ body.on-attract .rig{ visibility:hidden; }
 
 /* Full-width strips use the height freed by the selector. No hidden pages.
    Ordinary scrolling remains available for future albums longer than the rack. */
-.rack-page{ flex:1; min-height:0; display:flex; }
+.rack-page{ flex:0 1 auto; min-height:0; display:flex; }
 .rack-sleeve .sleeve{ box-shadow:0 .3rem 0 rgba(0,0,0,.55), inset 0 0 0 1px rgba(60,40,10,.35); }
 
 /* the title strips: read-only paper in a dark brass-framed window */
 .strips-wrap{ flex:1; min-width:0; min-height:0; display:flex; }
 .strips{
-  flex:1; min-width:0; align-self:stretch; min-height:0; overflow-y:auto; overflow-x:hidden;
+  flex:1; min-width:0; align-self:stretch; min-height:0; overflow-y:auto; overflow-x:hidden;     /* only scrolls if a future album is longer than the panel */
   scrollbar-width:thin; scrollbar-color:var(--cab-edge) transparent; overscroll-behavior:contain;
   padding:.28rem; border-radius:.5rem; background:linear-gradient(180deg,#0d0618,#140a24);
   box-shadow:var(--inset),0 0 0 .1rem #80613D;
 }
+.strip:last-child{ margin-bottom:0; }
 .strips-empty{ margin:1rem .4rem; color:var(--dim); font:700 .66rem var(--font-mono); letter-spacing:.08em; text-align:center; }
 .strip{
   --paper:linear-gradient(180deg,#E6D9BB,#D2C29E);
@@ -870,9 +887,9 @@ body.is-crowd .deck, body.is-crowd .keypad-panel, body.is-crowd .legend, body.is
 body.is-crowd .rack-nav, body.is-crowd .q-btn, body.is-crowd .toast{ display:none !important; }
 body.is-crowd .rig{ grid-template-rows:auto auto minmax(0,1fr); padding-bottom:1.1rem; }
 body.is-crowd .cabinet{ grid-template-columns:1.8rem minmax(0,1fr) minmax(0,1.38fr) minmax(0,.62fr) 1.8rem; }
-body.is-crowd .rack-bar{ grid-template-columns:minmax(0,1fr); }
+body.is-crowd .rack-bar{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:"label"; }
 /* The projector keeps a complete album list and gives the queue its full height. */
-body.is-crowd .rack-page{ flex:1; min-height:0; }
+body.is-crowd .rack-page{ flex:0 1 auto; min-height:0; }
 body.is-crowd .strips-wrap{ width:100%; flex:1; }
 body.is-crowd .strips{ overflow:hidden; }
 body.is-crowd .strip-title{ font-size:.92rem; }

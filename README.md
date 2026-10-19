@@ -135,7 +135,9 @@ Vol. VI is **G**, not F. This table is also written at the top of
 now Vol. I has 7 songs and Vol. II - X have 6; the next song goes on Vol. II). Add each new song at the **end** of the
 `tracks = [` list, so no existing code changes. Each album has one complete
 track list beneath a flexible cover: all current songs fit without turning pages.
-The cover grows when the screen has spare room and shrinks before tracks do.
+The panel is tuned for seven songs per album: the list hugs its rows and every
+spare bit of height goes to the album cover and the big album arrow keys. The
+cover grows when the screen has spare room and shrinks before tracks do.
 If a future album outgrows the window, scroll its list; typing a code brings
 that song into view automatically.
 

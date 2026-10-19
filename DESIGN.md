@@ -185,6 +185,21 @@ worker.
   and rounds down with a two-pixel safety allowance. Artwork shrinks or hides
   before an oversized future album needs contained scrolling. The same rule
   applies to the crowd screen, with its hidden controls excluded from sizing.
+- **The panel is tuned for seven songs per album** (the catalogue is being
+  brought to seven on every album). The track list hugs its rows exactly - no
+  dead band under the last strip (at most about 10 px of the list's own padding;
+  `.strip:last-child` has no bottom margin) - and the heading above takes every
+  remaining pixel. The album controls are stacked: the album name on top, then
+  two chunky arrow keys that stretch to fill the height (at least 1.8 rem, at
+  most 3.6 rem tall) and the count / song total beneath. Because those controls
+  need little width, the cover is limited by height rather than by the controls
+  (at 1440 x 900 it grows from 142 px to 203 px). With a cover above the controls
+  (taller windows such as 1024 x 768) the controls drop back to one compact row
+  (`stackedControlsHeight` in `planRackLayout`). The layout measures the controls'
+  minimum size, not their stretched size, so it cannot feed back on itself, and
+  the album label keeps its natural height (`align-self:center`) so the crowd
+  screen, which hides the arrow keys, still gets its cover. Checked: all ten
+  albums at ten window sizes, none scrolls, no row cut off, no overflow.
 - Pressing a letter key (or typing it) flips the rack to that album, so the
   operator sees its songs while finishing the code.
 - The most important things are the largest: song title (Bungee), the LED clock,

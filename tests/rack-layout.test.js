@@ -111,3 +111,25 @@ test('artwork is the largest feasible half-pixel square while the complete list 
   }
   assert.equal(checked, 45);
 });
+
+test('a cover above the controls uses the compact one-row controls height', () => {
+  const tall = { width: 266, height: 509, tracksHeight: 230, controlsWidth: 120, controlsHeight: 80, listGap: 8, coverGap: 10 };
+  const twoRow = planRackLayout(tall);
+  const oneRow = planRackLayout({ ...tall, stackedControlsHeight: 44 });
+  assert.equal(twoRow.layout, 'stacked');
+  assert.equal(oneRow.layout, 'stacked');
+  assert.ok(oneRow.coverSize > twoRow.coverSize, 'the shorter controls leave more room for the cover');
+  assert.ok(oneRow.coverSize <= tall.width, 'the cover never exceeds the panel width');
+  // Not passing it keeps the old behaviour exactly (it defaults to controlsHeight).
+  assert.deepEqual(planRackLayout({ ...tall, stackedControlsHeight: tall.controlsHeight }), twoRow);
+});
+
+test('spare height goes to the cover: a taller panel never shrinks it', () => {
+  const base = { width: 380, height: 420, tracksHeight: 7 * 40, controlsWidth: 150, controlsHeight: 90, listGap: 8, coverGap: 10 };
+  let previous = 0;
+  for (let extra = 0; extra <= 200; extra += 10) {
+    const { coverSize } = planRackLayout({ ...base, height: base.height + extra });
+    assert.ok(coverSize >= previous, `cover shrank at +${extra}px`);
+    previous = coverSize;
+  }
+});

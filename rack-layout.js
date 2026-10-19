@@ -1,9 +1,13 @@
 /* Keep the complete track list at its natural, readable height. Artwork gets
    the remaining space, beside the album controls or above them if that is bigger. */
-export function planRackLayout({ width, height, tracksHeight, controlsWidth, controlsHeight, listGap, coverGap }) {
+export function planRackLayout({
+  width, height, tracksHeight, controlsWidth, controlsHeight, listGap, coverGap,
+  // The controls sit on one compact row when the cover is above them.
+  stackedControlsHeight = controlsHeight,
+}) {
   const room = Math.max(0, height - tracksHeight - listGap - 2);
   const beside = room >= controlsHeight ? Math.max(0, Math.min(room, width - controlsWidth - coverGap)) : 0;
-  const above = Math.max(0, Math.min(width, room - controlsHeight - coverGap));
+  const above = Math.max(0, Math.min(width, room - stackedControlsHeight - coverGap));
   // Round down, so subpixel rounding cannot push the final strip out of view.
   const coverSize = Math.floor(Math.max(beside, above) * 2) / 2;
   const layout = coverSize === 0 ? 'none' : above > beside ? 'stacked' : 'beside';
@@ -36,16 +40,23 @@ export function fitRackArtwork({ panel, heading, controls, strips }) {
     // cover cap for a particular album title, screen ratio or browser zoom.
     const labelWidth = sumWidths(label.children) + px(labelCss.columnGap) * Math.max(0, label.children.length - 1);
     const navButtons = [...bar.querySelectorAll('.rack-nav')].filter((node) => getComputedStyle(node).display !== 'none');
-    const navWidth = sumWidths(navButtons) + labelWidth + px(barCss.columnGap) * navButtons.length;
+    // The arrow keys stretch to fill their row, so only their minimum size (not
+    // their current stretched size) says how much room the controls really need.
+    const navMinWidth = Math.max(0, ...navButtons.map((node) => px(getComputedStyle(node).minWidth)));
+    const navMinHeight = Math.max(0, ...navButtons.map((node) => px(getComputedStyle(node).minHeight)));
+    const navWidth = Math.max(labelWidth, navMinWidth * navButtons.length + px(barCss.columnGap) * Math.max(0, navButtons.length - 1));
     const summaryWidth = sumWidths(summary.children) + px(summaryCss.columnGap)
       + px(summaryCss.paddingLeft) + px(summaryCss.paddingRight);
-    const controlsHeight = boxHeight(bar) + boxHeight(summary) + px(getComputedStyle(controls).rowGap);
+    const controlsGap = px(getComputedStyle(controls).rowGap);
+    const controlsHeight = boxHeight(label) + navMinHeight + px(barCss.rowGap) + boxHeight(summary) + controlsGap;
+    const stackedControlsHeight = Math.max(boxHeight(label), navMinHeight) + boxHeight(summary) + controlsGap;
     const layout = planRackLayout({
       width: panel.clientWidth,
       height: panel.clientHeight,
       tracksHeight,
       controlsWidth: Math.max(navWidth, summaryWidth),
       controlsHeight,
+      stackedControlsHeight,
       listGap: px(getComputedStyle(panel).rowGap),
       coverGap: px(getComputedStyle(heading).columnGap),
     });
