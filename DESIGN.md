@@ -185,8 +185,9 @@ worker.
   and rounds down with a two-pixel safety allowance. Artwork shrinks or hides
   before an oversized future album needs contained scrolling. The same rule
   applies to the crowd screen, with its hidden controls excluded from sizing.
-- **The panel is tuned for seven songs per album** (the catalogue is being
-  brought to seven on every album). The track list hugs its rows exactly - no
+- **The panel is tuned for seven songs per album** (the catalogue is complete:
+  70 songs, exactly seven on each of the ten albums, so the cover is the same
+  size on every album at a given window size and never jumps when albums flip). The track list hugs its rows exactly - no
   dead band under the last strip (at most about 10 px of the list's own padding;
   `.strip:last-child` has no bottom margin) - and the heading above takes every
   remaining pixel. The album controls are stacked: the album name on top, then

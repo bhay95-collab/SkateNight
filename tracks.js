@@ -293,4 +293,18 @@ export const tracks = [
 
   // G7 - Vol. VI
   { id: 'know-the-lord',        title: 'Know the Lord',        volume: 'vol-vi',  file: 'audio/know-the-lord.mp3' },
+
+  // ---- Songs 67-70: a seventh song on Vol. VII - X (every album now has 7) ----
+
+  // H7 - Vol. VII
+  { id: 'restore-us-lord-to-first-love', title: 'Restore Us, Lord, to First Love', volume: 'vol-vii',  file: 'audio/restore-us-lord-to-first-love.mp3' },
+
+  // J7 - Vol. VIII
+  { id: 'your-kingdom-come',    title: 'Your Kingdom Come',    volume: 'vol-viii', file: 'audio/your-kingdom-come.mp3' },
+
+  // K7 - Vol. IX
+  { id: 'shout-joyfully-to-the-lord', title: 'Shout Joyfully to the Lord', volume: 'vol-ix', file: 'audio/shout-joyfully-to-the-lord.mp3' },
+
+  // L7 - Vol. X
+  { id: 'under-his-mighty-wings', title: 'Under His Mighty Wings', volume: 'vol-x',   file: 'audio/under-his-mighty-wings.mp3' },
 ];

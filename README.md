@@ -132,7 +132,7 @@ Vol. VI is **G**, not F. This table is also written at the top of
 `tracks.js`. Moving a song up or down the list changes its code.
 
 **Where to put new songs:** spread them evenly, fewest songs first (right
-now Vol. I - VI have 7 songs and Vol. VII - X have 6; the next song goes on Vol. VII). Add each new song at the **end** of the
+now every album, Vol. I - X, has 7 songs, 70 in all; the next song goes on Vol. I). Add each new song at the **end** of the
 `tracks = [` list, so no existing code changes. Each album has one complete
 track list beneath a flexible cover: all current songs fit without turning pages.
 The panel is tuned for seven songs per album: the list hugs its rows and every
