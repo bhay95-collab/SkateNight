@@ -80,61 +80,45 @@
     </div>
 
     <div class="marquee-status">
-      <div class="led-chip" id="led-credits" title="Coins in the machine"><span class="led-key">Credits</span><span class="led" id="credits-val">FREE PLAY</span></div>
-      <div class="led-chip led-offline" id="led-offline" title="Whether every song is saved on this laptop for offline use"><span class="led-dot"></span><span id="offline-text">NOT OFFLINE YET</span></div>
+      <div class="led-chip" id="led-credits" title="Coins are for fun; every song is free"><span class="led-key">Credits</span><span class="led" id="credits-val">FREE PLAY</span><small id="free-play">FREE PLAY</small></div>
+      <button type="button" class="led-chip led-offline" id="led-offline" title="Open offline song storage in Tools"><span class="led-dot" aria-hidden="true"></span><span id="offline-text">NOT OFFLINE YET</span></button>
       <button type="button" class="chip-btn" id="btn-problems" hidden>CHECK TRACKS.JS</button>
     </div>
   </header>
 
-  <div class="ticker screen" role="marquee" aria-label="Announcements">
+  <section class="ticker screen" aria-label="Announcements">
     <div class="ticker-lane"><span class="ticker-text" id="ticker-text">WELCOME TO SKATE BY FAITH</span></div>
-  </div>
+  </section>
 
   <main class="cabinet">
 
     <div class="tube" id="tube-l" aria-hidden="true"><canvas></canvas></div>
 
-    <!-- LEFT THIRD: the rack (one album page at a time) and the selector -->
+    <!-- Album browser: a compact sleeve above the complete album track list -->
     <section class="panel choose" aria-label="Choose a song">
       <h2 class="panel-title tab-tilt-a" id="crowd-tab">Pick a Song</h2>
-      <div class="rack-panel" aria-label="Record rack">
+      <div class="rack-panel" role="region" aria-label="Record rack">
         <h3 class="sr-only">The Rack</h3>
-        <div class="rack-bar">
-          <button type="button" class="rack-nav" id="rack-prev" aria-label="Previous album">&#9664;</button>
-          <p class="rack-label" aria-live="polite"><span class="rack-letter led" id="rack-letter">A</span><span class="rack-title" id="rack-title">Vol. I</span><span class="rack-count" id="rack-count">1 / 10</span></p>
-          <button type="button" class="rack-nav" id="rack-next" aria-label="Next album">&#9654;</button>
+        <div class="rack-heading">
+          <div class="rack-sleeve" id="rack-sleeve"></div>
+          <div class="rack-album">
+            <div class="rack-bar">
+              <button type="button" class="rack-nav" id="rack-prev" aria-label="Previous album">&#9664;</button>
+              <p class="rack-label" aria-live="polite"><span class="rack-letter led" id="rack-letter">A</span><span class="rack-title" id="rack-title">Vol. I</span></p>
+              <button type="button" class="rack-nav" id="rack-next" aria-label="Next album">&#9654;</button>
+            </div>
+            <p class="rack-summary"><span id="rack-count">1 / 10</span><span id="rack-song-count"></span></p>
+          </div>
         </div>
         <div class="rack-page">
-          <div class="rack-side">
-            <div class="rack-sleeve" id="rack-sleeve"></div>
-            <button type="button" class="more-btn" id="strips-more" disabled aria-label="More songs on this album">
-              <span class="more-label">MORE &#9660;</span><span class="more-lamps" id="more-lamps" aria-hidden="true"></span>
-            </button>
-          </div>
           <div class="strips-wrap">
-            <div class="strips" id="strips" role="list" aria-label="Songs on this album"></div>
+            <div class="strips" id="strips" role="list" tabindex="0" aria-label="Songs on this album"></div>
           </div>
-        </div>
-      </div>
-
-      <div class="keypad-panel" aria-label="Song selector">
-        <h3 class="sr-only">Selector</h3>
-        <div class="readout screen" aria-live="polite">
-          <span class="readout-code led" id="readout-code" aria-label="Typed code">__</span>
-          <span class="readout-msg" id="readout-msg" role="status">PICK A LETTER, THEN A NUMBER</span>
-        </div>
-        <div class="key-letters" id="key-letters"></div>
-        <div class="key-digits" id="key-digits"></div>
-        <div class="keypad-actions">
-          <button type="button" class="key key-fn" data-key="CLEAR" id="key-clear">CLR</button>
-          <button type="button" class="key key-fn" data-key="BACK" id="key-del">DEL</button>
-          <button type="button" class="btn btn-select" id="btn-select">SELECT</button>
-          <button type="button" class="btn btn-small" id="btn-coin" title="Drop a coin in the slot"><span class="coin-slot" aria-hidden="true"></span>COIN</button>
         </div>
       </div>
     </section>
 
-    <!-- RIGHT TWO-THIRDS: now playing and up next -->
+    <!-- Record changer, then a compact queue above the selector -->
     <section class="panel now-panel" aria-label="Now playing">
       <h2 class="panel-title tab-tilt-a">Now Playing</h2>
 
@@ -168,11 +152,12 @@
         <p class="np-title" id="np-title">PRESS PLAY</p>
         <p class="np-meta"><span id="np-volume">&nbsp;</span><span class="np-code led" id="np-code">--</span></p>
       </div>
+      <p class="sr-only" id="now-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
 
       <div class="np-time">
-        <span class="np-clock led" id="np-elapsed" aria-label="Time played">00:00</span>
+        <span class="np-clock led" id="np-elapsed" role="timer" aria-live="off" aria-label="Time played">00:00</span>
         <div class="np-tube" id="np-tube" role="progressbar" aria-label="Song progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="np-fill" id="np-fill"></i></div>
-        <span class="np-clock led" id="np-remaining" aria-label="Time left">-00:00</span>
+        <span class="np-clock led" id="np-remaining" role="timer" aria-live="off" aria-label="Time left">-00:00</span>
       </div>
 
       <div class="np-meters">
@@ -182,12 +167,29 @@
       </div>
     </section>
 
-    <section class="panel queue-panel" aria-label="Up next">
-      <h2 class="panel-title tab-tilt-b">Up Next</h2>
-      <div class="queue screen" id="queue-screen" tabindex="0" aria-label="Upcoming songs">
+    <section class="panel queue-panel" aria-label="Up next and song selector">
+      <h2 class="panel-title tab-tilt-b">Up Next <span id="queue-count"></span></h2>
+      <div class="queue screen" id="queue-screen" role="region" tabindex="0" aria-label="Upcoming songs">
         <ol class="queue-list" id="queue-list"></ol>
       </div>
-      <p class="queue-note">Your picks play first.<br>We'll keep the records turning.</p>
+      <p id="queue-continuation" class="queue-continuation" hidden></p>
+      <p class="queue-note">Your picks play first.</p>
+      <div class="keypad-panel" role="region" aria-label="Song selector">
+        <h3 class="sr-only">Song selector</h3>
+        <div class="readout screen" aria-live="polite">
+          <span class="readout-code led" id="readout-code">__</span>
+          <span class="readout-msg" id="readout-msg" role="status">PICK AN ALBUM LETTER</span>
+          <p id="selection-preview" class="selection-preview" aria-live="polite" aria-atomic="true"></p>
+        </div>
+        <div class="key-letters" id="key-letters"></div>
+        <div class="key-digits" id="key-digits"></div>
+        <div class="keypad-actions">
+          <button type="button" class="key key-fn" data-key="CLEAR" id="key-clear" aria-label="Clear selection">CLR</button>
+          <button type="button" class="key key-fn" data-key="BACK" id="key-del" aria-label="Delete last character">DEL</button>
+          <button type="button" class="btn btn-select" id="btn-select">SELECT</button>
+          <button type="button" class="btn btn-small" id="btn-coin" title="Drop a coin in the slot"><span class="coin-slot" aria-hidden="true"></span>COIN</button>
+        </div>
+      </div>
     </section>
 
     <div class="tube" id="tube-r" aria-hidden="true"><canvas></canvas></div>
@@ -201,13 +203,14 @@
     </div>
 
     <div class="deck-group deck-faders">
-      <label class="fader"><span>Music</span><input type="range" id="vol-music" min="0" max="100" value="70" aria-label="Music volume"></label>
-      <label class="fader" title="Cabinet sounds and vinyl texture"><span>Effects</span><input type="range" id="vol-sfx" min="0" max="100" value="70" aria-label="Sound effects and vinyl texture volume"></label>
+      <label class="fader"><span>Music <output id="music-value" for="vol-music">70%</output></span><input type="range" id="vol-music" min="0" max="100" value="70" aria-label="Music volume"></label>
+      <label class="fader" title="Cabinet sounds and vinyl texture"><span>Effects <output id="sfx-value" for="vol-sfx">70%</output></span><input type="range" id="vol-sfx" min="0" max="100" value="70" aria-label="Sound effects and vinyl texture volume"></label>
     </div>
 
     <div class="deck-group deck-tools">
       <button type="button" class="btn btn-deck" id="btn-shuffle" aria-pressed="true" title="Shuffle: every song plays once before any repeats (S). Off = play in the order of tracks.js">SHUFFLE: ON</button>
-      <button type="button" class="btn btn-deck" id="btn-crowd" title="Open the crowd screen for the projector: drag it there, then click it to go fullscreen">CROWD</button>
+      <button type="button" class="btn btn-deck" id="btn-crowd" title="Open another window for the projector" aria-label="Open crowd screen in another window" aria-describedby="crowd-link-state">CROWD SCREEN</button>
+      <span id="crowd-link-state" class="sr-only" role="status">Crowd screen closed</span>
       <button type="button" class="btn btn-deck" id="btn-lights" aria-pressed="false">LIGHTS: FULL</button>
       <details class="utility-drawer" id="cabinet-tools">
         <summary>TOOLS</summary>
@@ -220,11 +223,20 @@
           </span>
           <small>Save the songs before the night.</small>
           <button type="button" class="btn btn-deck" id="btn-keys">KEYBOARD SHORTCUTS</button>
+          <label class="tool-setting" for="vol-vinyl"><span>Vinyl texture <output id="vinyl-value" for="vol-vinyl">100%</output></span><input type="range" id="vol-vinyl" min="0" max="100" value="100" aria-label="Vinyl texture level" aria-describedby="vinyl-help"></label>
+          <small id="vinyl-help">Reduce record texture independently. Effects controls cabinet sounds and vinyl together.</small>
+          <label class="tool-setting quick-pick-setting"><input type="checkbox" id="quick-pick"> Click a song to fill its code</label>
+          <small>SELECT or Enter still adds the song.</small>
         </div>
       </details>
     </div>
   </footer>
 
+</div>
+
+<div id="crowd-hint" class="crowd-hint" hidden role="status">
+  <span id="crowd-status">Waiting for the operator window.</span>
+  <button id="crowd-hint-dismiss" type="button" aria-label="Dismiss projector hint">×</button>
 </div>
 
 <!-- keyboard legend: shows for a few seconds, press ? to bring it back -->
@@ -241,14 +253,14 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<div class="modal" id="problems-modal" hidden>
-  <div class="panel modal-card" role="dialog" aria-modal="true" aria-labelledby="problems-title">
+<dialog class="modal" id="problems-modal" aria-labelledby="problems-title">
+  <div class="panel modal-card">
     <h2 class="panel-title tab-tilt-a" id="problems-title">Check tracks.js</h2>
     <p class="modal-lead">These entries have a problem. The jukebox skipped them and kept going.</p>
     <ul class="modal-list" id="problems-list"></ul>
     <button type="button" class="btn btn-deck" id="problems-close">CLOSE</button>
   </div>
-</div>
+</dialog>
 
 <script type="module" src="neon.js"></script>
 <script type="module" src="cabinet.js"></script>

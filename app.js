@@ -20,7 +20,8 @@ import {
 import {
   initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
-import { unlockAudio, setMusicLevel, setSfxLevel } from './audio.js';
+import { unlockAudio, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
+import { installCabinetKeyboard } from './keyboard.js';
 import { sfx, preloadSfxFiles, decodeSfxFiles } from './sound.js';
 import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
@@ -45,6 +46,7 @@ const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light sho
 const ATTRACT_PAGE_MS = 9000;    // attract mode turns the rack to the next album this often
 const STORE_VOL = 'sn-volumes';
 const STORE_SHUFFLE = 'sn-shuffle';
+const STORE_QUICK_PICK = 'sn-quick-pick';
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
 
@@ -97,6 +99,8 @@ async function main() {
   let takenFromHouse = false;
   let shuffle = true;              // SHUFFLE on = shuffled deck; off = play in tracks.js order
   try { shuffle = localStorage.getItem(STORE_SHUFFLE) !== 'off'; } catch { /* storage blocked - default on */ }
+  let quickPick = false;
+  try { quickPick = localStorage.getItem(STORE_QUICK_PICK) === 'on'; } catch { /* keep code-only default */ }
   let bag = [];                    // songs already played in the current shuffled deck
   let history = [];                // songs started, oldest first (for BACK)
   let nowId = null;
@@ -122,18 +126,33 @@ async function main() {
   const ui = createUI({
     library,
     getStatus,
+    getQuickPick: () => quickPick,
     handlers: {
       openVolume: (id) => { sfx.page(); ui.renderStrips(id); scheduleRender(); },
-      stripsTurned: () => sfx.page(),
       keyPressed: (key) => { noteInput(); keyPressed(key); },
       moveUp: (i) => { queue = moveUp(queue, i); sfx.key(); afterQueueChange(); },
       cancel: (i) => { queue = cancelAt(queue, i); sfx.key(); afterQueueChange(); },
+      prefillTrack: (track) => {
+        if (!started) return;
+        noteInput();
+        setBuffer(track.code);
+        const select = $('btn-select');
+        select.focus({ preventScroll: true });
+        const bounds = select.getBoundingClientRect();
+        if (bounds.top < 0 || bounds.bottom > innerHeight) select.scrollIntoView({ block: 'nearest' });
+      },
     },
   });
   /* ---------------- the crowd screen link ----------------
      Everything the room should see is also sent to the crowd screen. */
   const link = createLink();
   let crowdOpen = false;                           // only stream meter levels once a crowd screen has said hello
+  let crowdLastSeen = 0;
+  const crowdStatus = (connected) => {
+    const message = connected ? 'Crowd screen connected' : 'Crowd screen not connected';
+    if ($('crowd-link-state').textContent !== message) $('crowd-link-state').textContent = message;
+    $('btn-crowd').dataset.connected = String(connected);
+  };
   const mech = mirrorMech(createMechanism({ sfx, tracks: library.tracks, volumeById }));
   function mirrorMech(m) {
     const tx = Object.create(m);
@@ -150,11 +169,21 @@ async function main() {
     shownVolumeId: ui.shownVolumeId, missing: library.tracks.filter((t) => getStatus(t.id).state === 'missing').map((t) => t.id),
   });
   link.listen(({ type }) => {
-    if (type !== 'hello') return;
+    if (type !== 'hello' && type !== 'crowd-heartbeat') return;
+    crowdLastSeen = performance.now();
+    crowdStatus(true);
     crowdOpen = true;
+    if (type !== 'hello') return;
     link.send('snapshot', { state: crowdState(), lights: isCalm() ? 'calm' : 'full' });
   });
   link.send('operator');                           // a crowd screen already open (say, after a reload) says hello back
+  setInterval(() => {
+    link.send('heartbeat');
+    if (crowdOpen && performance.now() - crowdLastSeen > 30000) {
+      crowdOpen = false;
+      crowdStatus(false);
+    }
+  }, 2000);
   mech.setRackLookup((volumeId) => ui.rackSleeve(volumeId));
 
   ui.renderRack();
@@ -171,7 +200,6 @@ async function main() {
     btn.hidden = false;
     btn.textContent = `CHECK TRACKS.JS (${problems.length})`;
     btn.addEventListener('click', () => ui.showProblems(problems));
-    $('problems-close').addEventListener('click', () => { $('problems-modal').hidden = true; btn.focus(); });
   }
 
   /* ---------------- rendering ---------------- */
@@ -195,6 +223,7 @@ async function main() {
     const node = $('credits-val');
     if (credits > 0) node.textContent = String(credits).padStart(2, '0');
     else node.textContent = 'FREE PLAY';
+    $('free-play').hidden = credits <= 0;
   }
 
   function say(text, kind = 'info') { ui.setMessage(text, kind); }
@@ -553,7 +582,9 @@ async function main() {
     safely('sign-flash', () => ui.flashSelection(track));
     link.send('select', { trackId: track.id });
     useCredit();
-    say(`ADDED ${track.code} - ${track.title}`, 'good');
+    say(phase === 'idle'
+      ? `STARTING ${track.code} - ${track.title}`
+      : `ADDED ${track.code} - POSITION ${queue.length}`, 'good');
     if (phase === 'idle') playFromIdle();
     else afterQueueChange();
     return true;
@@ -639,17 +670,32 @@ async function main() {
   })();
   const musicSlider = $('vol-music');
   const sfxSlider = $('vol-sfx');
+  const vinylSlider = $('vol-vinyl');
   if (Number.isFinite(savedVol.music)) musicSlider.value = savedVol.music;
   if (Number.isFinite(savedVol.sfx)) sfxSlider.value = savedVol.sfx;
+  if (Number.isFinite(savedVol.vinyl)) vinylSlider.value = savedVol.vinyl;
   const applySliders = () => {
     setMusicLevel(musicSlider.value / 100);
     setSfxLevel(sfxSlider.value / 100);
-    try { localStorage.setItem(STORE_VOL, JSON.stringify({ music: Number(musicSlider.value), sfx: Number(sfxSlider.value) })); } catch { /* fine */ }
+    setVinylLevel(vinylSlider.value / 100);
+    for (const [output, slider] of [[$('music-value'), musicSlider], [$('sfx-value'), sfxSlider], [$('vinyl-value'), vinylSlider]]) {
+      const value = `${slider.value}%`;
+      if (output.value !== value) output.value = value;
+    }
+    try { localStorage.setItem(STORE_VOL, JSON.stringify({ music: Number(musicSlider.value), sfx: Number(sfxSlider.value), vinyl: Number(vinylSlider.value) })); } catch { /* fine */ }
   };
   musicSlider.addEventListener('input', applySliders);
   sfxSlider.addEventListener('input', applySliders);
+  vinylSlider.addEventListener('input', applySliders);
   sfxSlider.addEventListener('change', () => sfx.key());
   applySliders();
+  const quickPickSetting = $('quick-pick');
+  quickPickSetting.checked = quickPick;
+  quickPickSetting.addEventListener('change', () => {
+    quickPick = quickPickSetting.checked;
+    try { localStorage.setItem(STORE_QUICK_PICK, quickPick ? 'on' : 'off'); } catch { /* preference still applies now */ }
+    ui.refreshQuickPick();
+  });
 
   function nudgeVolume(delta) {
     musicSlider.value = clamp(Number(musicSlider.value) + delta, 0, 100);
@@ -739,47 +785,19 @@ async function main() {
 
   /* ---------------- the keyboard ---------------- */
   const codeLetters = new Set(library.volumes.map((v) => v.letter));
-  window.addEventListener('keydown', (e) => {
-    if (!started) return;
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const target = e.target;
-    const onSlider = target instanceof HTMLInputElement && target.type === 'range';
-    if (!$('problems-modal').hidden) {
-      if (e.key === 'Escape') { $('problems-modal').hidden = true; $('btn-problems').focus(); }
-      return;
-    }
-    const key = e.key;
-    if (key === ' ' || key === 'Spacebar') { e.preventDefault(); if (!e.repeat) togglePlay(); return; }
-    if ((key === 'ArrowLeft' || key === 'ArrowRight') && !onSlider && !(target.closest && target.closest('#rack'))) {
-      e.preventDefault();
-      if (!e.repeat) { if (key === 'ArrowLeft') back(); else skip(); }
-      return;
-    }
-    if (key === 'ArrowUp' || key === 'ArrowDown') {
-      if (onSlider) return;
-      e.preventDefault();
-      nudgeVolume(key === 'ArrowUp' ? 5 : -5);
-      return;
-    }
-    if (key === 'Enter') {
-      if (codeBuffer) { e.preventDefault(); selectPressed(); }
-      return;
-    }
-    if (key === 'Backspace') { e.preventDefault(); keyPressed('BACK'); return; }
-    if (key === 'Escape') { if (codeBuffer) { keyPressed('CLEAR'); } return; }
-    if (key === '?') { showLegend(); return; }
-    if (e.repeat) return;
-    const upper = key.length === 1 ? key.toUpperCase() : '';
-    if (upper === 'N') { skip(); return; }
-    if (upper === 'P') { back(); return; }
-    if (upper === 'S') { setShuffle(!shuffle); return; }
-    if (upper === 'F') { toggleFullscreen(); return; }
-    if (/^[A-Z]$/.test(upper) && codeLetters.has(upper)) { keyPressed(upper); return; }
-    if (/^\d$/.test(upper)) { keyPressed(upper); }
-  });
-  // A focused button would also "click" on Space; the machine already handled it.
-  window.addEventListener('keyup', (e) => {
-    if (started && (e.key === ' ' || e.key === 'Spacebar')) e.preventDefault();
+  installCabinetKeyboard({
+    codeLetters,
+    isStarted: () => started,
+    getCode: () => codeBuffer,
+    onKey: (key) => key === 'SELECT' ? selectPressed() : keyPressed(key),
+    onTogglePlay: togglePlay,
+    onBack: back,
+    onSkip: skip,
+    onShuffle: () => setShuffle(!shuffle),
+    onFullscreen: toggleFullscreen,
+    onVolume: nudgeVolume,
+    onHelp: showLegend,
+    onAlbumStep: (direction) => $(direction < 0 ? 'rack-prev' : 'rack-next').click(),
   });
 
   /* ---------------- offline crates ---------------- */
@@ -907,7 +925,7 @@ async function main() {
     keepAwake();
     ensureHouseNext();
     ticker.start();
-    showLegend();
+    if (matchMedia('(pointer:fine)').matches && innerWidth >= 1000) showLegend();
     scheduleRender();
     lastInput = performance.now();
     const reg = await registerServiceWorker();

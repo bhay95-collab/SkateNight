@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createVinylBuffers, createVinylSurface } from '../vinyl.js';
-import { getLevels, setMusicLevel, setSfxLevel, unlockAudio } from '../audio.js';
+import { getLevels, setMusicLevel, setSfxLevel, setVinylLevel, unlockAudio } from '../audio.js';
 import { perceptualVolume } from '../format.js';
 
 function parameter() {
@@ -218,22 +218,44 @@ test('muting during the initial fade cancels future attack ramps for the surface
   }
 });
 
-test('music and effects faders both govern the record surface through its deck route', () => {
+test('vinyl trim is remembered before unlock, scales under effects, and leaves cabinet sounds alone', () => {
   const savedWindow = globalThis.window;
   const previous = getLevels();
   try {
+    assert.equal(previous.vinyl, 1, 'default trim preserves the established record mix');
     globalThis.window = { AudioContext: FakeContext };
     setSfxLevel(0.3);
+    setVinylLevel(0.4);
+    assert.equal(getLevels().vinyl, 0.4, 'vinyl setting is remembered before a user unlocks audio');
     const engine = unlockAudio();
+    assert.equal(engine.vinylLevel, 0.4, 'audio unlock keeps the pending trim');
     const deck = engine.ctx.createGain();
     deck.connect(engine.musicBus);
     const vinyl = createVinylSurface(engine.ctx, deck);
+    const otherDeck = engine.ctx.createGain();
+    otherDeck.connect(engine.musicBus);
+    const otherVinyl = createVinylSurface(engine.ctx, otherDeck);
     engine.recordSurfaces.add(vinyl);
+    engine.recordSurfaces.add(otherVinyl);
     vinyl.start({ needle: true });
+    otherVinyl.start();
     for (const source of engine.ctx.sources) {
-      assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.3),
-        'new voice respects the effects value set before audio unlock');
-      assert.equal(source.connections[0].connections[0], deck);
+      assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.3 * 0.4),
+        'new surface and scratch respect both values set before audio unlock');
+      assert.ok([deck, otherDeck].includes(source.connections[0].connections[0]));
+    }
+    const cabinetEvents = engine.sfxBus.gain.events.length;
+    setVinylLevel(0);
+    for (const source of engine.ctx.sources) {
+      assert.equal(source.connections[0].gain.events.at(-1)[1], 0, 'vinyl mute reaches every record voice');
+      assert.deepEqual(source.connections[0].gain.events.slice(-3).map((event) => event[0]),
+        ['cancel', 'set', 'target'], 'vinyl mute cancels pending attacks on both decks');
+    }
+    assert.equal(engine.sfxBus.gain.events.length, cabinetEvents,
+      'independent record mute leaves cabinet effects untouched');
+    setVinylLevel(0.5);
+    for (const source of engine.ctx.sources) {
+      assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.3 * 0.5));
     }
     setSfxLevel(0);
     for (const source of engine.ctx.sources) {
@@ -241,17 +263,53 @@ test('music and effects faders both govern the record surface through its deck r
     }
     setSfxLevel(0.5);
     for (const source of engine.ctx.sources) {
-      assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.5));
+      assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.5 * 0.5),
+        'changing the effects master preserves the independent vinyl trim');
     }
     setMusicLevel(0);
     assert.equal(engine.musicBus.gain.events.at(-1)[1], 0, 'music mute silences the deck and its texture together');
     assert.equal(deck.connections[0], engine.musicBus);
     vinyl.stop();
+    otherVinyl.stop();
+    const releasedEvents = engine.ctx.sources.map((source) => source.connections[0].gain.events.length);
+    setVinylLevel(1);
+    setSfxLevel(1);
+    assert.deepEqual(engine.ctx.sources.map((source) => source.connections[0].gain.events.length), releasedEvents,
+      'neither fader can revive released tails');
+    setVinylLevel(0);
+    vinyl.start({ needle: true });
+    for (const source of engine.ctx.sources.slice(-2)) {
+      assert.equal(source.connections[0].gain.events.at(-1)[1], 0,
+        'future songs and needle cues remain silent after vinyl is muted');
+    }
+    vinyl.stop();
     engine.recordSurfaces.delete(vinyl);
+    engine.recordSurfaces.delete(otherVinyl);
   } finally {
     setMusicLevel(previous.music);
     setSfxLevel(previous.sfx);
+    setVinylLevel(previous.vinyl);
     globalThis.window = savedWindow;
+  }
+});
+
+test('all level setters retain finite slider bounds before combining the vinyl and effects trims', () => {
+  const previous = getLevels();
+  try {
+    setMusicLevel(-0.5);
+    setSfxLevel(5);
+    setVinylLevel(2);
+    assert.deepEqual(getLevels(), { music: 0, sfx: 1, vinyl: 1 });
+    setMusicLevel(Infinity);
+    setSfxLevel(NaN);
+    setVinylLevel(-1);
+    assert.deepEqual(getLevels(), { music: 0, sfx: 0, vinyl: 0 });
+    setVinylLevel(undefined);
+    assert.equal(getLevels().vinyl, 0, 'invalid persisted settings cannot produce non-finite audio gain');
+  } finally {
+    setMusicLevel(previous.music);
+    setSfxLevel(previous.sfx);
+    setVinylLevel(previous.vinyl);
   }
 });
 

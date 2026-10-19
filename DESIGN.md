@@ -137,15 +137,22 @@ worker.
 
 ## Layout
 
-- The whole machine is sized in `rem`, and the root font size follows the
-  window: `min(window width / 64, window height / 36)`. A 16:9 projector shows
-  the same picture at any resolution. The design canvas is **64 x 36 rem**
-  (1280 x 720 at 20 px per rem). Check every change at **1280 x 720**.
-- Nothing on the control screen scrolls. The title-strip window shows as many
-  strips as fit and a **MORE** push-button turns to the next group (see below).
+- At normal laptop/projector sizes, the machine is sized in `rem` and the root
+  font follows `min(window width / 64, window height / 36)`. The design canvas is
+  **64 x 36 rem** (1280 x 720 at 20 px per rem). Check every change at
+  **1280 x 720**. At widths up to 999 px, or a coarse pointer up to 1280 px,
+  readable 16 px root text replaces proportional shrinking. The operator
+  cabinet becomes two columns, then stacks at 600 px and below; the outer page
+  scrolls. Extremely short desktop windows also allow page scrolling. These
+  modes preserve the materials and reading order rather than miniaturising
+  every control to keep the entire machine on one screen.
+- Current album tracks fit together without paging. Contained list scrolling
+  handles future albums longer than the available space; the outer cabinet
+  remains fixed at the supported laptop/projector sizes.
 - Rows: marquee, LED ticker, cabinet, operator deck, key legend.
-- Cabinet columns: tube | **PICK A SONG** (one third) | **NOW PLAYING** + **UP
-  NEXT** (two thirds, split 1.38 : 0.62) | tube.
+- Operator columns: tube | **PICK A SONG** | **NOW PLAYING** | **UP NEXT** and
+  selector | tube, with content proportions 1.04 : 1.28 : 0.88. The crowd view
+  keeps its separate 1 : 1.38 : 0.62 balance and hides the operator controls.
 - The marquee sign is centred on the page (wordmark 2.45 rem, subtitle .72 rem,
   both centred inside the sign) with the bulb rows hugging the sign's edges so
   the lettering never sits on a bulb. Its enclosure has a narrow bevel, flush
@@ -163,41 +170,65 @@ worker.
   dropped .55 rem so they clear the arch's top bar and curved corners (checked
   at six window sizes: at least 6 px of clear space everywhere). The two chips
   are the same width.
-- PICK A SONG is one panel: the rack page on top (one album at a time - a big
-  sleeve with the MORE button under it, the pair as tall as the page and capped
-  at 46% of the width so the title strips keep room for two-line titles, with
-  arrows to flip albums) and the selector
-  underneath (readout, letter keys wearing a dimmed copy of their cover, number
-  keys, CLR / DEL / SELECT / COIN).
+- PICK A SONG uses the full left panel: flexible artwork and album navigation
+  above a full-width track list. All seven tracks on the largest current album
+  fit together at 1280 x 720, with larger .84 rem titles. The selector sits under
+  a shortened UP NEXT area in the wider right column, keeping the record changer
+  in the centre. Key rows respond to their available container width; letters
+  become a single row only when each key retains usable width. Coarse pointers
+  retain five-column key groups with larger targets.
+  The readout and CLR / DEL / SELECT / COIN stay together beneath the queue.
+- Artwork is content-first (`rack-layout.js`): reserve the natural rendered
+  height of every track, navigation and gaps, then choose the larger square
+  that fits beside or above the album controls. It measures the actual font
+  and title wrapping, updates on album changes, resize and font readiness,
+  and rounds down with a two-pixel safety allowance. Artwork shrinks or hides
+  before an oversized future album needs contained scrolling. The same rule
+  applies to the crowd screen, with its hidden controls excluded from sizing.
 - Pressing a letter key (or typing it) flips the rack to that album, so the
   operator sees its songs while finishing the code.
 - The most important things are the largest: song title (Bungee), the LED clock,
   the UP NEXT titles and the ticker. The strips are reference material for the
   operator; status (NOW / Q2 / OUT OF ORDER) is a small tag clipped onto the
-  strip's corner so titles keep the full width.
-- **MORE** (`ui.js: paginateStrips`): the strip window never scrolls (no wheel,
-  no scrollbar), like a real jukebox's title-strip window. It measures how many
-  strips fit (3 at 16:9 sizes such as 1280 x 720 and 1920 x 1080; taller windows
-  like 1024 x 768 fit all 5) and splits the album into groups. The **MORE ▼** push-button under the
-  cover turns to the next group, and after the last group back to the first,
-  with a page-turn clack (`sfx.page`) and a quick slide. Small lamps on the
-  button show which group is showing; the button is dimmed and disabled when
-  every strip fits. A fully typed code turns to the group holding its strip and
-  outlines it in cyan. The groups re-measure on resize and when fonts load,
-  and the group number is kept when the album re-renders (e.g. when a song
-  changes) but reset to the first when the album changes. The crowd screen has
-  no button and shows every strip (it hides MORE and uses a taller layout).
-- Transport, music/effects faders, SHUFFLE, CROWD and LIGHTS remain on the deck.
-  TOOLS groups FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. The native
+  strip's corner so titles keep the full width. Now Playing reserves a stable
+  two-line title area, fits against its measured width and keeps its metadata,
+  clocks and progress in fixed rows. Track/album changes receive one live
+  announcement; advancing clocks are not live regions. Meters reserve 48 px
+  minimum, or 40 px in short landscape mode. Header space and the decorative
+  changer give way before useful meter space does.
+- Album tracks are one continuous list, with no MORE button or hidden groups.
+  Ordinary contained scrolling accommodates future albums larger than the rack.
+  A newly typed complete code reveals its row within this list and outlines it
+  in cyan, without scrolling the surrounding cabinet. The current ten albums
+  need no scrolling at the supported laptop sizes. The crowd screen keeps a
+  complete list and uses the queue's full column because its selector is hidden.
+- Transport, music/effects faders, SHUFFLE, CROWD SCREEN and LIGHTS remain on the
+  deck. TOOLS groups FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, the Vinyl
+  texture trim and optional click-to-fill. Faders display their percentages. The native
   disclosure supports mouse, Enter and Space, closes on Escape or an outside
   click, and never submits a pending song code or changes playback. Offline
-  status and errors stay visible at the top of the cabinet.
+  status and errors stay visible at the top of the cabinet. Offline status is
+  also a button that opens Tools and focuses LOAD THE CRATES, without starting
+  a download. Persistent FREE PLAY text reassures operators that coins are
+  decorative.
 - UP NEXT keeps the note **Your picks play first. / We'll keep the records
   turning.** Requests have a YOUR PICKS heading and cyan position chips. House
   suggestions remain under IF NOBODY PICKS, with full-opacity pale-lilac titles
   and clear cyan metadata. Both stay readable over the recessed near-black
-  window; decorative scanlines are subdued there. Real requests can scroll
-  when needed, while extra house suggestions are trimmed first.
+  window; decorative scanlines are subdued there. All 30 possible explicit
+  requests render in the contained scroll area, with their total and a cue when
+  more remain below. House suggestions are a separate short preview and are
+  trimmed first. Request rows are keyed by track identity; reordering preserves
+  focus and scroll, and cancellation focuses the nearest surviving action or
+  the queue. Queue actions have at least 32 x 28 px fine-pointer targets,
+  growing to 40 px for coarse pointers. Desktop actions sit side by side to
+  protect queue height.
+- SELECT keeps a deep magenta face, white lettering and its brighter edge, so
+  the identity survives at smaller text sizes with readable contrast. Letter
+  keys use a dark layer over the real covers for consistent label contrast.
+  CLR and DEL retain their hardware labels with full accessible names.
+- The ticker sits in a named landmark. Keep decorative jokes secondary to
+  selection and playback; narrow/short layouts reclaim sign height and gutters.
 
 ## Restraint (the October refinement pass)
 
@@ -225,22 +256,27 @@ record changer and the readouts carry the show; the world around it stays dim.
 - VU meters: landscape windows; the scale and the needle's pivot are computed
   from the smaller side so nothing is ever cut off.
 
-- Selection is by code only (keypad or keyboard). The title strips are read-only
-  paper, as on a real Wurlitzer/Seeburg; the rack arrows and letter keys only
-  flip which album's strips are showing.
+- Selection requires a confirmed code (keypad or keyboard). The title strips
+  are read-only paper by default, as on a real Wurlitzer/Seeburg. The optional
+  **Click a song to fill its code** setting in Tools makes strips focusable
+  buttons for prefilling only; clicking or Enter/Space fills the code and
+  focuses SELECT. It never adds a request by itself. The choice defaults off
+  and is saved as `sn-quick-pick`. Rack arrows and letter keys continue to browse.
+  Contextual guidance follows letter, number and confirmation, names the
+  resolved song, and reports whether an accepted request starts or its position.
 
 Before adding anything new, ask what it replaces.
 
 ## Crowd screen (two windows)
 
-The **CROWD** button opens `index.html?view=crowd` (`crowd.js`) for the
+The **CROWD SCREEN ↗** button opens `index.html?view=crowd` (`crowd.js`) for the
 projector, with the laptop showing the full control window. The crowd screen:
-- plays **no sound** and has **no controls** (no deck, selector, queue buttons,
-  status chips or key legend); its tab reads THE RACK, and the rack fills the
-  column - a big sleeve over larger strips - following the control window's page.
-  Nobody can scroll this window, so every strip always shows: the strips take
-  the height they need and the sleeve shrinks to fit (tested with 5 songs on
-  an album);
+- plays **no sound** and hides operator controls (deck, selector, queue buttons,
+  status chips and key legend); its tab reads THE RACK, and the rack fills the
+  column, with flexible artwork and larger strips following the control window's
+  album. The seven tracks in the largest current album remain visible at the
+  tested sizes; the artwork uses the remaining space. This is a passive display,
+  so its composition must be rechecked if future albums gain many more tracks;
 - mirrors everything the room should see over a `BroadcastChannel` (`link.js`):
   state (playing, UP NEXT and the house plan, rack page), every record-changer
   move, SELECTION ACCEPTED, the song clock (about 4 times a second) and the
@@ -249,7 +285,12 @@ projector, with the laptop showing the full control window. The crowd screen:
   record is shown already playing);
 - follows the LIGHTS setting (shared `localStorage`, `storage` event);
 - runs its own ticker jokes, bubble tubes, arch and (silent) screen flicker;
-- goes fullscreen on a click or F, and hides the pointer when fullscreen.
+- gives a dismissible setup hint to move it to the projector and click for
+  fullscreen; it goes fullscreen on a click or F and hides the pointer when
+  fullscreen;
+- tracks the operator heartbeat. After 30 seconds without contact it shows a
+  connection warning, then clears it automatically when contact resumes. The
+  operator window announces the crowd connection state beside its button.
 If the control window is minimised the browser pauses its drawing, so the
 crowd screen's meters freeze until it is shown again.
 
@@ -424,7 +465,9 @@ than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
   a console warning.
 - A missing or unreadable MP3 becomes **OUT OF ORDER**, is dropped from the
   queue and skipped by the house rotation. A typo in `tracks.js` shows a red
-  CHECK TRACKS.JS button with a plain-English list instead of crashing.
+  CHECK TRACKS.JS button with a plain-English list instead of crashing. Its
+  native modal dialog makes the background inert, blocks cabinet shortcuts,
+  closes with Close or Escape, and restores focus to the warning button.
 - A start-up failure shows "START-UP PROBLEM - PRESS F5" on the INSERT COIN
   screen rather than a dead page.
 
@@ -448,6 +491,13 @@ than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
 - Shortcuts: Left / P back, Right / N next, S shuffle, F fullscreen, Space play /
   pause. These letters (F N P S) are therefore never used as volume letters. The
   laptop's previous-track media key is wired to Back.
+- `keyboard.js` routes shortcuts after native control behavior: focused buttons,
+  links and disclosures keep Enter/Space even when a song code is pending.
+  Focused album/queue areas retain scrolling arrows, sliders/editing controls
+  retain their keys, and open modal dialogs block all cabinet shortcuts.
+  Left/Right inside `.rack-panel` browse albums; transport and volume arrows
+  operate from the background. Handled events and Ctrl/Meta/Alt combinations
+  are left alone. No global keyup handler cancels native Space activation.
 
 ## Sound
 
@@ -494,11 +544,15 @@ mains hum or dramatic pops. A shared per-context buffer avoids per-track synthes
 the long surface loop starts at a random point and its seam is crossfaded.
 At 48 kHz, the raw surface measures about -59 dBFS RMS before the faders. Both
 EFFECTS and MUSIC attenuate the texture, so at the default 70% settings its
-steady level is about -71 dBFS before the limiter.
+steady level is about -71 dBFS before the limiter with the Vinyl texture trim
+at its default 100%.
 
 Each deck owns its surface voice upstream of the deck fade and MUSIC bus. The
 EFFECTS fader scales the texture separately from the music, while cabinet effects
-retain their own bus. Actual media `playing` events start the surface and arm a
+retain their own bus. The Tools-only Vinyl texture trim multiplies the texture
+gain independently: its default 100% preserves the authored mix and 0% removes
+only the vinyl. It is remembered locally; MUSIC or EFFECTS at zero still silences
+the texture. Actual media `playing` events start the surface and arm a
 scrape only for a new track; pause, waiting, ended, error and emptied release it.
 Resume and buffering recovery restart the surface without another scrape. BACK
 to the start replays the scrape. All voices fade out and disconnect, and synthesis
@@ -563,6 +617,7 @@ from 10 metres). Everything about reading and validating that file lives in
 |---|---|
 | `index.html` | Page structure: boot overlay, attract screen, background world, the machine |
 | `cabinet.js` | Native TOOLS disclosure, keyboard activation, dismissal and shortcut help |
+| `keyboard.js` | Cabinet shortcuts that respect native controls, scroll areas and modal dialogs |
 | `styles.css` | All styling and every `@keyframes` (single stylesheet, tokens at the top) |
 | `app.js` | The conductor: state, queue flow, keypad, keyboard, attract, crates |
 | `tracks.js` | **The one file Ben edits** |
@@ -581,6 +636,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `crowd.js` | The crowd screen (projector window): mirrors the control window |
 | `link.js` | BroadcastChannel between the control window and the crowd screen |
 | `player.js` | Two audio decks, fades, gapless-feel, probing |
+| `rack-layout.js` | Fits the largest album artwork after reserving every track |
 | `mechanism.js` | The record changer animation |
 | `visualiser.js` | Shared loop, canvases, mirror light |
 | `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
@@ -590,3 +646,4 @@ from 10 metres). Everything about reading and validating that file lives in
 | `crates.js` | LOAD THE CRATES, saved-copy lookup |
 | `sw.js` | Service worker (app shell + covers only) |
 | `tests/` | `node --test` suites for every pure module |
+| `scripts/check-ui.py` | Optional Python Playwright browser regressions; no application dependencies |

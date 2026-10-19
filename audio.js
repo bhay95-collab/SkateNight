@@ -10,7 +10,7 @@
        sound effects --> [SFX volume] ------> limiter --> speakers
 
    Vinyl surface voices follow each music deck's fade and music volume,
-   with an additional trim that follows SFX volume.
+   with an independent VINYL trim beneath the master SFX volume.
 
    Browsers refuse to make sound until a person clicks or presses a key.
    unlockAudio() is called from that first click (the INSERT COIN press).
@@ -67,7 +67,8 @@ export function unlockAudio() {
     bassPass2.connect(beatAnalyser);
 
     engine = { ctx, musicBus, sfxBus, analyser, analyserL, analyserR, beatAnalyser,
-      musicLevel: pendingMusic, sfxLevel: pendingSfx, recordSurfaces: new Set() };
+      musicLevel: pendingMusic, sfxLevel: pendingSfx, vinylLevel: pendingVinyl,
+      recordSurfaces: new Set() };
     applyVolumes();
   }
   if (engine.ctx.state === 'suspended') engine.ctx.resume().catch(() => {});
@@ -84,18 +85,38 @@ function applyVolumes() {
 }
 
 /* Slider values are 0 to 1. Remembered even before audio is unlocked. */
+const level = (v) => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
+
+function applyRecordVolumes() {
+  if (!engine) return;
+  for (const surface of engine.recordSurfaces) {
+    surface.setLevel(engine.sfxLevel * engine.vinylLevel);
+  }
+}
+
 export function setMusicLevel(v) {
+  v = level(v);
   pendingMusic = v;
   if (engine) { engine.musicLevel = v; applyVolumes(); }
 }
 export function setSfxLevel(v) {
+  v = level(v);
   pendingSfx = v;
   if (engine) {
     engine.sfxLevel = v;
     applyVolumes();
-    for (const surface of engine.recordSurfaces) surface.setLevel(v);
+    applyRecordVolumes();
+  }
+}
+export function setVinylLevel(v) {
+  v = level(v);
+  pendingVinyl = v;
+  if (engine) {
+    engine.vinylLevel = v;
+    applyRecordVolumes();
   }
 }
 let pendingMusic = 0.7;
 let pendingSfx = 0.7;
-export const getLevels = () => ({ music: pendingMusic, sfx: pendingSfx });
+let pendingVinyl = 1;
+export const getLevels = () => ({ music: pendingMusic, sfx: pendingSfx, vinyl: pendingVinyl });

@@ -21,6 +21,28 @@ import { createLink } from './link.js';
 // The crowd screen is silent: every effect is a no-op here.
 const silent = new Proxy({}, { get: () => () => {} });
 
+/* A quiet/paused operator is still connected. Heartbeats keep it alive, and
+   the grace period tolerates browser background-tab timer throttling. */
+export function createCrowdConnection({ now = Date.now, graceMs = 30_000, onHeartbeatReply = () => {} } = {}) {
+  let lastContact = null;
+  let lastHeartbeatReply = -Infinity;
+  const messages = new Set(['operator', 'heartbeat', 'snapshot', 'state', 'time', 'levels', 'select', 'mech']);
+  const status = () => lastContact == null ? 'waiting' : now() - lastContact >= graceMs ? 'lost' : 'connected';
+  return {
+    status,
+    receive(type) {
+      if (!messages.has(type)) return false;
+      const needsSnapshot = status() !== 'connected' && type !== 'snapshot';
+      lastContact = now();
+      if (type === 'heartbeat' && lastContact - lastHeartbeatReply >= 6_000) {
+        lastHeartbeatReply = lastContact;
+        onHeartbeatReply();
+      }
+      return needsSnapshot;
+    },
+  };
+}
+
 export function runCrowd(library) {
   const $ = (id) => document.getElementById(id);
   document.body.classList.add('is-crowd');
@@ -63,6 +85,7 @@ export function runCrowd(library) {
   window.addEventListener('storage', (e) => { if (e.key === LIGHTS_KEY) followLights(e.newValue); });
 
   // Click (or F) for fullscreen; the pointer hides itself once fullscreen.
+  // Dismissing the hint must not also enter fullscreen.
   const goFull = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); };
   document.addEventListener('click', goFull);
   document.addEventListener('keydown', (e) => { if (e.key === 'f' || e.key === 'F') goFull(); });
@@ -88,8 +111,54 @@ export function runCrowd(library) {
   };
 
   const link = createLink();
+  const connection = createCrowdConnection({ onHeartbeatReply: () => link.send('crowd-heartbeat') });
+  let hintDismissed = false;
+  let previousConnection = null;
+  let connectionTimer = null;
+  let lastHello = 0;
+  const requestSnapshot = () => { lastHello = Date.now(); link.send('hello'); };
+  function renderConnection() {
+    const phase = link.available ? connection.status() : 'unavailable';
+    if (phase !== previousConnection && (phase === 'lost' || phase === 'unavailable')) hintDismissed = false;
+    previousConnection = phase;
+    const hint = $('crowd-hint');
+    const text = $('crowd-status');
+    if (!hint || !text) return;
+    const messages = {
+      waiting: 'Waiting for the operator screen. Keep Skate by Faith open in another window.',
+      connected: 'Move this window to the projector, then click or press F for fullscreen.',
+      lost: 'Operator connection lost. Keep the operator screen open; reconnecting…',
+      unavailable: 'This browser cannot link the screens. Open both windows in the same supported browser.',
+    };
+    hint.dataset.connection = phase;
+    hint.hidden = hintDismissed || (phase === 'connected' && Boolean(document.fullscreenElement));
+    if (text.textContent !== messages[phase]) text.textContent = messages[phase];
+  }
+  function checkConnection() {
+    renderConnection();
+    if (link.available && connection.status() !== 'connected' && Date.now() - lastHello >= 6_000) requestSnapshot();
+  }
+  function startConnectionWatch() {
+    if (connectionTimer == null) connectionTimer = setInterval(checkConnection, 3_000);
+  }
+  $('crowd-hint-dismiss')?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    hintDismissed = true;
+    renderConnection();
+  });
+  document.addEventListener('fullscreenchange', renderConnection);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { requestSnapshot(); checkConnection(); }
+  });
+  window.addEventListener('pagehide', () => { clearInterval(connectionTimer); connectionTimer = null; });
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) { requestSnapshot(); startConnectionWatch(); checkConnection(); }
+  });
   link.listen(({ type, data }) => {
-    if (type === 'operator') link.send('hello');
+    const needsSnapshot = connection.receive(type);
+    if (needsSnapshot || type === 'operator') requestSnapshot();
+    renderConnection();
+    if (type === 'operator' || type === 'heartbeat') return;
     else if (type === 'state') applyState(data);
     else if (type === 'time') {
       if (data.nowId !== state.nowId) return;
@@ -109,7 +178,9 @@ export function runCrowd(library) {
       }
     }
   });
-  link.send('hello');
+  requestSnapshot();
+  startConnectionWatch();
+  renderConnection();
   if (!link.available) ui.setMessage?.('THIS BROWSER CANNOT LINK THE SCREENS', 'bad');
   // Match the operator's full arrival instead of waiting for the recovery cap.
   boot.reveal();

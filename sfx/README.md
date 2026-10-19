@@ -53,8 +53,15 @@ and resuming or recovering from buffering does not repeat the scrape.
 The surface follows the deck's fades and stops on pause, buffering, end, or
 playback error. Both MUSIC and EFFECTS affect it: lower EFFECTS for less vinyl
 and quieter cabinet sounds; EFFECTS at zero removes both. MUSIC at zero also
-silences the vinyl. No extra download or custom recording is needed, and the
-texture works offline. The original audio files are unchanged.
+silences the vinyl.
+
+For independent adjustment, open **TOOLS** and use **Vinyl texture**. Its default
+**100%** preserves the authored mix; lowering it reduces the scrape, surface
+noise and dust ticks without changing cabinet sounds. **0%** removes the vinyl
+texture. The percentage is displayed and the choice is remembered on that laptop.
+This trim operates under the MUSIC and EFFECTS controls, so it cannot restore
+texture when either master is at zero. No extra download or custom recording is
+needed, and the texture works offline. The original audio files are unchanged.
 
 For replacements, trim leading silence, keep files small, and compare loudness
 against the supplied pack. Do not normalize all effects to full scale: they

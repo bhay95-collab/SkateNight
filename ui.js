@@ -8,6 +8,35 @@
    ============================================================ */
 import { formatClock, formatCountdown } from './format.js';
 import { isCalm, countUp } from './fx.js';
+import { fitRackArtwork } from './rack-layout.js';
+import { findTrackByCode } from './codes.js';
+
+/* Selection guidance has one source, so a message returning to its idle state
+   describes the code currently entered rather than the previous selection. */
+export function selectionState(library, buffer, getStatus = () => ({})) {
+  const idle = { track: null, ready: false, hint: 'PICK AN ALBUM LETTER', preview: '' };
+  if (!buffer) return idle;
+  const album = library.volumes.find((volume) => volume.letter === buffer[0]);
+  if (!album) return idle;
+  if (buffer.length === 1) return { ...idle, hint: `${album.letter}: PICK A TRACK NUMBER`, preview: album.title };
+  const track = findTrackByCode(library, buffer);
+  if (!track) return { ...idle, hint: `NO SONG ${buffer} · CHECK THE LIST`, preview: 'Choose a number shown on this album.' };
+  const ready = getStatus(track.id).state !== 'missing';
+  return {
+    track, ready,
+    hint: ready ? 'PRESS SELECT OR ENTER' : 'OUT OF ORDER · CHOOSE ANOTHER SONG',
+    preview: `${track.code} · ${track.title}`,
+  };
+}
+
+/* Keep the same action after a move. A cancellation chooses the next surviving
+   request, then the previous one; the first row cannot offer Move up. */
+export function queueFocusTarget(queue, focus) {
+  if (!focus || !queue.length) return null;
+  const same = queue.indexOf(focus.trackId);
+  const index = same >= 0 ? same : Math.min(Math.max(0, focus.index), queue.length - 1);
+  return { trackId: queue[index], action: focus.action === 'up' && index > 0 ? 'up' : 'cancel' };
+}
 
 /* Tiny helper: el('div', { class: 'x', onclick: fn }, child, 'text') */
 export function el(tag, props = {}, ...children) {
@@ -58,12 +87,19 @@ export function sleeveFace(volume) {
 }
 
 /* ---------------- the UI object ---------------- */
-export function createUI({ library, getStatus, handlers }) {
+export function createUI({ library, getStatus, handlers, getQuickPick = () => false }) {
   const $ = (id) => document.getElementById(id);
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
   const volumeById = new Map(library.volumes.map((v) => [v.id, v]));
+  const crowd = document.body.classList.contains('is-crowd');
 
   const stripsEl = $('strips');
+  const artwork = fitRackArtwork({
+    panel: document.querySelector('.rack-panel'),
+    heading: document.querySelector('.rack-heading'),
+    controls: document.querySelector('.rack-album'),
+    strips: stripsEl,
+  });
   const letterKeys = new Map();
   const stripRows = new Map();
   let shownVolumeId = null;
@@ -73,7 +109,7 @@ export function createUI({ library, getStatus, handlers }) {
   const rackSleeves = new Map(library.volumes.map((v) => [v.id, sleeveFace(v)]));
 
   /* ---- the rack: one album page at a time ----
-     Like the page display in a CD jukebox: a big sleeve with its title strips,
+     Like the page display in a CD jukebox: a flexible sleeve with its title strips,
      flipped with the arrows. Pressing a letter on the selector flips to that
      album too, so the codes are on screen while you type. */
   function renderRack() {
@@ -89,7 +125,7 @@ export function createUI({ library, getStatus, handlers }) {
     $('rack-next').disabled = single;
   }
 
-  /* ---- title strips (show one album's page) ---- */
+  /* ---- title strips (one complete album list) ---- */
   function renderStrips(volumeId) {
     const v = volumeById.get(volumeId);
     if (!v) return;
@@ -114,24 +150,30 @@ export function createUI({ library, getStatus, handlers }) {
     const sleeve = rackSleeves.get(volumeId);
     if ($('rack-sleeve').firstChild !== sleeve) $('rack-sleeve').replaceChildren(sleeve);
 
-    if (stripsVolumeId !== volumeId) stripPage = 0;       // a new album starts on its first page
-    stripsVolumeId = volumeId;
     stripsEl.replaceChildren();
     stripRows.clear();
+    if (isNewPage) stripsEl.scrollTop = 0;
     stripsEl.dataset.accent = v.accent || 'gold';
     const list = library.tracks.filter((t) => t.volume === volumeId);
+    $('rack-song-count').textContent = `${list.length} SONG${list.length === 1 ? '' : 'S'}`;
     if (list.length === 0) {
       stripsEl.append(el('p', { class: 'strips-empty' }, 'NO SONGS ON THIS ALBUM YET'));
-      stripPages = [];
-      updateMoreButton();
+      artwork.refresh();
       return;
     }
     for (const t of list) {
-      // Read-only, like the title strips in a real jukebox: you read the code
-      // here and punch it in on the selector. Strips are not clickable.
+      // Code entry remains the default. Optional quick pick fills the code;
+      // SELECT still confirms the request, so browsing never queues a song.
       const row = el('div', {
         class: 'strip', role: 'listitem', title: t.title,
         dataset: { track: t.id },
+        onclick: () => { if (!crowd && getQuickPick()) handlers.prefillTrack?.(t); },
+        onkeydown: (event) => {
+          if (crowd || !getQuickPick() || !['Enter', ' '].includes(event.key)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          if (!event.repeat) handlers.prefillTrack?.(t);
+        },
       },
         el('span', { class: 'strip-code led' }, t.code),
         el('span', { class: 'strip-title' }, t.title),
@@ -139,77 +181,26 @@ export function createUI({ library, getStatus, handlers }) {
       stripRows.set(t.id, row);
       stripsEl.append(row);
     }
-    paginateStrips();
+    refreshQuickPick();
+    artwork.refresh();
   }
 
-  /* ---- MORE: the strip window never scrolls ----
-     Like the title-strip window on a real jukebox, it shows as many strips as
-     fit and a push-button under the cover turns to the next group (and, after
-     the last, back to the first). Typing a code turns to the group that holds
-     its strip. The crowd screen has no button, so it shows every strip. */
-  const moreBtn = $('strips-more');
-  let stripPages = [];            // arrays of rows, one per group
-  let stripPage = 0;
-  let stripsVolumeId = null;
-
-  function paginateStrips() {
-    const rows = [...stripRows.values()];
-    rows.forEach((r) => r.classList.remove('is-off'));
-    stripPages = [];
-    if (document.body.classList.contains('is-crowd')) {
-      if (rows.length) stripPages = [rows];
-    } else {
-      const css = getComputedStyle(stripsEl);
-      const room = stripsEl.clientHeight - parseFloat(css.paddingTop) - parseFloat(css.paddingBottom);
-      let group = [];
-      let used = 0;
-      for (const row of rows) {
-        const h = row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0);
-        if (group.length && used + h > room + 1) { stripPages.push(group); group = []; used = 0; }
-        group.push(row);
-        used += h;
+  function refreshQuickPick() {
+    const quick = !crowd && getQuickPick();
+    stripsEl.setAttribute('role', quick ? 'group' : 'list');
+    stripsEl.classList.toggle('has-quick-pick', quick);
+    for (const row of stripRows.values()) {
+      row.setAttribute('role', quick ? 'button' : 'listitem');
+      const track = trackById.get(row.dataset.track);
+      const label = (row.getAttribute('aria-label') || `${track.code} ${track.title}`).replace(/, preview this selection$/, '');
+      row.setAttribute('aria-label', `${label}${quick ? ', preview this selection' : ''}`);
+      if (quick) row.setAttribute('tabindex', '0');
+      else {
+        if (document.activeElement === row) stripsEl.focus({ preventScroll: true });
+        row.removeAttribute('tabindex');
       }
-      if (group.length) stripPages.push(group);
-    }
-    stripPage = Math.min(stripPage, Math.max(0, stripPages.length - 1));
-    showStripPage();
-  }
-
-  function showStripPage() {
-    stripPages.forEach((group, i) => group.forEach((r) => r.classList.toggle('is-off', i !== stripPage)));
-    updateMoreButton();
-  }
-
-  function updateMoreButton() {
-    const pages = stripPages.length;
-    moreBtn.disabled = pages < 2;
-    moreBtn.setAttribute('aria-label', pages < 2
-      ? 'All songs on this album are showing'
-      : `More songs on this album: showing group ${stripPage + 1} of ${pages}`);
-    $('more-lamps').replaceChildren(...(pages < 2 ? [] : stripPages.map((_, i) => el('i', { class: i === stripPage ? 'is-on' : '' }))));
-  }
-
-  function turnStrips(next) {
-    if (next === stripPage || next < 0 || next >= stripPages.length) return;
-    stripPage = next;
-    showStripPage();
-    if (!isCalm()) {
-      stripsEl.animate(
-        [{ opacity: 0.3, transform: 'translateY(.5rem)' }, { opacity: 1, transform: 'none' }],
-        { duration: 220, easing: 'cubic-bezier(.2,.7,.2,1)' },
-      );
     }
   }
-
-  moreBtn.addEventListener('click', () => {
-    if (stripPages.length < 2) return;
-    turnStrips((stripPage + 1) % stripPages.length);
-    handlers.stripsTurned?.();
-    moreBtn.blur();                                       // so Space / arrow keys keep driving the music
-  });
-  let paginateTimer = 0;
-  window.addEventListener('resize', () => { clearTimeout(paginateTimer); paginateTimer = setTimeout(paginateStrips, 120); });
-  if (document.fonts?.ready) document.fonts.ready.then(paginateStrips).catch(() => {});
 
   /* Refresh strip states in place. Only a status shows (NOW, Q1, OUT OF ORDER);
      song lengths are left off so the titles get the room. */
@@ -227,8 +218,12 @@ export function createUI({ library, getStatus, handlers }) {
       else if (queuePos >= 0) label = `Q${queuePos + 1}`;
       if (aside.textContent !== label) aside.textContent = label;
       const t = trackById.get(id);
-      row.setAttribute('aria-label', `${t.code} ${t.title}${st.state === 'missing' ? ', out of order' : ''}`);
+      const state = st.state === 'missing' ? ', out of order' : id === nowId ? ', now playing' : queuePos >= 0 ? `, queue position ${queuePos + 1}` : '';
+      row.setAttribute('aria-label', `${t.code} ${t.title}${state}${!crowd && getQuickPick() ? ', preview this selection' : ''}`);
+      if (id === nowId) row.setAttribute('aria-current', 'true');
+      else row.removeAttribute('aria-current');
     }
+    showSelectionGuidance();
   }
 
   /* ---- selector keypad ----
@@ -252,12 +247,20 @@ export function createUI({ library, getStatus, handlers }) {
       letters.append(key);
     }
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].forEach((d) => digits.append(mk(d, d)));
-    letters.style.setProperty('--letter-cols', Math.min(10, Math.max(1, library.volumes.length)));
+    letters.style.setProperty('--letter-cols', Math.min(5, Math.max(1, library.volumes.length)));
+    letters.style.setProperty('--letter-count', Math.max(1, library.volumes.length));
     $('key-clear').addEventListener('click', () => handlers.keyPressed('CLEAR'));
     $('key-del').addEventListener('click', () => handlers.keyPressed('BACK'));
   }
 
   function setCode(buffer) {
+    // New input starts the next selection. Routine renders of the same code
+    // still preserve the current acceptance/error announcement.
+    if (currentCode !== buffer) {
+      messageActive = false;
+      clearTimeout(msgTimer);
+    }
+    currentCode = buffer;
     const code = $('readout-code');
     code.textContent = buffer.length ? buffer.padEnd(2, '_') : '__';
     code.classList.toggle('is-typing', buffer.length > 0);
@@ -268,11 +271,23 @@ export function createUI({ library, getStatus, handlers }) {
       const isHeld = key.dataset.key === buffer[0] ? true : /\d/.test(key.dataset.key) && held.has(key.dataset.key);
       key.classList.toggle('is-latched', isHeld);
     }
+    const selected = selectionState(library, buffer, getStatus);
     for (const [id, row] of stripRows) {
-      const isTyped = buffer.length > 1 && trackById.get(id).code === buffer;
+      const isTyped = selected.track?.id === id;
+      const wasTyped = row.classList.contains('is-typed');
       row.classList.toggle('is-typed', isTyped);
-      if (isTyped) turnStrips(stripPages.findIndex((group) => group.includes(row)));
+      // Only a newly entered code reveals its row. Moving this list's scroll
+      // position directly keeps the cabinet and surrounding page in place.
+      if (isTyped && !wasTyped && !document.body.classList.contains('is-crowd')) {
+        const viewport = stripsEl.getBoundingClientRect();
+        const strip = row.getBoundingClientRect();
+        const top = viewport.top + stripsEl.clientTop;
+        const bottom = top + stripsEl.clientHeight;
+        if (strip.top < top) stripsEl.scrollTop += strip.top - top;
+        else if (strip.bottom > bottom) stripsEl.scrollTop += strip.bottom - bottom;
+      }
     }
+    showSelectionGuidance();
   }
 
   /* The marquee sign announces each accepted pick, like a cabinet's
@@ -288,72 +303,203 @@ export function createUI({ library, getStatus, handlers }) {
   }
 
   let msgTimer = null;
-  const IDLE_HINT = 'PICK A LETTER, THEN A NUMBER';
+  let messageActive = false;
+  let currentCode = '';
+  function showSelectionGuidance() {
+    const selected = selectionState(library, currentCode, getStatus);
+    const preview = $('selection-preview');
+    if (preview && preview.textContent !== selected.preview) preview.textContent = selected.preview;
+    $('btn-select')?.classList.toggle('is-ready', selected.ready);
+    if (messageActive) return;
+    const message = $('readout-msg');
+    if (message.textContent !== selected.hint) message.textContent = selected.hint;
+    message.dataset.kind = 'hint';
+  }
+
   function setMessage(text, kind = 'info') {
     const m = $('readout-msg');
-    m.textContent = text || IDLE_HINT;
-    m.dataset.kind = text ? kind : 'hint';
     clearTimeout(msgTimer);
-    if (text) msgTimer = setTimeout(() => { m.textContent = IDLE_HINT; m.dataset.kind = 'hint'; }, 4200);
+    messageActive = Boolean(text) && kind !== 'hint';
+    if (text) {
+      m.textContent = text;
+      m.dataset.kind = kind;
+    } else showSelectionGuidance();
+    if (messageActive) msgTimer = setTimeout(() => {
+      messageActive = false;
+      showSelectionGuidance();
+    }, 4200);
   }
 
   /* ---- up next ---- */
   const QUEUE_ROWS = 6;
+  const requestRows = new Map();
+  const houseRows = new Map();
+  const requestDivider = el('li', { class: 'q-divider q-requests' }, 'YOUR PICKS');
+  const houseDivider = el('li', { class: 'q-divider led' });
+  let currentQueue = [];
+  let queueSignature = null;
+  let queueNodes = [];
+
+  function reconcileChildren(parent, nodes) {
+    let cursor = parent.firstChild;
+    for (const node of nodes) {
+      if (node === cursor) cursor = cursor.nextSibling;
+      else parent.insertBefore(node, cursor);
+    }
+    while (cursor) {
+      const next = cursor.nextSibling;
+      cursor.remove();
+      cursor = next;
+    }
+  }
+
   function renderQueue(queue, houseLine = [], modeLabel = 'HOUSE SHUFFLE') {
     const list = $('queue-list');
-    list.replaceChildren();
-    if (queue.length) list.append(el('li', { class: 'q-divider q-requests' }, 'YOUR PICKS'));
-    queue.slice(0, QUEUE_ROWS).forEach((id, i) => {
+    const box = $('queue-screen');
+    const signature = JSON.stringify([queue, houseLine.slice(0, Math.max(0, QUEUE_ROWS - queue.length)), modeLabel]);
+    if (signature === queueSignature) {
+      updateQueueContinuation();
+      return;
+    }
+    queueSignature = signature;
+    const active = document.activeElement;
+    const action = list.contains(active) ? active?.dataset.queueAction : null;
+    const focus = action ? { trackId: active.dataset.track, action, index: currentQueue.indexOf(active.dataset.track) } : null;
+    const scrollTop = box.scrollTop;
+    currentQueue = queue.slice();
+    queueNodes = queue.length ? [requestDivider] : [];
+    const visibleQueue = crowd ? queue.slice(0, QUEUE_ROWS) : queue;
+    visibleQueue.forEach((id, i) => {
       const t = trackById.get(id);
       if (!t) return;
-      list.append(el('li', { class: 'q-row' },
-        el('span', { class: 'q-pos led' }, String(i + 1)),
-        queueText(t),
-        el('button', { class: 'q-btn', type: 'button', 'aria-label': `Move ${t.title} up`, disabled: i === 0, onclick: () => handlers.moveUp(i) }, '▲'),
-        el('button', { class: 'q-btn q-x', type: 'button', 'aria-label': `Cancel ${t.title}`, onclick: () => handlers.cancel(i) }, '✕')));
+      let row = requestRows.get(id);
+      if (!row) {
+        const activate = (operation) => {
+          const index = currentQueue.indexOf(id);
+          if (index >= 0) handlers[operation](index);
+        };
+        row = el('li', { class: 'q-row', dataset: { track: id } },
+          el('span', { class: 'q-pos led' }), queueText(t),
+          !crowd && el('button', { class: 'q-btn', type: 'button', dataset: { track: id, queueAction: 'up' }, 'aria-label': `Move ${t.title} up`, onclick: () => activate('moveUp') }, '▲'),
+          !crowd && el('button', { class: 'q-btn q-x', type: 'button', dataset: { track: id, queueAction: 'cancel' }, 'aria-label': `Cancel ${t.title}`, onclick: () => activate('cancel') }, '✕'));
+        requestRows.set(id, row);
+      }
+      row.querySelector('.q-pos').textContent = String(i + 1);
+      row.querySelector('.q-pos').setAttribute('aria-label', `Queue position ${i + 1}`);
+      const up = row.querySelector('[data-queue-action="up"]');
+      if (up) up.disabled = i === 0;
+      queueNodes.push(row);
     });
-    const more = queue.length - QUEUE_ROWS;
-    if (more > 0) list.append(el('li', { class: 'q-more' }, `+${more} MORE WAITING`));
-    // Spare rows show the labelled house plan; both groups remain readable.
+    for (const id of requestRows.keys()) if (!queue.includes(id)) requestRows.delete(id);
+    // Only the automatic preview is capped. Every explicit request is available
+    // to inspect, move or cancel in the operator's contained scroll area.
     const spare = QUEUE_ROWS - Math.min(queue.length, QUEUE_ROWS);
     const house = houseLine.slice(0, spare).map((id) => trackById.get(id)).filter(Boolean);
     if (spare > 0) {
-      list.append(el('li', { class: 'q-divider led', title: modeLabel }, house.length ? 'IF NOBODY PICKS' : 'PICK A SONG!'));
+      houseDivider.title = modeLabel;
+      houseDivider.textContent = house.length ? 'IF NOBODY PICKS' : 'PICK A SONG!';
+      queueNodes.push(houseDivider);
     }
     house.forEach((t, i) => {
-      list.append(el('li', { class: 'q-row is-house' },
-        el('span', { class: 'q-pos led' }, String(queue.length + i + 1)),
-        queueText(t)));
+      let row = houseRows.get(t.id);
+      if (!row) {
+        row = el('li', { class: 'q-row is-house' }, el('span', { class: 'q-pos led' }), queueText(t));
+        houseRows.set(t.id, row);
+      }
+      row.querySelector('.q-pos').textContent = String(queue.length + i + 1);
+      queueNodes.push(row);
     });
-    // Long titles can make the plan taller than the screen: trim house rows first.
-    const box = $('queue-screen');
-    while (box.scrollHeight > box.clientHeight + 1 && list.lastElementChild?.classList.contains('is-house')) {
-      list.lastElementChild.remove();
+    fitQueuePreview();
+    box.scrollTop = scrollTop;
+    if (focus) {
+      const target = queueFocusTarget(queue, focus);
+      const row = target && requestRows.get(target.trackId);
+      (row?.querySelector(`[data-queue-action="${target?.action}"]`) || box).focus({ preventScroll: true });
+      box.scrollTop = scrollTop;
     }
+    const count = $('queue-count');
+    if (count) count.textContent = `${queue.length} REQUEST${queue.length === 1 ? '' : 'S'}`;
+    updateQueueContinuation();
+  }
+
+  function fitQueuePreview() {
+    const list = $('queue-list');
+    const box = $('queue-screen');
+    const scrollTop = box.scrollTop;
+    reconcileChildren(list, queueNodes);
+    for (const title of list.querySelectorAll('.q-title')) fitText(title, 'long', ['0', '1', '2']);
+    // A house suggestion may yield to explicit requests, but is restored when
+    // the panel grows. Resizing can never remove an accepted request.
+    if (box.clientHeight > 0) {
+      while (box.scrollHeight > box.clientHeight + 1 && list.lastElementChild?.classList.contains('is-house')) {
+        list.lastElementChild.remove();
+      }
+      if (list.lastElementChild === houseDivider && queueNodes.some((node) => node.classList.contains('is-house'))) houseDivider.remove();
+    }
+    box.scrollTop = scrollTop;
+    updateQueueContinuation();
+  }
+
+  function updateQueueContinuation() {
+    const cue = $('queue-continuation');
+    if (!cue || crowd) return;
+    const box = $('queue-screen');
+    const overflowing = box.scrollHeight > box.clientHeight + 2;
+    const below = box.scrollTop + box.clientHeight < box.scrollHeight - 2;
+    cue.hidden = !overflowing;
+    const text = below ? 'SCROLL FOR MORE ↓' : '↑ BACK TO FIRST REQUEST';
+    if (cue.textContent !== text) cue.textContent = text;
   }
 
   function queueText(t) {
     const vol = volumeById.get(t.volume);
     return el('span', { class: 'q-text' },
-      el('span', { class: 'q-title', dataset: { long: t.title.length > 28 ? '2' : t.title.length > 20 ? '1' : '0' } }, t.title),
+      el('span', { class: 'q-title', title: t.title, dataset: { long: '0' } }, t.title),
       el('span', { class: 'q-sub led' }, `${t.code}${vol ? ` · ${vol.title.toUpperCase()}` : ''}`));
   }
 
   /* ---- now playing ---- */
+  let announcedTrackId = null;
   function setNow(track) {
     const volume = track ? volumeById.get(track.volume) : null;
     $('np-title').textContent = track ? track.title : 'PRESS START';
     $('np-volume').textContent = volume ? volume.title.toUpperCase() : ' ';
     $('np-code').textContent = track ? track.code : '--';
-    fitTitle($('np-title'));
+    fitText($('np-title'), 'size', ['l', 'm', 's', 'xs']);
+    const nextId = track?.id ?? null;
+    if (nextId !== announcedTrackId) {
+      announcedTrackId = nextId;
+      const announcement = $('now-announcement');
+      if (announcement) announcement.textContent = track ? `Now playing: ${track.title}${volume ? `, ${volume.title}` : ''}.` : 'Playback stopped.';
+    }
     if (!track) setProgress(0, NaN);
   }
 
-  // Long titles shrink a step or two instead of overflowing.
-  function fitTitle(node) {
-    const len = node.textContent.length;
-    node.dataset.size = len > 34 ? 'xs' : len > 19 ? 's' : len > 16 ? 'm' : 'l';
+  // Try the actual type at the actual available width. A short, wide-lettered
+  // title and a longer narrow-lettered one need not receive the same size.
+  function fitText(node, attribute, sizes) {
+    if (!node || !node.clientWidth) return;
+    for (const size of sizes) {
+      node.dataset[attribute] = size;
+      if (node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1) break;
+    }
   }
+
+  let sizingFrame = 0;
+  function scheduleTextFit() {
+    if (sizingFrame) return;
+    sizingFrame = requestAnimationFrame(() => {
+      sizingFrame = 0;
+      fitText($('np-title'), 'size', ['l', 'm', 's', 'xs']);
+      fitQueuePreview();
+    });
+  }
+  const textObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(scheduleTextFit) : null;
+  textObserver?.observe($('queue-screen'));
+  if ($('np-title')?.parentElement) textObserver?.observe($('np-title').parentElement);
+  $('queue-screen').addEventListener('scroll', updateQueueContinuation, { passive: true });
+  window.addEventListener('resize', scheduleTextFit);
+  document.fonts?.ready.then(scheduleTextFit).catch(() => {});
 
   let lastShownSecond = -1;
   function setProgress(elapsed, duration) {
@@ -389,12 +535,14 @@ export function createUI({ library, getStatus, handlers }) {
   function showProblems(problems) {
     const list = $('problems-list');
     list.replaceChildren(...problems.map((p) => el('li', {}, p)));
-    $('problems-modal').hidden = false;
+    const modal = $('problems-modal');
+    modal.hidden = false;
+    if (typeof modal.showModal === 'function' && !modal.open) modal.showModal();
     $('problems-close').focus();
   }
 
   return {
-    renderRack, renderStrips, updateStrips, renderKeypad, setCode, setMessage,
+    renderRack, renderStrips, updateStrips, renderKeypad, refreshQuickPick, setCode, setMessage,
     renderQueue, setNow, setProgress, rollDuration, toast, showProblems,
     get shownVolumeId() { return shownVolumeId; },
     /* Where a record's sleeve flies out from: the big sleeve if that album's

@@ -133,11 +133,11 @@ Vol. VI is **G**, not F. This table is also written at the top of
 
 **Where to put new songs:** spread them evenly, fewest songs first (right
 now Vol. I has 7 songs and Vol. II - X have 6; the next song goes on Vol. II). Add each new song at the **end** of the
-`tracks = [` list, so no existing code changes. An album with more songs than
-fit still works: the laptop's strip window shows a group of songs and the
-**MORE ▼** button under the album cover turns to the next group (tiny lamps on
-the button show which group you are on). Typing a code turns to the right group
-by itself. The crowd screen shows every song, no button needed.
+`tracks = [` list, so no existing code changes. Each album has one complete
+track list beneath a flexible cover: all current songs fit without turning pages.
+The cover grows when the screen has spare room and shrinks before tracks do.
+If a future album outgrows the window, scroll its list; typing a code brings
+that song into view automatically.
 
 **Adding a whole new album (volume):** add a line inside the `volumes = [` list:
 
@@ -180,10 +180,8 @@ place; follow these steps only if you want to swap it for a new one.
 2. Click **Settings** (the tab with a cog, along the top).
 3. In the left menu click **Pages**.
 4. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-5. Under **Branch**, choose the branch that has the jukebox in it, leave the
-   folder as **`/ (root)`**, and click **Save**. (This build was made on a branch
-   called `claude/festive-lovelace-mr1yju`; if you have merged it into `main`,
-   choose `main` instead.)
+5. Under **Branch**, choose **`main`**, leave the folder as **`/ (root)`**, and
+   click **Save**.
 6. Wait 1-2 minutes and refresh the Pages screen. A box at the top says **"Your
    site is live at ..."** - that is the address for the venue laptop.
 
@@ -210,10 +208,11 @@ place; follow these steps only if you want to swap it for a new one.
       display*, not Mirror).
 - [ ] Open the jukebox site in Chrome on the laptop screen and press
       **INSERT COIN**.
-- [ ] Press **CROWD** (bottom right). A second window opens: that is the
+- [ ] Press **CROWD SCREEN ↗** (bottom right). A second window opens: that is the
       **crowd screen** - the jukebox as the room sees it, with no buttons,
       sliders or keypad. **Drag it onto the projector**, then **click it once**
-      to make it fullscreen. (If Chrome blocks it, click the blocked pop-up
+      to make it fullscreen. Its temporary hint explains this and can be dismissed.
+      The laptop announces when the crowd screen connects. (If Chrome blocks it, click the blocked pop-up
       icon in the address bar and choose *Always allow*.)
 - [ ] Back on the laptop, press **START**. You run everything from the laptop
       window; the crowd screen follows along by itself. Keep the laptop window
@@ -221,7 +220,8 @@ place; follow these steps only if you want to swap it for a new one.
 - [ ] No second screen? Use *Duplicate* instead and press **F** for fullscreen
       in the one window (press **Esc** to leave) - everything still works, the
       room just sees the controls too.
-- [ ] **Test volume:** move the **MUSIC** slider (or tap the up/down arrow keys)
+- [ ] **Test volume:** move the **MUSIC** slider (or tap the up/down arrow keys
+      with the cabinet background focused)
       while someone stands at the back of the rink. The laptop's own volume
       should be about three-quarters up; use the jukebox slider to fine-tune.
 - [ ] If the picture looks too busy for the room, press **LIGHTS: FULL** to
@@ -229,7 +229,7 @@ place; follow these steps only if you want to swap it for a new one.
 - [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
 
 **If the page is closed or reloaded by accident:** open the site again and press
-INSERT COIN -> START (and press CROWD again if the crowd screen was closed - an
+INSERT COIN -> START (and press CROWD SCREEN again if the crowd screen was closed - an
 open crowd screen picks the jukebox back up on its own). The queue starts empty (the house rotation fills the gap).
 
 ## How it behaves
@@ -237,29 +237,40 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 - The arrival runs for its full 13-second hold and reveal. It cannot be skipped.
   Once completed, it does not replay when refreshing the same browser tab.
   CALM keeps the same arrival duration with static diagnostics.
-- **TOOLS** holds FULLSCREEN, LOAD THE CRATES and KEYBOARD SHORTCUTS. Click it
+- **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
+  trim and an optional click-to-fill setting. Click it
   or use Enter/Space; Escape or a click outside closes it. Music, effects,
   shuffle, crowd and lights stay directly available on the deck.
 - **START** begins with the house rotation. It does **not** start automatically,
   so you can test volume first.
-- **Pick a song by its code only**, like a real jukebox. The left third of the
-  screen is **PICK A SONG**: one album at a time, big sleeve plus its title
-  strips. Flip albums with the **arrow buttons** either side of the album name,
+- **Pick a song by its code**, like a real jukebox. The left column is
+  **PICK A SONG**: one album at a time, with a flexible sleeve above its complete
+  track list. The selector sits beneath **UP NEXT** in the right column.
+  Flip albums with the **arrow buttons** either side of the album name,
   or press a **letter key** (on screen or keyboard) - the rack jumps to that
   album. Then press the number and **SELECT** (or type it, for example `B`,
-  `1`, `Enter`). The title strips are for reading only - clicking a strip does
-  nothing. An album with more songs than fit shows them in groups: press the
-  **MORE ▼** button under the album cover to see the next group (it goes back
-  to the first after the last). The chosen song joins **UP NEXT** (right-hand
-  column).
+  `1`, `Enter`). The readout names the resolved song and prompts the next step
+  before it is added. By default the title strips are for reading. In **TOOLS**,
+  enable **Click a song to fill its code** to prefill a strip's code by clicking
+  it or pressing Enter/Space while it is focused. This moves focus to **SELECT**;
+  you still confirm the request with SELECT or Enter. The choice is remembered
+  on that laptop. All current album tracks are visible together. A longer future album
+  can be scrolled within its list. The chosen song joins **UP NEXT** above the
+  selector, with confirmation of its position or that it is starting.
+- **Smaller screens keep readable text.** The cabinet uses two columns on narrow
+  windows and one column on phones, with page scrolling to reach every control.
+  Normal laptop and projector windows retain the three-column cabinet. Album
+  artwork still uses the space left after its complete track list.
 - The scrolling LED strip under the sign rolls **one skate joke at a time**,
   picked at random from 117 (no repeats until every one has had a turn), with
   a separate set of 20 for when the music is stopped or paused. To add or
   change jokes, edit the `SKATE_JOKES` list in `copy.js`: ALL CAPS, 64
   characters at most, one per line in quote marks with a comma after.
-- UP NEXT plays **first in, first out**. Use the arrows to move a song up and the
-  cross to remove one. The note says **Your picks play first. We'll keep the
-  records turning.**
+- UP NEXT plays **first in, first out**. Its count includes every request, up to
+  30. Scroll within the queue to inspect them all; a continuation cue appears
+  when more remain below. Use the arrows to move a song up and the cross to
+  remove one. Keyboard focus and the scroll position are retained while editing.
+  The note says **Your picks play first. We'll keep the records turning.**
 - When UP NEXT is empty, the **house rotation** picks the next song itself, so the
   rink is never silent. The **SHUFFLE** button chooses how:
   - **SHUFFLE: ON** (the default): a shuffled deck. **Every song plays once before
@@ -277,8 +288,14 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   that song again; press it within the first 3 seconds (or twice) to go to the
   song that played before. The song you left goes to the **top of UP NEXT**, so
   SKIP brings you straight back to it. The machine remembers the last 50 songs.
-- **Credits** are for show. The machine never refuses a song; with no credits it
-  says **FREE PLAY**.
+- **Credits** are for show. A persistent **FREE PLAY** reminder confirms that
+  requesting a song needs no payment, and the credits readout says FREE PLAY
+  when the decorative credits run out.
+- The **offline status** at the top is a button: press it to open TOOLS with
+  **LOAD THE CRATES** focused. Saving starts only when you press LOAD THE CRATES.
+- The crowd screen shows a connection warning if it stops hearing from the
+  laptop for 30 seconds, then clears it when the laptop reconnects. Keep both
+  windows open on the same site and browser profile.
 - After **60 seconds** with nobody touching anything, the machine runs a light
   show. Touch any key to stop it.
 - Switching songs fades out and in. You hear no hard cuts. The precision changer
@@ -288,9 +305,12 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   keys, selection relay, changer, needle and page carrier. **Effects** has its own
   volume slider; custom MP3s in `sfx/` can replace individual sounds.
 - Each track starts with a small needle-on-vinyl scrape, with very quiet record
-  surface noise underneath the song. **Effects** also controls this texture;
-  set it to zero to remove it. The vinyl follows music volume, fades and pauses,
-  and does not replay its opening scrape when resuming a paused song.
+  surface noise underneath the song. **Effects** controls this texture alongside
+  the cabinet sounds. The **Vinyl texture** slider in TOOLS reduces just the
+  texture; its default **100%** preserves the authored mix, and **0%** removes
+  vinyl without silencing cabinet sounds. Music, Effects and Vinyl texture show
+  their current percentages. Vinyl follows music volume, fades and pauses, and
+  does not replay its opening scrape when resuming a paused song.
 
 ### Keyboard
 
@@ -305,6 +325,13 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 | **A-Z, 0-9, Enter** | Type a selection code, e.g. `B` `1` `Enter` |
 | **Backspace / Esc** | Delete / clear the typed code |
 | **?** | Show the key list again (it hides after a few seconds) |
+
+These shortcuts respect the focused control. Enter/Space activate a focused
+button or TOOLS disclosure, even with a song code pending. Up/Down scroll the
+focused album list or queue. Left/Right inside the album rack browse albums;
+transport arrows work on the cabinet background. Sliders, editing controls and
+browser shortcuts retain their native keys. The diagnostic dialog contains
+focus, blocks cabinet shortcuts, and returns focus to CHECK TRACKS.JS on closing.
 
 Laptop **media keys** (play / pause / next / previous) work too.
 
@@ -330,9 +357,10 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 | Red **CHECK TRACKS.JS** button | Click it for a plain-English list. Usually a missing comma or quote. |
 | **START-UP PROBLEM - PRESS F5** | Reload the page. If it keeps happening, tell whoever maintains the site. |
 | New song does not appear | GitHub can take a minute or two to publish. Reload, then press LOAD THE CRATES again. |
-| Light says **NOT OFFLINE YET** | Press **LOAD THE CRATES** while you have internet. |
+| Light says **NOT OFFLINE YET** | Press the status, then **LOAD THE CRATES** while you have internet. |
 | Light says **SAVED - NEEDS HTTPS** | The page was opened from a plain `http://` address. Use the GitHub Pages `https://` address. |
 | Screen is too bright / busy | Press **LIGHTS: CALM**. |
+| Crowd screen says the operator is disconnected | Return to the laptop window and keep it open. The warning clears when its heartbeat returns; reopen CROWD SCREEN if needed. |
 
 ---
 
@@ -341,17 +369,28 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 - Static site: plain HTML + CSS + ES modules, no build step.
 - Tests: `npm test` (uses Node's built-in test runner, nothing to install).
   Covers the queue, selection-code generation, tracks.js validation, the house
-  rotation, the copy pools, the audio maths and the lights switch.
+  rotation, the copy pools, the audio maths, keyboard routing, UI state, responsive
+  artwork and the lights switch.
 - To look at it locally: serve the folder with any static server that supports
   byte ranges (for example `npx http-server`) and open it in Chrome. Opening
   `index.html` straight from disk will not work (browsers block ES modules there).
+- Optional browser regression checks use Python Playwright and a Chromium
+  installation; these are developer tools, not application dependencies. With
+  the local server running, use
+  `python3 scripts/check-ui.py --base-url http://127.0.0.1:8080 --chromium /usr/bin/chromium`.
 - `DESIGN.md` records the material system, palette, motion rules, safety rules
   and the reasoning behind the reliability design (including why songs are played
   from Blob URLs instead of through the service worker).
+- `docs/UI-REVIEW.md` records the UI review, the implemented usability changes,
+  historical measurements and the tradeoffs behind the chosen layouts.
 - The page exposes `window.__skateNight` (state + player) for tests and for
   debugging in the console. The night does not depend on it.
 
 ### What was tested, and what was not
+
+The following records the earlier playback and venue preparation checks.
+The UI review documents the subsequent usability pass; the optional browser
+regression script checks its keyboard, queue, settings and responsive behavior.
 
 Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
 1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`

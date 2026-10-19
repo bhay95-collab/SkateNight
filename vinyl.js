@@ -1,6 +1,7 @@
 /* A clean, lightly worn record: soft groove noise, sparse tiny dust contacts,
    and a short needle settling scrape. Original synthesis, no downloaded samples.
-   The surface follows the deck gain and MUSIC fader; EFFECTS scales it too. */
+   The surface follows the deck gain and MUSIC fader; EFFECTS is its master
+   with an independent VINYL trim for the record texture alone. */
 import { getLevels } from './audio.js';
 import { perceptualVolume } from './format.js';
 
@@ -97,7 +98,8 @@ export function createVinylSurface(ctx, destination) {
     const entry = { source, gain, releasing: false };
     voices.add(entry);
     gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(perceptualVolume(getLevels().sfx), ctx.currentTime + 0.025);
+    const { sfx, vinyl } = getLevels();
+    gain.gain.linearRampToValueAtTime(perceptualVolume(sfx * vinyl), ctx.currentTime + 0.025);
     source.buffer = buffer;
     source.loop = loop;
     if (loop) source.loopStart = 0.015; // end crossfade joins the following sample here
@@ -150,7 +152,7 @@ export function createVinylSurface(ctx, destination) {
             const t = ctx.currentTime;
             const current = gain.value;
             // Replace an in-flight attack too: a future ramp must never bring
-            // texture back after the listener has muted EFFECTS.
+            // texture back after the listener has muted EFFECTS or VINYL.
             gain.cancelScheduledValues(t);
             gain.setValueAtTime(current, t);
             gain.setTargetAtTime(perceptualVolume(level), t, 0.03);

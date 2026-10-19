@@ -22,8 +22,7 @@ tools?.addEventListener('keydown', (event) => {
 });
 
 tools?.addEventListener('keyup', (event) => {
-  // The app also captures Space on keyup, which otherwise cancels the native
-  // click generated for a focused button.
+  // Keep disclosure activation local to its native controls.
   if (isDrawerControl(event.target) && isActivationKey(event.key)) event.stopPropagation();
 });
 
@@ -37,4 +36,18 @@ document.getElementById('btn-keys')?.addEventListener('click', () => {
   summary?.focus({ preventScroll: true });
   // Reuse the application's existing legend timer and input handling.
   window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+});
+
+// The status is also the way to resolve it; opening Tools does not start a
+// large download until the operator presses LOAD THE CRATES.
+document.getElementById('led-offline')?.addEventListener('click', () => {
+  if (!tools || arrivalIsActive()) return;
+  tools.open = true;
+  document.getElementById('btn-crates')?.focus({ preventScroll: true });
+});
+
+const problems = document.getElementById('problems-modal');
+document.getElementById('problems-close')?.addEventListener('click', () => problems?.close());
+problems?.addEventListener('close', () => {
+  document.getElementById('btn-problems')?.focus({ preventScroll: true });
 });
