@@ -7,7 +7,7 @@
    functions to call when someone clicks something.
    ============================================================ */
 import { formatClock, formatCountdown } from './format.js';
-import { isCalm, countUp } from './fx.js';
+import { isCalm, onCalmChange, countUp } from './fx.js';
 import { fitRackArtwork } from './rack-layout.js';
 import { findTrackByCode } from './codes.js';
 
@@ -118,11 +118,30 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     for (const anim of rackFlip) { try { anim.cancel(); } catch { /* already gone */ } }
     rackFlip = [];
   }
+  // CALM means stop now, not stop after this turn: at 760ms plus the cascade
+  // there is nearly a second of motion to cut short.
+  onCalmChange((calm) => { if (calm) endRackFlip(); });
+
   function flipRack(forward) {
     endRackFlip();
     const frames = rackFlipKeyframes(forward);
     rackFlip = [rackPage, sleeveHost].filter(Boolean)
       .map((node) => node.animate(frames, { duration: RACK_TURN_MS, easing: RACK_TURN_EASE }));
+    /* The strips then drop into the carrier one after another, as the page
+       lands. They start part-way down and dimmed rather than invisible, so
+       that during the first half of the turn - when the whole page is dark
+       anyway - there is nothing missing to notice. */
+    [...stripsEl.children].forEach((row, i) => {
+      rackFlip.push(row.animate(
+        [{ opacity: 0.5, transform: 'translateY(.45rem)' }, { opacity: 1, transform: 'none' }],
+        {
+          duration: STRIP_SETTLE_MS,
+          delay: RACK_TURN_MS * STRIP_SETTLE_AT + i * STRIP_STAGGER_MS,
+          easing: EASE_OUT,
+          fill: 'backwards',          // hold the offset through the delay, do not flash
+        },
+      ));
+    });
   }
 
   /* ---- the rack: one album page at a time ----
@@ -606,8 +625,14 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
 const TICKER_REM_PER_SECOND = 4.2;      // slow enough to read every word from the back of the rink
 const TICKER_CALM_MS = 8000;
 const SIGN_FLASH_MS = 2200;             // how long the sign shows SELECTION J3 ACCEPTED
-const RACK_TURN_MS = 420;               // the rack page flipping over when the album changes
-const RACK_TURN_EASE = 'cubic-bezier(.25,.8,.3,1.04)';   // a hair of overshoot, like a real carrier
+/* Turning the rack is browsing, not navigating: it is meant to be watched.
+   The page is heavy, so it leans into the turn and takes a long time settling
+   out of it - no overshoot, which reads snappy rather than expensive. */
+const RACK_TURN_MS = 760;               // the rack page flipping over when the album changes
+const RACK_TURN_EASE = 'cubic-bezier(.45,0,.15,1)';      // weight going in, a long tail coming out
+const STRIP_SETTLE_MS = 300;            // each title strip dropping into the carrier
+const STRIP_STAGGER_MS = 42;            // ...one after another, down the page
+const STRIP_SETTLE_AT = 0.52;           // they start settling just past halfway through the turn
 const EASE_OUT = 'cubic-bezier(.23,1,.32,1)';   // mirrors --ease-out: WAAPI cannot read a CSS variable
 const QUEUE_MOVE_MS = 200;
 
