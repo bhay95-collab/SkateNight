@@ -17,7 +17,7 @@ import { createVinylSurface } from './vinyl.js';
 
 // The last moments of every song fade to silence over this long, so the
 // record-changer animation can swap discs without a hard cut.
-export const TAIL_FADE_SEC = 1.2;
+const TAIL_FADE_SEC = 1.2;
 
 function makeDeck(engine) {
   const audio = new Audio();
@@ -38,7 +38,6 @@ export function createPlayer(handlers = {}) {
   const { ctx } = engine;
   const decks = [makeDeck(engine), makeDeck(engine)];
   let active = 0;
-  let tailFade = true;
 
   const activeDeck = () => decks[active];
   const idleDeck = () => decks[1 - active];
@@ -86,7 +85,7 @@ export function createPlayer(handlers = {}) {
       const duration = audio.duration;
       handlers.onTime?.(audio.currentTime, duration, deck.trackId);
       // arm the closing fade-out once, when the end is near
-      if (tailFade && !deck.tailArmed && !audio.paused && Number.isFinite(duration)) {
+      if (!deck.tailArmed && !audio.paused && Number.isFinite(duration)) {
         const remaining = duration - audio.currentTime;
         if (remaining <= TAIL_FADE_SEC && remaining > 0.05) {
           deck.tailArmed = true;
@@ -223,7 +222,7 @@ export function createPlayer(handlers = {}) {
    it. Used at start-up to fill in durations and spot missing files.
    Resolves { ok: true, duration }, { ok: false } (file missing/unreadable)
    or { ok: null } (took too long - treat as "unknown", still try it). */
-export async function probeTrack(url, timeoutMs = 20000) {
+async function probeTrack(url, timeoutMs = 20000) {
   const blob = await getCachedBlob(url);
   const objectUrl = blob ? URL.createObjectURL(blob) : null;
   return new Promise((resolve) => {

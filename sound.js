@@ -22,7 +22,7 @@
    ============================================================ */
 import { getEngine } from './audio.js';
 
-export const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page'];
+const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page'];
 const rawFiles = new Map();      // name -> ordered { path, bytes } candidates
 const buffers = new Map();       // name -> decoded sound, ready to play
 const filePaths = new Map();     // distinguish bundled motors from custom recordings

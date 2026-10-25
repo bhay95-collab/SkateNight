@@ -3,9 +3,9 @@
    visuals. Pure functions so they can be tested in Node.
 
    PHOTOSENSITIVE SAFETY lives here. Anything that reacts to the music
-   goes through an envelope (smooths it) and a beat gate (caps it at 3
-   pulses a second), so a fast drum pattern can never become a strobe.
-   See DESIGN.md "Safety rules".
+   goes through an envelope (smooths it) and createBeatDetector's minGapMs
+   (caps it at 3 pulses a second), so a fast drum pattern can never become
+   a strobe. See DESIGN.md "Safety rules".
    ============================================================ */
 
 /* Squash a spectrum (bytes 0-255, low pitch first) into `count` bars of
@@ -34,20 +34,7 @@ export function groupBands(freq, count, { minBin = 1, maxBin = Infinity } = {}) 
   return bars;
 }
 
-/* Loudness 0..1 from a time-domain snapshot (bytes centred on 128). */
-export function rmsFromTimeDomain(bytes) {
-  const n = bytes.length;
-  if (n === 0) return 0;
-  let sum = 0;
-  for (let i = 0; i < n; i++) {
-    const v = (bytes[i] - 128) / 128;
-    sum += v * v;
-  }
-  return Math.min(1, Math.sqrt(sum / n));
-}
-
-/* Same, from the analyser's float samples (-1..1): finer than 8-bit bytes,
-   which matters for the quiet passages a VU needle should still show. */
+/* Loudness 0..1 from the analyser's float samples (-1..1). */
 export function rmsFromFloat(samples) {
   const n = samples.length;
   if (n === 0) return 0;
@@ -61,8 +48,8 @@ export function rmsFromFloat(samples) {
    out (the analyser listens after it), so the needles swing the same at any
    volume. Typical mastered songs average about -18 dBFS: that lands near the
    middle of the scale, and the loud beats push into the red. */
-export const VU_FLOOR_DB = -30;
-export const VU_TOP_DB = -12;
+const VU_FLOOR_DB = -30;
+const VU_TOP_DB = -12;
 export function vuLevel(rms, busGain = 1) {
   const level = rms / Math.max(busGain, 0.05);
   if (!(level > 0)) return 0;
@@ -71,10 +58,10 @@ export function vuLevel(rms, busGain = 1) {
 }
 
 /* How the logo's halo and the logo itself answer the music. pulse is the
-   smoothed kick (0..1, already capped at 3 a second by the beat gate). The
-   halo follows the BEAT ONLY - loudness ripples would add extra up-and-down
-   moves and break the 3-a-second rule - so it can never move faster than the
-   gate allows. It never goes dark (rests at 34%) or past 86%, and the logo
+   smoothed kick (0..1, already capped at 3 a second by the beat detector).
+   The halo follows the BEAT ONLY - loudness ripples would add extra
+   up-and-down moves and break the 3-a-second rule - so it can never move
+   faster than the detector allows. It never goes dark (rests at 34%) or past 86%, and the logo
    swells at most 4.5% - a soft swell, never a flash. */
 export function logoGlow(pulse) {
   const p = Math.min(1, Math.max(0, pulse || 0));
@@ -104,8 +91,8 @@ export function createEnvelope({ attackMs, releaseMs }) {
    A beat is a reading well above the recent average: ratio 1.15 over a
    0.4 s average, and above a small floor so silence never fires. Tuned on the
    real songs: about one beat per drum hit, 1.2 - 1.8 a second. Pass the
-   level with the volume slider already divided out. The caller still puts
-   the result through the 340 ms beat gate (at most 3 a second). */
+   level with the volume slider already divided out. minGapMs is the
+   photosensitive cap: 340 ms between beats is at most 3 a second. */
 export function createBeatDetector({ avgSeconds = 0.4, ratio = 1.15, floor = 0.01, minGapMs = 340 } = {}) {
   let avg = 0;
   let last = -Infinity;
@@ -118,24 +105,4 @@ export function createBeatDetector({ avgSeconds = 0.4, ratio = 1.15, floor = 0.0
       return false;
     },
   };
-}
-
-/* Lets a pulse through only if enough time has passed since the last one.
-   340 ms gap = at most 3 pulses in any second (WCAG 2.3.1). */
-export function createBeatGate({ minGapMs = 340 } = {}) {
-  let last = -Infinity;
-  return {
-    trigger(nowMs) {
-      if (nowMs - last < minGapMs) return false;
-      last = nowMs;
-      return true;
-    },
-  };
-}
-
-/* Move `current` toward `target` by at most `maxDelta`. */
-export function slewTo(current, target, maxDelta) {
-  const diff = target - current;
-  if (Math.abs(diff) <= maxDelta) return target;
-  return current + Math.sign(diff) * maxDelta;
 }

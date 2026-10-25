@@ -266,13 +266,11 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   };
   let lastRate = -1;
   let lastTubeCss = 0;
-  function applySpeed(energy, nowMs) {
+  function applySpeed(energy) {
     const rate = Math.round((0.7 + energy * 0.9) * 10) / 10;
-    if (rate !== lastRate) {
-      lastRate = rate;
-      for (const a of animations) { try { a.playbackRate = rate; } catch { /* animation gone */ } }
-    }
-    return nowMs;
+    if (rate === lastRate) return;
+    lastRate = rate;
+    for (const a of animations) { try { a.playbackRate = rate; } catch { /* animation gone */ } }
   }
 
   // ---------- the frame ----------
@@ -341,7 +339,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
     // 5. slower things, a few times a second
     if (now - lastRateTick > 140) {
       lastRateTick = now;
-      applySpeed(energy, now);
+      applySpeed(energy);
       if (tubeCol && now - lastTubeCss > 1000) {
         lastTubeCss = now;
         document.documentElement.style.setProperty('--tube-glow', rgb(tubeCol, 0.3));
@@ -422,7 +420,6 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   return {
     start() { if (isCalm()) drawStill(); else start(); },
     stop,
-    get energy() { return energyEnv.value; },
   };
 }
 

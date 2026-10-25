@@ -39,7 +39,7 @@ export function queueFocusTarget(queue, focus) {
 }
 
 /* Tiny helper: el('div', { class: 'x', onclick: fn }, child, 'text') */
-export function el(tag, props = {}, ...children) {
+function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(props)) {
     if (value == null || value === false) continue;
@@ -419,7 +419,6 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     }
     const count = $('queue-count');
     if (count) count.textContent = `${queue.length} REQUEST${queue.length === 1 ? '' : 'S'}`;
-    updateQueueContinuation();
   }
 
   function fitQueuePreview() {

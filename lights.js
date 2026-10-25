@@ -31,7 +31,7 @@ export function toggleLights(current) {
    Returns WAAPI keyframes for the black layer's opacity, the burst length,
    and how long to wait before the next burst.
    ============================================================ */
-export const FLICKER = { minGapMs: 25000, maxGapMs: 70000, maxDips: 2, maxDim: 0.6 };
+export const FLICKER = { minGapMs: 25000, maxGapMs: 70000, maxDim: 0.6 };
 
 export function planFlicker(rng = Math.random) {
   const between = (lo, hi) => lo + rng() * (hi - lo);

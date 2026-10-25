@@ -40,6 +40,12 @@ const ARM_END = 30;
 const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
 const EASE_IN_OUT = 'cubic-bezier(0.65, 0, 0.35, 1)';
 
+const tf = (x, y, s = 1, r = 0) => `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
+// The record standing edge-on in the ring at the gripper, relative to the platter centre.
+// ponytail: the rotate(0deg) matches tf()'s function list so the two interpolate smoothly.
+const edgeOn = (x, y) => `translate(${x}px, ${y}px) scale(0.07, 0.94) rotate(0deg)`;
+const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
+
 export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
   const $ = (id) => document.getElementById(id);
   const root = $('mech');
@@ -123,11 +129,6 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     };
   }
 
-  // The record standing edge-on in the ring at the gripper, relative to the platter centre.
-  const edgeOn = (x, y) => tf(x, y, 1).replace(/scale\(1\)/, 'scale(0.07, 0.94)');
-
-  const tf = (x, y, s = 1, r = 0) => `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`;
-
   /* Finish at the published duration, so a swap's next movement stays in
      step with app.js's independent music timer. */
   function runSequence(anims, ms, timers, finish) {
@@ -175,7 +176,6 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const tDown = tSleeve + tRise + tDrop;
     const { flip, radius, pickupX, pickupY } = rects();
     const lift = radius * 0.2;
-    const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
 
     setPhase('playing');         // the finished layout; the animations below paint over it
     sfx.whirr(tDown / 1000);
@@ -235,7 +235,6 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const T = EJECT_MS / speed;
     const { flip, radius, pickupX, pickupY } = rects();
     const lift = radius * 0.2;
-    const opts = (delayMs, duration, easing = EASE_OUT) => ({ delay: delayMs, duration, easing, fill: 'both' });
     const currentArm = parseFloat(arm.style.getPropertyValue('--arm-angle')) || ARM_START;
 
     sfx.whirr(T / 1000 * 0.8);
@@ -286,7 +285,6 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     },
     loadMs: (speed = 1) => (isCalm() ? CALM_SWAP_MS : LOAD_MS / speed),
     ejectMs: (speed = 1) => (isCalm() ? CALM_SWAP_MS : EJECT_MS / speed),
-    setCover,
     setRackLookup(fn) { getRackSleeve = fn; },
 
     /* 0..1 through the song: the tonearm creeps toward the middle of the record. */

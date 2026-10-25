@@ -12,7 +12,7 @@
    out so the cache doesn't grow forever.
    ============================================================ */
 
-export const CRATE_CACHE = 'skatenight-crates';
+const CRATE_CACHE = 'skatenight-crates';   // sw.js keeps its own copy: separate script context
 
 const abs = (rel) => new URL(rel, location.href).href;
 

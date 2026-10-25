@@ -32,8 +32,6 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && wakeWanted && !wakeLock) acquireWakeLock();
 });
 
-export const wakeLockActive = () => Boolean(wakeLock);
-
 /* ---------------- Media Session ---------------- */
 export function setupMediaSession({ onPlay, onPause, onNext, onPrevious }) {
   if (!('mediaSession' in navigator)) return;

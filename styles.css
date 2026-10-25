@@ -622,7 +622,7 @@ body.on-attract .rig{ visibility:hidden; }
 .key-letter.is-open{ border-color:var(--magenta); box-shadow:0 .2rem 0 rgba(0,0,0,.55), 0 0 0 .1rem var(--magenta); }
 .key-fn{ font-size:.62rem; letter-spacing:.06em; color:var(--dim); }
 .key:hover{ border-color:var(--cyan); }
-.key:active, .key.is-pressed{ transform:translateY(.2rem); box-shadow:0 .04rem 0 rgba(0,0,0,.55); }
+.key:active{ transform:translateY(.2rem); box-shadow:0 .04rem 0 rgba(0,0,0,.55); }
 /* latched: pushed in and lit from behind until the code is used or cleared */
 .key.is-latched{
   transform:translateY(.18rem); border-color:var(--cyan); color:#E9FFFE;
@@ -818,7 +818,6 @@ body.on-attract .rig{ visibility:hidden; }
 .q-btn:hover:not(:disabled){ border-color:var(--cyan); color:var(--cyan); }
 .q-btn:active{ transform:translateY(.1rem); box-shadow:none; }
 .q-btn:disabled{ opacity:.25; cursor:default; }
-.q-more{ font:700 .62rem var(--font-mono); letter-spacing:.08em; color:var(--dim); padding-top:.1rem; }
 /* House suggestions stay legible; labels and request controls mark priority. */
 .q-divider{
   font:700 .56rem/1.3 var(--font-mono); letter-spacing:.08em; color:#C3A9D8; text-shadow:none;
@@ -1080,7 +1079,7 @@ button, summary{ min-height:24px; }
 .utility-panel .tool-setting > span{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
 .utility-panel .tool-setting output{ color:var(--cyan); font-family:var(--font-mono); }
 .utility-panel input[type="range"]{ width:100%; }
-.utility-panel .tool-option, .utility-panel .quick-pick-setting{ display:flex; align-items:flex-start; gap:.5rem; font:500 .8rem/1.3 var(--font-body); color:var(--cream); }
+.utility-panel .quick-pick-setting{ display:flex; align-items:flex-start; gap:.5rem; font:500 .8rem/1.3 var(--font-body); color:var(--cream); }
 .utility-panel input[type="checkbox"]{ flex:none; width:1.1rem; height:1.1rem; margin:.1rem 0; accent-color:var(--cyan); }
 .legend{ white-space:normal; flex-wrap:wrap; max-width:calc(100vw - 1.5rem); width:max-content; gap:.5rem .75rem; }
 .toast{ width:max-content; max-width:calc(100vw - 2rem); }
