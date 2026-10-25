@@ -606,7 +606,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
 const TICKER_REM_PER_SECOND = 4.2;      // slow enough to read every word from the back of the rink
 const TICKER_CALM_MS = 8000;
 const SIGN_FLASH_MS = 2200;             // how long the sign shows SELECTION J3 ACCEPTED
-const RACK_TURN_MS = 260;               // the rack page flipping over when the album changes
+const RACK_TURN_MS = 420;               // the rack page flipping over when the album changes
 const RACK_TURN_EASE = 'cubic-bezier(.25,.8,.3,1.04)';   // a hair of overshoot, like a real carrier
 const EASE_OUT = 'cubic-bezier(.23,1,.32,1)';   // mirrors --ease-out: WAAPI cannot read a CSS variable
 const QUEUE_MOVE_MS = 200;
