@@ -94,6 +94,8 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
   const crowd = document.body.classList.contains('is-crowd');
 
   const stripsEl = $('strips');
+  const rackPage = document.querySelector('.rack-page');
+  const sleeveHost = $('rack-sleeve');
   const artwork = fitRackArtwork({
     panel: document.querySelector('.rack-panel'),
     heading: document.querySelector('.rack-heading'),
@@ -107,6 +109,21 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
   // One sleeve per album, built once and reused, so flipping the rack never
   // shows a blank sleeve while a fresh copy of the cover decodes.
   const rackSleeves = new Map(library.volumes.map((v) => [v.id, sleeveFace(v)]));
+
+  /* Cancelling leaves both elements at their resting transform (the keyframes
+     do not fill), so this is both the interrupt for a fast second press and
+     the way to make the sleeve report an untransformed box mid-flip. */
+  let rackFlip = [];
+  function endRackFlip() {
+    for (const anim of rackFlip) { try { anim.cancel(); } catch { /* already gone */ } }
+    rackFlip = [];
+  }
+  function flipRack(forward) {
+    endRackFlip();
+    const frames = rackFlipKeyframes(forward);
+    rackFlip = [rackPage, sleeveHost].filter(Boolean)
+      .map((node) => node.animate(frames, { duration: RACK_TURN_MS, easing: RACK_TURN_EASE }));
+  }
 
   /* ---- the rack: one album page at a time ----
      Like the page display in a CD jukebox: a flexible sleeve with its title strips,
@@ -132,23 +149,12 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     const isNewPage = shownVolumeId !== null && shownVolumeId !== volumeId;
     const forward = volumeIds.indexOf(volumeId) >= volumeIds.indexOf(shownVolumeId);
     shownVolumeId = volumeId;
-    if (isNewPage && !isCalm()) {
-      // the page flips over on its hinge, like a title-strip carousel turning
-      const swing = forward ? 84 : -84;
-      document.querySelector('.rack-page').animate(
-        [
-          { transform: `perspective(40rem) rotateY(${swing}deg)`, transformOrigin: forward ? 'left center' : 'right center', opacity: 0.35, filter: 'brightness(.45)' },
-          { transform: 'perspective(40rem) rotateY(0deg)', transformOrigin: forward ? 'left center' : 'right center', opacity: 1, filter: 'brightness(1)' },
-        ],
-        { duration: RACK_TURN_MS, easing: 'cubic-bezier(.25,.8,.3,1.04)' },
-      );
-    }
     for (const [id, key] of letterKeys) key.classList.toggle('is-open', id === volumeId);
     $('rack-letter').textContent = v.letter;
     $('rack-title').textContent = v.title;
     $('rack-count').textContent = `${volumeIds.indexOf(volumeId) + 1} / ${volumeIds.length}`;
     const sleeve = rackSleeves.get(volumeId);
-    if ($('rack-sleeve').firstChild !== sleeve) $('rack-sleeve').replaceChildren(sleeve);
+    if (sleeveHost.firstChild !== sleeve) sleeveHost.replaceChildren(sleeve);
 
     stripsEl.replaceChildren();
     stripRows.clear();
@@ -158,31 +164,33 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     $('rack-song-count').textContent = `${list.length} SONG${list.length === 1 ? '' : 'S'}`;
     if (list.length === 0) {
       stripsEl.append(el('p', { class: 'strips-empty' }, 'NO SONGS ON THIS ALBUM YET'));
-      artwork.refresh();
-      return;
-    }
-    for (const t of list) {
-      // Code entry remains the default. Optional quick pick fills the code;
-      // SELECT still confirms the request, so browsing never queues a song.
-      const row = el('div', {
-        class: 'strip', role: 'listitem', title: t.title,
-        dataset: { track: t.id },
-        onclick: () => { if (!crowd && getQuickPick()) handlers.prefillTrack?.(t); },
-        onkeydown: (event) => {
-          if (crowd || !getQuickPick() || !['Enter', ' '].includes(event.key)) return;
-          event.preventDefault();
-          event.stopPropagation();
-          if (!event.repeat) handlers.prefillTrack?.(t);
+    } else {
+      for (const t of list) {
+        // Code entry remains the default. Optional quick pick fills the code;
+        // SELECT still confirms the request, so browsing never queues a song.
+        const row = el('div', {
+          class: 'strip', role: 'listitem', title: t.title,
+          dataset: { track: t.id },
+          onclick: () => { if (!crowd && getQuickPick()) handlers.prefillTrack?.(t); },
+          onkeydown: (event) => {
+            if (crowd || !getQuickPick() || !['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (!event.repeat) handlers.prefillTrack?.(t);
+          },
         },
-      },
-        el('span', { class: 'strip-code led' }, t.code),
-        el('span', { class: 'strip-title' }, t.title),
-        el('span', { class: 'strip-aside' }));
-      stripRows.set(t.id, row);
-      stripsEl.append(row);
+          el('span', { class: 'strip-code led' }, t.code),
+          el('span', { class: 'strip-title' }, t.title),
+          el('span', { class: 'strip-aside' }));
+        stripRows.set(t.id, row);
+        stripsEl.append(row);
+      }
+      refreshQuickPick();
     }
-    refreshQuickPick();
     artwork.refresh();
+    // Last: the strips are built and the cover is sized, so the first painted
+    // frame of the turn is the real one rather than one already past the hinge.
+    if (isNewPage && !isCalm()) flipRack(forward);
   }
 
   function refreshQuickPick() {
@@ -298,6 +306,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     $('sf-code').textContent = track.code;
     $('sf-title').textContent = track.title;
     $('sign-flash').classList.add('is-on');
+    if (!isCalm()) $('sf-code').animate([{ transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 140, easing: EASE_OUT });
     clearTimeout(signTimer);
     signTimer = setTimeout(() => $('sign-flash').classList.remove('is-on'), SIGN_FLASH_MS);
   }
@@ -340,6 +349,36 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
   let queueSignature = null;
   let queueNodes = [];
 
+  /* Requests slide to their new place instead of teleporting: measured before
+     the rebuild, animated after it. House rows are deliberately left alone,
+     because fitQueuePreview adds and drops them on every resize.
+     ponytail: a cancelled row still vanishes at once. The rows below it slide
+     up to close the gap, which is the bridge; a fading ghost would have to be
+     taken out of the grid, and that breaks fitQueuePreview's overflow trim. */
+  function measureRequestRows() {
+    const tops = new Map();
+    if (isCalm()) return tops;
+    for (const [id, row] of requestRows) {
+      if (row.isConnected) tops.set(id, row.getBoundingClientRect().top);
+    }
+    return tops;
+  }
+
+  function animateRequestRows(before) {
+    if (isCalm()) return;                 // CALM: the universal transition:none rule cannot stop WAAPI
+    const options = { duration: QUEUE_MOVE_MS, easing: EASE_OUT };
+    for (const row of requestRows.values()) {
+      if (!row.isConnected) continue;
+      const was = before.get(row.dataset.track);
+      if (was === undefined) {
+        row.animate([{ opacity: 0, transform: 'translateY(-.4rem)' }, { opacity: 1, transform: 'none' }], options);
+        continue;
+      }
+      const moved = was - row.getBoundingClientRect().top;
+      if (Math.abs(moved) > 1) row.animate([{ transform: `translateY(${moved}px)` }, { transform: 'none' }], options);
+    }
+  }
+
   function reconcileChildren(parent, nodes) {
     let cursor = parent.firstChild;
     for (const node of nodes) {
@@ -362,6 +401,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
       return;
     }
     queueSignature = signature;
+    const before = measureRequestRows();
     const active = document.activeElement;
     const action = list.contains(active) ? active?.dataset.queueAction : null;
     const focus = action ? { trackId: active.dataset.track, action, index: currentQueue.indexOf(active.dataset.track) } : null;
@@ -419,6 +459,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     }
     const count = $('queue-count');
     if (count) count.textContent = `${queue.length} REQUEST${queue.length === 1 ? '' : 'S'}`;
+    animateRequestRows(before);           // after the scroll restore, so the deltas are honest
   }
 
   function fitQueuePreview() {
@@ -548,7 +589,10 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
        page is showing, otherwise its letter key on the selector. */
     flashSelection,
     queueRows: QUEUE_ROWS,
-    rackSleeve: (volumeId) => (volumeId === shownVolumeId ? $('rack-sleeve').querySelector('.sleeve') : letterKeys.get(volumeId)) || null,
+    rackSleeve: (volumeId) => {
+      endRackFlip();        // the changer needs a resting box to fly the sleeve from
+      return (volumeId === shownVolumeId ? sleeveHost.querySelector('.sleeve') : letterKeys.get(volumeId)) || null;
+    },
     volumeIdForLetter: (letter) => library.volumes.find((v) => v.letter === letter)?.id || null,
   };
 }
@@ -562,7 +606,22 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
 const TICKER_REM_PER_SECOND = 4.2;      // slow enough to read every word from the back of the rink
 const TICKER_CALM_MS = 8000;
 const SIGN_FLASH_MS = 2200;             // how long the sign shows SELECTION J3 ACCEPTED
-const RACK_TURN_MS = 700;               // the rack page flipping over when the album changes
+const RACK_TURN_MS = 260;               // the rack page flipping over when the album changes
+const RACK_TURN_EASE = 'cubic-bezier(.25,.8,.3,1.04)';   // a hair of overshoot, like a real carrier
+const EASE_OUT = 'cubic-bezier(.23,1,.32,1)';   // mirrors --ease-out: WAAPI cannot read a CSS variable
+const QUEUE_MOVE_MS = 200;
+
+/* The cover and the title strips are ONE page turning on its hinge, so they
+   take the same keyframes from the same edge. They sit in different branches
+   of index.html (.rack-heading and .rack-page), which is the only reason this
+   has to be shared by hand instead of animating a common parent. */
+function rackFlipKeyframes(forward) {
+  const transformOrigin = forward ? 'left center' : 'right center';
+  return [
+    { transform: `perspective(40rem) rotateY(${forward ? 84 : -84}deg)`, transformOrigin, opacity: 0.35, filter: 'brightness(.45)' },
+    { transform: 'perspective(40rem) rotateY(0deg)', transformOrigin, opacity: 1, filter: 'brightness(1)' },
+  ];
+}
 
 export function createTicker({ textEl, nextText }) {
   let anim = null;

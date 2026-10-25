@@ -418,14 +418,17 @@ body.on-attract .rig{ visibility:hidden; }
 .wordmark span{ color:#fff; display:inline-block; }
 /* the little word between the two tubes is plain plastic lettering, not neon */
 .wordmark .by, .attract-title .by{ font-size:.5em; vertical-align:.32em; color:var(--cream); text-shadow:none; margin:0 .1em; }
-/* "SELECTION J3 ACCEPTED": the sign shows each new pick for two seconds */
+/* "SELECTION J3 ACCEPTED": the sign shows each new pick for two seconds, and
+   LATCHES like a selection relay - the panel wipes in from the right edge and
+   wipes back out the same way rather than dissolving. clip-path alone hides
+   it, so there is no opacity left to fight the wipe on the way out. */
 .sign-flash{
-  position:absolute; inset:.55rem 1.2rem; z-index:2; border-radius:.5rem;
+  position:absolute; inset:.55rem 1.2rem; z-index:2; border-radius:.5rem; overflow:hidden;
   display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); grid-template-rows:1fr auto; align-items:center; column-gap:.9rem; row-gap:.1rem;
-  background:#0A0417; opacity:0; transition:opacity .25s ease; pointer-events:none;
+  background:#0A0417; pointer-events:none;
+  clip-path:inset(0 0 0 100%); transition:clip-path .12s cubic-bezier(.3,.9,.2,1);
 }
-.sign-flash{ overflow:hidden; }
-.sign-flash.is-on{ opacity:1; }
+.sign-flash.is-on{ clip-path:inset(0); }
 .sf-label{ font:700 .72rem var(--font-mono); letter-spacing:.3em; color:var(--cream); }
 .sf-label:first-child{ text-align:right; }
 .sf-code{ font-size:2.2rem; line-height:1; letter-spacing:.12em; }
