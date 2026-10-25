@@ -381,10 +381,18 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 - To look at it locally: serve the folder with any static server that supports
   byte ranges (for example `npx http-server`) and open it in Chrome. Opening
   `index.html` straight from disk will not work (browsers block ES modules there).
-- Optional browser regression checks use Python Playwright and a Chromium
+- Optional browser regression checks use Playwright and a Chromium
   installation; these are developer tools, not application dependencies. With
   the local server running, use
   `python3 scripts/check-ui.py --base-url http://127.0.0.1:8080 --chromium /usr/bin/chromium`.
+- Optional motion checks: `npm run test:motion` (with the local server running).
+  `node --test` cannot see an animation, so every unit test passes just as
+  happily with the rack flip broken. These assert the things that must not
+  drift - the album cover and the title strips turning as one page, a turn
+  being interruptible, CALM stopping motion at once - rather than the exact
+  timings, which are meant to be tuned. They need Node Playwright
+  (`npm i -D playwright && npx playwright install chromium`) and exit 2, not 1,
+  when it is missing.
 - `DESIGN.md` records the material system, palette, motion rules, safety rules
   and the reasoning behind the reliability design (including why songs are played
   from Blob URLs instead of through the service worker).

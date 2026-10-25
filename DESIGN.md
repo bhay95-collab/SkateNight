@@ -670,3 +670,4 @@ from 10 metres). Everything about reading and validating that file lives in
 | `sw.js` | Service worker (app shell + covers only) |
 | `tests/` | `node --test` suites for every pure module |
 | `scripts/check-ui.py` | Optional Python Playwright browser regressions; no application dependencies |
+| `scripts/check-animations.mjs` | Optional motion checks in a real browser (`npm run test:motion`); asserts motion invariants, not tunings |
