@@ -42,6 +42,7 @@ const $ = (id) => document.getElementById(id);
 const EJECT_LEAD_SEC = 2.5;
 const LOAD_LEAD_SEC = 1.5;
 const SKIP_SPEED = 1.8;           // the changer works faster on a skip
+const VINYL_LEAD_IN_MS = 1000;    // needle crackles in the lead-in groove before each song
 const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light show
 const ATTRACT_PAGE_MS = 9000;    // attract mode turns the rack to the next album this often
 const STORE_VOL = 'sn-volumes';
@@ -348,7 +349,7 @@ async function main() {
     ui.setNow(track);
     ui.rollDuration(getStatus(id).duration);
     scheduleRender();
-    const ok = await player.start(track, { fadeInMs: 300 });
+    const ok = await player.start(track, { fadeInMs: 300, leadInMs: VINYL_LEAD_IN_MS });
     if (token !== changeToken) return;
     if (ok) {
       failures = 0;

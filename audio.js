@@ -8,9 +8,11 @@
                               analysers (watch only: they feed the
                               spectrum bars, VU needles and light show)
        sound effects --> [SFX volume] ------> limiter --> speakers
+       vinyl texture --> [SFX x VINYL] ------> limiter --> speakers
 
-   Vinyl surface voices follow each music deck's fade and music volume,
-   with an independent VINYL trim beneath the master SFX volume.
+   Vinyl voices sit on their own record bus, outside the music fader and
+   the analysers: the crackle carries on through a song's closing fade and
+   the lead-in groove, and the light show never dances to a dust pop.
 
    Browsers refuse to make sound until a person clicks or presses a key.
    unlockAudio() is called from that first click (the INSERT COIN press).
@@ -36,8 +38,10 @@ export function unlockAudio() {
 
     const musicBus = ctx.createGain();
     const sfxBus = ctx.createGain();
+    const recordBus = ctx.createGain();   // vinyl voices set their own SFX x VINYL level
     musicBus.connect(limiter);
     sfxBus.connect(limiter);
+    recordBus.connect(limiter);
 
     // Analysers only listen. fftSize 1024 = 512 frequency bars.
     const analyser = ctx.createAnalyser();
@@ -66,7 +70,7 @@ export function unlockAudio() {
     bassPass1.connect(bassPass2);
     bassPass2.connect(beatAnalyser);
 
-    engine = { ctx, musicBus, sfxBus, analyser, analyserL, analyserR, beatAnalyser,
+    engine = { ctx, musicBus, sfxBus, recordBus, analyser, analyserL, analyserR, beatAnalyser,
       musicLevel: pendingMusic, sfxLevel: pendingSfx, vinylLevel: pendingVinyl,
       recordSurfaces: new Set() };
     applyVolumes();

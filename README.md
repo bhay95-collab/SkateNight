@@ -307,13 +307,15 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 - The coin animation and seven original mechanical sound effects accompany the
   keys, selection relay, changer, needle and page carrier. **Effects** has its own
   volume slider; custom MP3s in `sfx/` can replace individual sounds.
-- Each track starts with a small needle-on-vinyl scrape, with very quiet record
-  surface noise underneath the song. **Effects** controls this texture alongside
-  the cabinet sounds. The **Vinyl texture** slider in TOOLS reduces just the
-  texture; its default **100%** preserves the authored mix, and **0%** removes
-  vinyl without silencing cabinet sounds. Music, Effects and Vinyl texture show
-  their current percentages. Vinyl follows music volume, fades and pauses, and
-  does not replay its opening scrape when resuming a paused song.
+- Each record crackles like a played-in 45: soft hiss, warm crackle and the
+  odd pop. When a record is changed the needle drops with a click and scrape,
+  then the lead-in groove crackles for about **1 second** before the song
+  starts. As a song fades out the crackle carries on (the run-out groove).
+  **Effects** controls this texture alongside the cabinet sounds; **Music**
+  does not touch it. The **Vinyl texture** slider in TOOLS turns down just the
+  texture; **0%** removes vinyl (and the 1-second lead-in) without silencing
+  cabinet sounds. Music, Effects and Vinyl texture show their current
+  percentages. Resuming a paused song does not replay the needle drop.
 
 ### Keyboard
 

@@ -1,13 +1,18 @@
-/* A clean, lightly worn record: soft groove noise, sparse tiny dust contacts,
-   and a short needle settling scrape. Original synthesis, no downloaded samples.
-   The surface follows the deck gain and MUSIC fader; EFFECTS is its master
-   with an independent VINYL trim for the record texture alone. */
+/* A played-in 45: a soft hiss bed that swells once per turn, warm crackle
+   in small clusters, the odd single pop, and a needle drop (contact click,
+   felt thump, groove scrape). Original synthesis, no downloaded samples.
+   The texture has its own record bus beside the music, so it carries on
+   through a song's closing fade (the run-out groove) and plays the lead-in
+   groove before the music. EFFECTS is its master, with an independent
+   VINYL trim for the record texture alone; MUSIC does not touch it. */
 import { getLevels } from './audio.js';
 import { perceptualVolume } from './format.js';
 
 const surfaces = new WeakMap();
-const SCRATCH_SECONDS = 0.24;
-const SURFACE_SECONDS = 13.37; // no short, once-per-revolution repeating crackle
+const ROTATION_SECONDS = 60 / 45;               // a 45 rpm single
+const SURFACE_SECONDS = ROTATION_SECONDS * 10;  // long loop: no short repeating crackle
+const SCRATCH_SECONDS = 0.32;
+const HISS_RMS = 0.0055;                        // about -45 dBFS: clear in quiet passages and gaps
 
 // A repeatable source makes level measurements and regression checks useful.
 function noise(seed) {
@@ -17,33 +22,75 @@ function noise(seed) {
   };
 }
 
+// One-pole filter coefficient for a cutoff in Hz.
+const pole = (hz, rate) => 1 - Math.exp(-2 * Math.PI * Math.min(hz, rate * 0.45) / rate);
+
+// A damped ring added into data. cos starts sharp (a crackle edge); sin starts
+// at zero (a soft thump).
+function ring(data, rate, at, { peak, hz, decay, shape = Math.cos }) {
+  const start = Math.floor(at * rate);
+  const length = Math.min(data.length - start, Math.ceil(rate * decay * 7));
+  for (let j = 0; j < length; j++) {
+    const t = j / rate;
+    data[start + j] += peak * shape(2 * Math.PI * hz * t) * Math.exp(-t / decay);
+  }
+}
+
+function removeOffset(data) {
+  let sum = 0;
+  for (const sample of data) sum += sample;
+  const mean = sum / data.length;
+  for (let i = 0; i < data.length; i++) data[i] -= mean;
+}
+
 export function createVinylBuffers(ctx) {
   if (surfaces.has(ctx)) return surfaces.get(ctx);
   const rate = ctx.sampleRate;
   const random = noise(1985);
+  const unit = () => (random() + 1) / 2;
+  const sign = () => (random() < 0 ? -1 : 1);
+
   const surface = ctx.createBuffer(1, Math.ceil(rate * SURFACE_SECONDS), rate);
   const data = surface.getChannelData(0);
-  const frictionRate = 1 - Math.exp(-2 * Math.PI * 2400 / rate);
-  const rumbleRate = 1 - Math.exp(-2 * Math.PI * 180 / rate);
+
+  // Hiss: groove friction between 350 Hz and 6.5 kHz, no mains hum.
+  const lowRate = pole(6500, rate);
+  const highRate = pole(350, rate);
   let low = 0;
-  let rumble = 0;
+  let high = 0;
+  let squares = 0;
   for (let i = 0; i < data.length; i++) {
-    const white = random();
-    low += frictionRate * (white - low);
-    rumble += rumbleRate * (low - rumble);
-    // Band-limited groove friction, not broadband white hiss or mains hum.
-    data[i] = (low - rumble) * 0.005;
+    low += lowRate * (random() - low);
+    high += highRate * (low - high);
+    data[i] = low - high;
+    squares += data[i] * data[i];
   }
-  // Soft, irregular dust contacts; no loud pops and no rhythmic click loop.
-  for (let at = 0.21; at < SURFACE_SECONDS - 0.03; at += 0.3 + (random() + 1) * 0.8) {
-    const start = Math.floor(at * rate);
-    const length = Math.ceil(rate * 0.008);
-    const peak = 0.0015 + (random() + 1) * 0.001;
-    for (let j = 0; j < length; j++) {
-      const t = j / rate;
-      data[start + j] += peak * Math.sin(2 * Math.PI * 1900 * t) * Math.exp(-t / 0.0012);
+  const scale = HISS_RMS / Math.sqrt(squares / data.length);
+  for (let i = 0; i < data.length; i++) {
+    // A worn record breathes a little louder once every turn.
+    data[i] *= scale * (1 + 0.18 * Math.sin(2 * Math.PI * (i / rate) / ROTATION_SECONDS));
+  }
+
+  // Crackle: many tiny dust ticks, mostly faint, some in short clusters.
+  const end = SURFACE_SECONDS - 0.03;
+  for (let at = 0.02; at < end; at += 0.005 + unit() * 0.07) {
+    const peak = 0.004 + 0.035 * unit() ** 5;
+    ring(data, rate, at, { peak: sign() * peak, hz: 2500 + unit() * 3500, decay: 0.00012 + unit() * 0.00025 });
+    if (unit() < 0.3) {
+      for (let k = 0, n = 1 + Math.floor(unit() * 3); k < n; k++) {
+        const follow = at + 0.003 + unit() * 0.02;
+        if (follow < end) ring(data, rate, follow, { peak: sign() * peak * 0.5, hz: 3000 + unit() * 3000, decay: 0.00015 });
+      }
     }
   }
+  // Pops: a single bigger speck every few seconds, never on a beat.
+  for (let at = 0.8 + unit(); at < end; at += 1.4 + unit() * 3.2) {
+    const s = sign();
+    const peak = 0.06 + unit() * 0.06;
+    ring(data, rate, at, { peak: s * peak, hz: 700 + unit() * 900, decay: 0.0006 });
+    ring(data, rate, at, { peak: s * peak * 0.5, hz: 160 + unit() * 80, decay: 0.003, shape: Math.sin });
+  }
+  removeOffset(data);
   // Smooth the loop seam without a silence hole or recurrent fade.
   const seam = Math.ceil(rate * 0.015);
   for (let i = 0; i < seam; i++) {
@@ -51,21 +98,37 @@ export function createVinylBuffers(ctx) {
     data[data.length - seam + i] = data[data.length - seam + i] * (1 - mix) + data[i] * mix;
   }
 
+  // Needle drop: contact click and felt thump, a scrape as the stylus finds
+  // the groove, and a burst of lead-in dust.
   const scratch = ctx.createBuffer(1, Math.ceil(rate * SCRATCH_SECONDS), rate);
   const scrape = scratch.getChannelData(0);
+  const contact = 0.004;
+  ring(scrape, rate, contact, { peak: 0.08, hz: 2200, decay: 0.00025, shape: Math.sin });
+  ring(scrape, rate, contact, { peak: 0.07, hz: 95, decay: 0.025, shape: Math.sin });
   let smooth = 0;
   let bass = 0;
   for (let i = 0; i < scrape.length; i++) {
     const t = i / rate;
     const progress = t / SCRATCH_SECONDS;
-    const cutoff = 3800 - 2600 * progress;
-    smooth += (1 - Math.exp(-2 * Math.PI * cutoff / rate)) * (random() - smooth);
-    bass += (1 - Math.exp(-2 * Math.PI * 450 / rate)) * (smooth - bass);
-    // A short textured brush settling into the groove, not a DJ backspin.
-    const envelope = Math.sin(Math.PI * progress) ** 2 * Math.exp(-progress * 3);
+    smooth += pole(4200 - 2700 * progress, rate) * (random() - smooth);
+    bass += pole(400, rate) * (smooth - bass);
+    const after = Math.max(0, t - contact);
+    // A textured brush settling into the groove, not a DJ backspin.
+    const envelope = (1 - Math.exp(-after / 0.012)) * Math.exp(-after / 0.09);
     const grain = 0.7 + 0.3 * Math.sin(2 * Math.PI * (42 * t + 90 * t * t));
-    scrape[i] = (smooth - bass) * envelope * grain * 0.22;
+    scrape[i] += (smooth - bass) * envelope * grain * 0.3;
   }
+  for (let k = 0; k < 9; k++) {
+    const at = contact + 0.01 + unit() * 0.18;
+    ring(scrape, rate, at, { peak: sign() * (0.01 + unit() * 0.03), hz: 2500 + unit() * 3000, decay: 0.0002 });
+  }
+  removeOffset(scrape);
+  // Silent first and last samples: no click from the buffer edges themselves.
+  const edge = Math.ceil(rate * 0.003);
+  const tail = Math.ceil(rate * 0.03);
+  for (let i = 0; i < edge; i++) scrape[i] *= i / edge;
+  for (let i = 0; i < tail; i++) scrape[scrape.length - 1 - i] *= i / tail;
+
   const result = { surface, scratch };
   surfaces.set(ctx, result);
   return result;
