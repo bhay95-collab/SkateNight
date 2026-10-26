@@ -11,7 +11,7 @@
    This file never touches the screen. app.js tells it what to do and
    listens for the events below.
    ============================================================ */
-import { getEngine } from './audio.js';
+import { getEngine, getLevels } from './audio.js';
 import { getCachedBlob } from './crates.js';
 import { createVinylSurface } from './vinyl.js';
 
@@ -26,9 +26,9 @@ function makeDeck(engine) {
   const gain = engine.ctx.createGain();
   gain.gain.value = 0;
   source.connect(gain).connect(engine.musicBus);
-  const vinyl = createVinylSurface(engine.ctx, gain);
+  const vinyl = createVinylSurface(engine.ctx, engine.recordBus);
   engine.recordSurfaces.add(vinyl);
-  return { audio, gain, vinyl, needlePending: false, fadeInMs: 350,
+  return { audio, gain, vinyl, needlePending: false, fadeInMs: 350, leadIn: null,
     trackId: null, tailArmed: false, killTimer: null, objectUrl: null, ready: Promise.resolve(), loadToken: 0 };
 }
 
@@ -69,7 +69,13 @@ export function createPlayer(handlers = {}) {
       deck.needlePending = false;
     });
     for (const event of ['pause', 'waiting', 'ended', 'error', 'emptied']) {
-      audio.addEventListener(event, () => deck.vinyl.stop());
+      audio.addEventListener(event, () => {
+        // During the lead-in the media is not playing yet: its own load settling
+        // must not lift the needle. Only a broken file ends the lead-in early.
+        if (deck.leadIn && event !== 'error') return;
+        endLeadIn(deck, 'cancelled');
+        deck.vinyl.stop();
+      });
     }
     audio.addEventListener('ended', () => {
       if (i === active && deck.trackId) handlers.onEnded?.(deck.trackId);
@@ -94,6 +100,24 @@ export function createPlayer(handlers = {}) {
       }
     });
   });
+
+  /* The needle rides the lead-in groove before the music: crackle only.
+     Resolves 'play' when the music should start, 'held' if paused meanwhile,
+     'cancelled' if skipped or replaced. */
+  function leadIn(deck, ms) {
+    return new Promise((resolve) => {
+      deck.leadIn = { resolve, timer: setTimeout(() => { deck.leadIn = null; resolve('play'); }, ms) };
+    });
+  }
+
+  function endLeadIn(deck, outcome) {
+    if (!deck.leadIn) return false;
+    clearTimeout(deck.leadIn.timer);
+    deck.leadIn.resolve(outcome);
+    deck.leadIn = null;
+    deck.vinyl.stop();
+    return true;
+  }
 
   /* Point a deck at a song. If the song is saved on this laptop (LOAD THE
      CRATES) it plays from that copy via a Blob URL, so it needs no network and
@@ -131,10 +155,13 @@ export function createPlayer(handlers = {}) {
     },
 
     /* Begin playing `track` now, fading in. Anything still playing is
-       stopped. Resolves true if audio started, false if the browser or the
-       file refused (onError is also called). */
-    async start(track, { fadeInMs = 350 } = {}) {
+       stopped. With leadInMs, the needle drops and the record crackles that
+       long before the music (skipped when vinyl is muted). Resolves true if
+       audio started (or was paused during the lead-in), false if replaced or
+       if the browser or the file refused (onError is also called). */
+    async start(track, { fadeInMs = 350, leadInMs = 0 } = {}) {
       const old = activeDeck();
+      endLeadIn(old, 'cancelled');
       if (!old.audio.paused) {
         rampGain(old, 0, 60);
         old.killTimer = setTimeout(() => { old.audio.pause(); old.killTimer = null; }, 90);
@@ -150,7 +177,16 @@ export function createPlayer(handlers = {}) {
       g.setValueAtTime(0.0001, now);
       try {
         await loading;
-        if (deck !== activeDeck() || deck.trackId !== track.id) return false;   // pre-empted by a newer choice
+        const stale = () => deck !== activeDeck() || deck.trackId !== track.id;
+        if (stale()) return false;                    // pre-empted by a newer choice
+        const { sfx, vinyl } = getLevels();
+        if (leadInMs > 0 && sfx * vinyl > 0) {
+          deck.vinyl.start({ needle: true });
+          deck.needlePending = false;
+          const outcome = await leadIn(deck, leadInMs);
+          if (outcome === 'held') { deck.needlePending = true; return true; }
+          if (outcome === 'cancelled' || stale()) return false;
+        }
         await deck.audio.play();
         return true;
       } catch (err) {
@@ -163,6 +199,7 @@ export function createPlayer(handlers = {}) {
     /* Fade the playing song out (skip). Resolves when it is silent. */
     fadeOut(ms = 250) {
       const deck = activeDeck();
+      endLeadIn(deck, 'cancelled');
       if (deck.audio.paused) return Promise.resolve();
       rampGain(deck, 0, ms);
       return new Promise((resolve) => {
@@ -178,7 +215,7 @@ export function createPlayer(handlers = {}) {
     /* Start the current song again from the top (BACK pressed late in a song). */
     restart() {
       const deck = activeDeck();
-      if (!deck.trackId) return;
+      if (!deck.trackId || deck.leadIn) return;      // still in the lead-in: already at the top
       deck.tailArmed = false;
       try { deck.audio.currentTime = 0; } catch { /* not seekable yet */ }
       if (!deck.audio.paused) {
@@ -189,6 +226,7 @@ export function createPlayer(handlers = {}) {
 
     pause() {
       const deck = activeDeck();
+      if (endLeadIn(deck, 'held')) return;
       if (deck.audio.paused) return;
       rampGain(deck, 0, 120);
       if (deck.killTimer) clearTimeout(deck.killTimer);

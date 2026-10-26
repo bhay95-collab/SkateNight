@@ -560,26 +560,31 @@ motor; stale swaps cannot reload a record after reset. Movement completion uses
 the published duration so the next load and needle cue stay aligned with the
 independent audio timer.
 
-`vinyl.js` adds a deliberately restrained record surface requested for playback:
-band-limited groove friction, sparse tiny dust contacts, and a short 240 ms
-needle-settling scrape. It is original procedural audio, with no external samples,
-mains hum or dramatic pops. A shared per-context buffer avoids per-track synthesis;
-the long surface loop starts at a random point and its seam is crossfaded.
-At 48 kHz, the raw surface measures about -59 dBFS RMS before the faders. Both
-EFFECTS and MUSIC attenuate the texture, so at the default 70% settings its
-steady level is about -71 dBFS before the limiter with the Vinyl texture trim
-at its default 100%.
+`vinyl.js` adds a clearly audible record surface: band-limited hiss that swells
+gently once per 45 rpm turn, warm dust crackle in small clusters, a single pop
+every few seconds, and a 320 ms needle drop (contact click, felt thump, groove
+scrape and lead-in dust). It is original procedural audio, with no external
+samples or mains hum. A shared per-context buffer avoids per-track synthesis;
+the ten-turn surface loop starts at a random point and its seam is crossfaded.
+The hiss measures about -45 dBFS RMS with pops near -19 dBFS peak, before the
+EFFECTS and Vinyl texture faders: heard plainly in quiet passages and the
+change gap, tucked under loud music. (The first version sat near -71 dBFS after
+the faders and could not be heard.)
 
-Each deck owns its surface voice upstream of the deck fade and MUSIC bus. The
-EFFECTS fader scales the texture separately from the music, while cabinet effects
-retain their own bus. The Tools-only Vinyl texture trim multiplies the texture
-gain independently: its default 100% preserves the authored mix and 0% removes
-only the vinyl. It is remembered locally; MUSIC or EFFECTS at zero still silences
-the texture. Actual media `playing` events start the surface and arm a
-scrape only for a new track; pause, waiting, ended, error and emptied release it.
-Resume and buffering recovery restart the surface without another scrape. BACK
-to the start replays the scrape. All voices fade out and disconnect, and synthesis
-failure leaves music playing. The service worker precaches `vinyl.js` for offline use.
+Vinyl voices sit on their own record bus straight into the limiter, outside the
+deck fades, the MUSIC fader and the analysers. Each voice's gain is EFFECTS x
+Vinyl texture (squared, like every fader). So a song's closing fade leaves the
+crackle playing - the run-out groove - and the light show never reacts to a
+pop. The Tools-only Vinyl texture trim is remembered locally; 0% removes only
+the vinyl. When a song starts, `player.start(..., { leadInMs: 1000 })` drops the
+needle and lets the lead-in groove crackle for one second before `play()`; with
+vinyl muted there is no lead-in. Pause during the lead-in holds the song (resume
+drops the needle again); skip, a newer song or a media error cancels it. Actual
+media `playing` events otherwise start the surface; pause, waiting, ended,
+error and emptied release it. Resume and buffering recovery restart the surface
+without another scrape. BACK to the start replays the scrape. All voices fade
+out and disconnect, and synthesis failure leaves music playing. The service
+worker precaches `vinyl.js` for offline use.
 Compare final levels through the venue speakers. See `sfx/README.md` for source,
 lengths and replacement instructions.
 

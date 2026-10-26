@@ -8,7 +8,7 @@ const second = { id: 'second', file: 'second.mp3' };
 
 // Keep play() and the browser's actual `playing` event separate: a file can
 // finish loading, or accept play(), while there is still no audible music.
-test('record texture follows the real media lifecycle and the deck volume paths', async (t) => {
+test('record texture follows the real media lifecycle on its own record bus', async (t) => {
   const originals = new Map(['window', 'Audio', 'setTimeout', 'clearTimeout']
     .map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const audios = [];
@@ -42,7 +42,12 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     createAnalyser() { return node(); }
     createChannelSplitter() { return node(); }
     createBiquadFilter() { return { ...node(), frequency: {} }; }
-    createMediaElementSource(audio) { return { ...node(), mediaElement: audio }; }
+    mediaSources = [];
+    createMediaElementSource(audio) {
+      const source = { ...node(), mediaElement: audio };
+      this.mediaSources.push(source);
+      return source;
+    }
     createBuffer(channels, length, sampleRate) {
       const data = Array.from({ length: channels }, () => new Float32Array(length));
       const buffer = { duration: length / sampleRate, getChannelData: (channel) => data[channel] };
@@ -135,6 +140,8 @@ test('record texture follows the real media lifecycle and the deck volume paths'
       current: () => decks.find((audio) => audio.src === `${player.currentTrackId}.mp3`),
     };
   };
+  // The deck's fade gain sits between its media element and the music bus.
+  const deckGainOf = (audio) => ctx.mediaSources.find((source) => source.mediaElement === audio).connections[0].gain;
   const assertReleased = (sources) => {
     for (const source of sources) {
       assert.ok(source.finished, 'source has reached its scheduled stop');
@@ -163,7 +170,7 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     state.current().fire('playing');
     assert.equal(state.surfaces.length, 1, 'continuous record surface starts with music');
     assert.equal(state.scratches.length, 1, 'one brief needle scrape accompanies the track');
-    assert.ok(state.scratches[0].buffer.duration < 0.3, 'needle scrape remains brief');
+    assert.ok(state.scratches[0].buffer.duration < 0.35, 'needle scrape remains brief');
     state.current().fire('playing');
     assert.equal(state.sources.length, 2, 'duplicate media events do not layer texture');
     state.current().pause();
@@ -191,11 +198,11 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     assert.equal(state.scratches.length, 1, 'buffer recovery is still the same record');
     const resumedSurface = state.surfaces.at(-1);
     state.player.pause();
-    const deckGain = resumedSurface.connections[0].connections[0].gain;
+    const deckGain = deckGainOf(audio);
     assert.deepEqual(deckGain.events.at(-1).slice(0, 2), ['linear', 0], 'pause first fades the deck');
     tick(139);
     assert.equal(audio.paused, false, 'song continues through the short fade');
-    assert.equal(resumedSurface.stops.length, 0, 'static follows the same fade as the song');
+    assert.equal(resumedSurface.stops.length, 0, 'static holds until the song has faded');
     tick(1);
     assert.equal(audio.paused, true);
     tick(41);
@@ -216,7 +223,7 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     const audio = state.current();
     audio.fire('playing');
     const surface = state.surfaces[0];
-    const deckGain = surface.connections[0].connections[0].gain;
+    const deckGain = deckGainOf(audio);
     state.player.pause();
     const pauseTimers = [...timers.keys()];
     assert.equal(pauseTimers.length, 1, 'pause schedules the native media pause');
@@ -245,7 +252,7 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     await state.player.start(first);
     const audio = state.current();
     audio.fire('playing');
-    const deckGain = state.surfaces[0].connections[0].connections[0].gain;
+    const deckGain = deckGainOf(audio);
     audio.currentTime = audio.duration - 0.9;
     audio.fire('timeupdate');
     assert.deepEqual(deckGain.events.at(-1).slice(0, 2), ['linear', 0],
@@ -284,7 +291,7 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     await state.player.resume();
     audio.fire('playing');
     assert.equal(state.scratches.length, 1, 'the ignored event preserves the pending initial needle scrape');
-    const deckGain = state.surfaces[0].connections[0].connections[0].gain;
+    const deckGain = deckGainOf(audio);
     audio.fire('ended');
     tick(41);
     assertReleased(state.sources);
@@ -299,16 +306,19 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     audio.pause();
   });
 
-  await t.test('texture follows MUSIC and EFFECTS mute, including newly started tracks', async () => {
+  await t.test('texture rides the record bus: EFFECTS mutes it, MUSIC leaves it alone', async () => {
     const state = scene();
     await state.player.start(first);
     state.current().fire('playing');
     for (const source of state.sources) {
-      const deck = source.connections[0].connections[0];
-      assert.equal(deck.connections[0], engine.musicBus, 'needle and surface share the music fader');
+      assert.equal(source.connections[0].connections[0], engine.recordBus,
+        'needle and surface bypass the deck fade and music fader');
     }
+    const textureEvents = state.sources.map((source) => source.connections[0].gain.events.length);
     setMusicLevel(0);
     assert.deepEqual(engine.musicBus.gain.events.at(-1).slice(0, 2), ['target', 0]);
+    assert.deepEqual(state.sources.map((source) => source.connections[0].gain.events.length), textureEvents,
+      'music fader does not touch the record texture');
     setSfxLevel(0);
     for (const source of state.sources) {
       assert.deepEqual(source.connections[0].gain.events.at(-1).slice(0, 2), ['target', 0],
@@ -323,6 +333,94 @@ test('record texture follows the real media lifecycle and the deck volume paths'
     state.current().pause();
     tick(140);
     setMusicLevel(0.7);
+    setSfxLevel(0.7);
+  });
+
+  await t.test('closing fade leaves the crackle playing: the run-out groove', async () => {
+    const state = scene();
+    await state.player.start(first);
+    const audio = state.current();
+    audio.fire('playing');
+    audio.currentTime = audio.duration - 1;
+    audio.fire('timeupdate');
+    assert.deepEqual(deckGainOf(audio).events.at(-1).slice(0, 2), ['linear', 0], 'music fades out');
+    tick(900);
+    assert.equal(state.surfaces[0].stops.length, 0, 'surface keeps playing while the music fades');
+    audio.fire('ended');
+    tick(41);
+    assertReleased(state.sources);
+  });
+
+  await t.test('lead-in: the needle drops and crackles before the music starts', async () => {
+    const state = scene();
+    const starting = state.player.start(first, { leadInMs: 1000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    const audio = state.current();
+    assert.equal(state.surfaces.length, 1, 'surface starts at the needle drop');
+    assert.equal(state.scratches.length, 1, 'needle drop scrape plays straight away');
+    assert.equal(audio.paused, true, 'music waits for the lead-in');
+    audio.fire('emptied');
+    assert.equal(state.surfaces[0].stops.length, 0, 'the song settling its load keeps the needle down');
+    tick(999);
+    assert.equal(audio.paused, true);
+    tick(1);
+    assert.equal(await starting, true);
+    assert.equal(audio.paused, false, 'music starts after the lead-in');
+    audio.fire('playing');
+    assert.equal(state.sources.length, 2, 'the same surface carries on into the song, no second scrape');
+    audio.pause();
+    tick(41);
+    assertReleased(state.sources);
+  });
+
+  await t.test('lead-in: pause holds the song, skip or a new song cancels it, mute skips it', async () => {
+    const paused = scene();
+    const held = paused.player.start(first, { leadInMs: 1000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    tick(300);
+    paused.player.pause();
+    assert.equal(await held, true, 'a paused lead-in still counts as started');
+    tick(2000);
+    assert.equal(paused.current().paused, true, 'pause during the lead-in keeps the music waiting');
+    assertReleased(paused.sources);
+    assert.equal(await paused.player.resume(), true);
+    paused.current().fire('playing');
+    assert.equal(paused.scratches.length, 2, 'dropping the needle again scrapes again');
+    paused.current().pause();
+    tick(41);
+
+    const skipped = scene();
+    const cancelled = skipped.player.start(first, { leadInMs: 1000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    const fading = skipped.player.fadeOut(220);
+    assert.equal(await cancelled, false, 'skip during the lead-in cancels the song');
+    await fading;
+    tick(2000);
+    assert.equal(skipped.decks.every((audio) => audio.paused), true, 'cancelled lead-in never starts music');
+    assertReleased(skipped.sources);
+
+    const replaced = scene();
+    const old = replaced.player.start(first, { leadInMs: 1000 });
+    await Promise.resolve();
+    await Promise.resolve();
+    const oldDeck = replaced.current();
+    const next = replaced.player.start(second);
+    assert.equal(await old, false, 'a newer song replaces the lead-in');
+    assert.equal(await next, true);
+    tick(2000);
+    assert.equal(oldDeck.paused, true, 'replaced lead-in never starts its music');
+    replaced.current().pause();
+    tick(41);
+
+    setSfxLevel(0);
+    const muted = scene();
+    assert.equal(await muted.player.start(first, { leadInMs: 1000 }), true);
+    assert.equal(muted.current().paused, false, 'muted vinyl skips the silent lead-in');
+    muted.current().pause();
+    tick(41);
     setSfxLevel(0.7);
   });
 

@@ -79,7 +79,7 @@ function measurements(buffer) {
     elevatedFraction: elevated / samples.length };
 }
 
-test('vinyl remains a quiet, clean record texture at low and high device sample rates', () => {
+test('vinyl is a clearly audible, clean record texture at low and high device sample rates', () => {
   for (const sampleRate of [22050, 48000]) {
     const ctx = new FakeContext(sampleRate);
     const { surface, scratch } = createVinylBuffers(ctx);
@@ -89,15 +89,16 @@ test('vinyl remains a quiet, clean record texture at low and high device sample 
     }
     const bed = measurements(surface);
     assert.ok(surface.duration > 10 && surface.duration < 20, 'long loop avoids a short repeated crackle');
-    assert.ok(bed.rms > 0.0005 && bed.rms < 0.002, `restrained surface energy at ${sampleRate} Hz`);
-    assert.ok(bed.peak < 0.008, 'no intrusive dust pops');
+    // About -45 dBFS: heard in quiet passages and the change gap, tucked under loud music.
+    assert.ok(bed.rms > 0.004 && bed.rms < 0.008, `clear surface energy at ${sampleRate} Hz`);
+    assert.ok(bed.peak > 0.06 && bed.peak < 0.2, 'pops are audible but leave generous headroom');
     assert.ok(Math.abs(bed.mean) < 0.00001, 'no material surface DC offset');
-    assert.ok(bed.elevatedFraction < 0.06, 'larger contacts remain sparse');
+    assert.ok(bed.elevatedFraction > 0.1, 'texture is present, not a near-silent bed');
     const needle = measurements(scratch);
-    assert.ok(scratch.duration >= 0.15 && scratch.duration <= 0.35, 'brief needle-settling gesture');
-    assert.ok(needle.rms > bed.rms && needle.rms < 0.01, 'start cue is audible but restrained');
-    assert.ok(needle.peak < 0.045, 'scratch leaves generous headroom');
-    assert.ok(Math.abs(needle.mean) < 0.00002, 'no material scratch DC offset');
+    assert.ok(scratch.duration >= 0.15 && scratch.duration <= 0.35, 'brief needle-drop gesture');
+    assert.ok(needle.rms > bed.rms * 3 && needle.rms < 0.05, 'needle drop stands out from the surface');
+    assert.ok(needle.peak < 0.25, 'needle drop leaves generous headroom');
+    assert.ok(Math.abs(needle.mean) < 0.0001, 'no material scratch DC offset');
     const samples = scratch.getChannelData(0);
     assert.ok(Math.abs(samples[0]) < 0.000001 && Math.abs(samples.at(-1)) < 0.000001,
       'scratch starts and ends without an abrupt discontinuity');
@@ -229,12 +230,8 @@ test('vinyl trim is remembered before unlock, scales under effects, and leaves c
     assert.equal(getLevels().vinyl, 0.4, 'vinyl setting is remembered before a user unlocks audio');
     const engine = unlockAudio();
     assert.equal(engine.vinylLevel, 0.4, 'audio unlock keeps the pending trim');
-    const deck = engine.ctx.createGain();
-    deck.connect(engine.musicBus);
-    const vinyl = createVinylSurface(engine.ctx, deck);
-    const otherDeck = engine.ctx.createGain();
-    otherDeck.connect(engine.musicBus);
-    const otherVinyl = createVinylSurface(engine.ctx, otherDeck);
+    const vinyl = createVinylSurface(engine.ctx, engine.recordBus);
+    const otherVinyl = createVinylSurface(engine.ctx, engine.recordBus);
     engine.recordSurfaces.add(vinyl);
     engine.recordSurfaces.add(otherVinyl);
     vinyl.start({ needle: true });
@@ -242,7 +239,7 @@ test('vinyl trim is remembered before unlock, scales under effects, and leaves c
     for (const source of engine.ctx.sources) {
       assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.3 * 0.4),
         'new surface and scratch respect both values set before audio unlock');
-      assert.ok([deck, otherDeck].includes(source.connections[0].connections[0]));
+      assert.equal(source.connections[0].connections[0], engine.recordBus);
     }
     const cabinetEvents = engine.sfxBus.gain.events.length;
     setVinylLevel(0);
@@ -267,8 +264,11 @@ test('vinyl trim is remembered before unlock, scales under effects, and leaves c
         'changing the effects master preserves the independent vinyl trim');
     }
     setMusicLevel(0);
-    assert.equal(engine.musicBus.gain.events.at(-1)[1], 0, 'music mute silences the deck and its texture together');
-    assert.equal(deck.connections[0], engine.musicBus);
+    assert.equal(engine.musicBus.gain.events.at(-1)[1], 0, 'music mute silences the songs');
+    for (const source of engine.ctx.sources) {
+      assert.equal(source.connections[0].gain.events.at(-1)[1], perceptualVolume(0.5 * 0.5),
+        'music mute leaves the record texture alone');
+    }
     vinyl.stop();
     otherVinyl.stop();
     const releasedEvents = engine.ctx.sources.map((source) => source.connections[0].gain.events.length);
