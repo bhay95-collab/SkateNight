@@ -57,3 +57,23 @@ test('the screen flicker is photosensitive-safe', async () => {
     assert.ok(offsets.every((o, j) => o >= 0 && o <= 1 && (j === 0 || o >= offsets[j - 1])), 'valid keyframe offsets');
   }
 });
+
+test('the screen flicker patches stay inside the same safety budget', async () => {
+  const { planFlicker, FLICKER } = await import('../lights.js');
+  let seed = 11;
+  const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  for (let i = 0; i < 500; i++) {
+    const plan = planFlicker(rng);
+    assert.equal(plan.patches.length, FLICKER.cols * FLICKER.rows, 'one plan per patch of screen');
+    for (const patch of plan.patches) {
+      const dark = patch.keyframes.map((k) => k.opacity);
+      assert.ok(Math.max(...dark) <= FLICKER.maxDim, 'no patch goes more than 60% dark');
+      assert.equal(dark[0], 0);
+      assert.equal(dark[dark.length - 1], 0, 'every patch ends fully back on');
+      assert.equal(patch.keyframes.length, plan.keyframes.length, 'patches share the burst timeline');
+      assert.ok(patch.delayMs >= 0 && patch.delayMs + plan.duration < 1000, 'the whole ripple is over within a second');
+    }
+    const depths = new Set(plan.patches.map((p) => Math.max(...p.keyframes.map((k) => k.opacity))));
+    assert.ok(depths.size > 1, 'patches do not all dip the same');
+  }
+});

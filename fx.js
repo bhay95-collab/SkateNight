@@ -9,7 +9,7 @@
    html[data-lights="calm"]; JavaScript effects check isCalm() themselves.
    ============================================================ */
 import { BOOT_POOL, sample } from './copy.js';
-import { LIGHTS_KEY, resolveLights, toggleLights, planFlicker } from './lights.js';
+import { LIGHTS_KEY, resolveLights, toggleLights, planFlicker, FLICKER } from './lights.js';
 
 let calm = false;
 const calmListeners = new Set();
@@ -63,16 +63,18 @@ export function safely(label, fn) {
 
 export const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* The whole monitor dips now and then (planFlicker in lights.js holds the
-   safety rules). Skipped in CALM and while the tab is hidden. */
+/* The monitor dips now and then, patch by patch (planFlicker in lights.js
+   holds the safety rules). Skipped in CALM and while the tab is hidden. */
 export function startScreenFlicker(layer, { onBurst } = {}) {
   if (!layer || typeof layer.animate !== 'function') return;
+  const patches = Array.from({ length: FLICKER.cols * FLICKER.rows }, () => document.createElement('i'));
+  layer.replaceChildren(...patches);
   const next = () => {
     const plan = planFlicker();
     setTimeout(() => {
       safely('screen-flicker', () => {
         if (calm || document.hidden) return;
-        layer.animate(plan.keyframes, { duration: plan.duration, easing: 'linear' });
+        plan.patches.forEach((p, i) => patches[i].animate(p.keyframes, { duration: plan.duration, delay: p.delayMs, easing: 'linear' }));
         if (onBurst) onBurst(plan);
       });
       next();

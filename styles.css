@@ -227,8 +227,12 @@ kbd{
 }
 @keyframes crt-roll{ to{ transform:translateY(101vh); } }
 /* The screen dipping now and then, like an old monitor on a tired supply.
-   fx.js (startScreenFlicker) animates its opacity; it rests at 0. */
-.crt-flicker{ position:fixed; inset:0; z-index:43; pointer-events:none; background:#05020a; opacity:0; will-change:opacity; }
+   fx.js (startScreenFlicker) fills it with a 4x3 grid of patches and animates
+   each one's opacity; they rest at 0. The blur melts the patch edges together
+   (a blur only averages, so no spot gets darker than its darkest patch), and
+   the layer overhangs the screen so the blur never fades at the edges. */
+.crt-flicker{ position:fixed; inset:-8vmax; z-index:43; pointer-events:none; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(3,1fr); filter:blur(5vmax); }
+.crt-flicker > i{ background:#05020a; opacity:0; will-change:opacity; }
 
 .crt-bezel::after{ /* four recessed corner fasteners */
   content:""; position:absolute; inset:0; border-radius:inherit;

@@ -461,7 +461,10 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
 `coin-drop` once, `score-pop` once, boot sequence once per tab.
 Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
 1 s, bursts at least 25 s apart, never more than 60% darker - so never more
-than 2 flashes in any second. `tests/safety.test.js` checks 500 random bursts.
+than 2 flashes in any second. The burst plays across a blurred 4x3 grid of
+patches that ripple out from a random spot (under 180 ms) at their own depths;
+patches only lag or lighten the burst, never add dips. `tests/safety.test.js`
+checks 500 random bursts, patch by patch.
 
 ### Calm lights (`prefers-reduced-motion` and the on-screen switch)
 
