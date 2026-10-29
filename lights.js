@@ -1,26 +1,4 @@
 /* ============================================================
-   LIGHTS - the FULL / CALM switch.
-
-   The venue laptop's operating-system "reduce motion" setting may not
-   match the room, so Ben gets an on-screen switch. With nothing saved
-   it follows the operating system; once he presses it, his choice is
-   remembered (localStorage) and wins.
-
-   This file only holds the decision. The page wiring is in app.js.
-   ============================================================ */
-
-export const LIGHTS_KEY = 'sn-lights';
-
-export function resolveLights({ stored, osReduced }) {
-  if (stored === 'full' || stored === 'calm') return stored;
-  return osReduced ? 'calm' : 'full';
-}
-
-export function toggleLights(current) {
-  return current === 'calm' ? 'full' : 'calm';
-}
-
-/* ============================================================
    SCREEN FLICKER - every so often the monitor dips, like an old CRT on a
    tired power supply. One burst timeline drives a soft grid of patches: the
    dip ripples out from a random spot, each patch dips to its own depth, and
@@ -32,7 +10,6 @@ export function toggleLights(current) {
    - a dip darkens any patch by at most 60%: it never goes fully black;
    - patches only lag the burst (ripple under 180 ms), never add dips, and
      the whole ripple is over within a second;
-   - CALM lights switch it off completely (fx.js checks before each burst).
    Returns WAAPI keyframes for the black layer's opacity, the burst length,
    and how long to wait before the next burst.
    ============================================================ */

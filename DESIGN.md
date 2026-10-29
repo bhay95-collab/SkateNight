@@ -466,13 +466,13 @@ patches that ripple out from a random spot (under 180 ms) at their own depths;
 patches only lag or lighten the burst, never add dips. `tests/safety.test.js`
 checks 500 random bursts, patch by patch.
 
-### Calm lights (`prefers-reduced-motion` and the on-screen switch)
+### Calm lights (dormant)
 
+- The lights are always FULL. The on-screen **LIGHTS: FULL / CALM** switch was
+  removed, and the OS `prefers-reduced-motion` setting is no longer followed.
+  The CALM paths below are still in the code (and tested through
+  `fx.js: followLights`), but nothing on the page turns them on.
 - **Motion off, finished state shown** - not "motion lite" (trivia's rule).
-- Because the venue laptop's OS setting may not reflect the room, the header
-  deck has a **LIGHTS: FULL / CALM** switch. With nothing saved it follows the
-  OS (`prefers-reduced-motion`); once pressed, the choice is remembered in
-  `localStorage` (`sn-lights`) and wins.
 - CSS: `html[data-lights="calm"]` switches every animation and transition off.
   JavaScript effects ask `isCalm()` and jump to the finished picture:
   the changer shows the record already on the platter, the ticker holds still
@@ -502,8 +502,8 @@ checks 500 random bursts, patch by patch.
 - **Shuffle** (`rotation.js: pickShuffle`) is a shuffled deck: every playable song
   plays once before any repeats, the last-5 rule still holds when the deck is
   reshuffled, and songs picked from the queue count as played. Shuffle off uses
-  `pickInOrder`: the order of `tracks.js`, wrapping round. The choice is saved in
-  `localStorage` (`sn-shuffle`); the default is on.
+  `pickInOrder`: the order of `tracks.js`, wrapping round. Every load starts with
+  shuffle on; turning it off lasts until the page is reloaded.
 - **House plan** (`app.js: planHouse`): the house rotation picks ahead, enough
   to fill UP NEXT's spare rows, and keeps those picks, so the labelled rows under
   IF NOBODY PICKS are exactly what will play. Songs in the queue are left out of
@@ -658,7 +658,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `copy.js` | All rotating text pools and the rotator (pure) |
 | `format.js` | LED clock formatting, volume curve (pure) |
 | `dsp.js` | Spectrum bands, loudness, envelope, beat detector and gate, logo glow (pure) |
-| `lights.js` | FULL / CALM decision (pure) |
+| `lights.js` | Screen flicker planning (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
 | `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |
 | `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
@@ -671,7 +671,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `mechanism.js` | The record changer animation |
 | `visualiser.js` | Shared loop, canvases, mirror light |
 | `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
-| `fx.js` | Calm switch, boot sequence, count-up |
+| `fx.js` | Boot sequence, screen flicker, count-up |
 | `neon.js` | Desynced neon flicker |
 | `rink.js` | Wake lock, media session, service worker registration |
 | `crates.js` | LOAD THE CRATES, saved-copy lookup |

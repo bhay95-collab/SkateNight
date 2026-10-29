@@ -1,15 +1,12 @@
 /* ============================================================
    FX - shared visual toolbox (ported and adapted from trivia's fx.js):
-   the LIGHTS calm switch, the CRT boot sequence, count-ups.
+   the CRT boot sequence, count-ups.
 
-   LIGHTS: FULL / CALM is the one place that decides whether decorative
-   motion happens. Every effect asks isCalm() and, when calm, jumps to its
-   FINISHED state instead of animating. The arrival keeps its full hold
-   in a static presentation. CSS handles the pure-CSS animations through
-   html[data-lights="calm"]; JavaScript effects check isCalm() themselves.
+   The lights are always FULL: the on-screen FULL / CALM switch was removed.
+   isCalm() and the html[data-lights="calm"] CSS remain but never switch on.
    ============================================================ */
 import { BOOT_POOL, sample } from './copy.js';
-import { LIGHTS_KEY, resolveLights, toggleLights, planFlicker, FLICKER } from './lights.js';
+import { planFlicker, FLICKER } from './lights.js';
 
 let calm = false;
 const calmListeners = new Set();
@@ -21,34 +18,15 @@ export function onCalmChange(fn) {
   return () => calmListeners.delete(fn);
 }
 
-function applyLights(mode) {
+/* Sets the lights mode. Nothing on the page calls this any more (the lights
+   are always FULL); the tests use it to exercise the dormant CALM paths. */
+export function followLights(mode) {
+  if (mode !== 'calm' && mode !== 'full') return;
   calm = mode === 'calm';
   document.documentElement.dataset.lights = mode;
   for (const fn of calmListeners) {
     try { fn(calm); } catch (err) { console.warn('[lights]', err); }
   }
-}
-
-/* The crowd screen follows whatever the control window has chosen. */
-export function followLights(mode) {
-  if (mode === 'calm' || mode === 'full') applyLights(mode);
-}
-
-/* Reads the saved choice (or the operating system's setting) and applies it. */
-export function initLights() {
-  let stored = null;
-  try { stored = localStorage.getItem(LIGHTS_KEY); } catch { /* storage blocked - fine */ }
-  const osReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-  applyLights(resolveLights({ stored, osReduced }));
-  return calm ? 'calm' : 'full';
-}
-
-/* The on-screen switch. Remembers the choice. */
-export function flipLights() {
-  const next = toggleLights(calm ? 'calm' : 'full');
-  try { localStorage.setItem(LIGHTS_KEY, next); } catch { /* storage blocked - fine */ }
-  applyLights(next);
-  return next;
 }
 
 /* Run an effect so that a failure can never reach the music. */

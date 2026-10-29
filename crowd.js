@@ -13,9 +13,8 @@ import { createUI, createTicker } from './ui.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
-import { initLights, followLights, onCalmChange, startBoot, startScreenFlicker, safely } from './fx.js';
+import { onCalmChange, startBoot, startScreenFlicker, safely } from './fx.js';
 import { SKATE_JOKES, IDLE_JOKES, createRotator } from './copy.js';
-import { LIGHTS_KEY } from './lights.js';
 import { createLink } from './link.js';
 
 // The crowd screen is silent: every effect is a no-op here.
@@ -49,7 +48,6 @@ export function runCrowd(library) {
   document.body.classList.remove('on-attract');
   $('attract').hidden = true;
   document.title = 'Skate by Faith - Crowd Screen';
-  initLights();
   const boot = startBoot($('boot'));
 
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
@@ -81,8 +79,6 @@ export function runCrowd(library) {
   const visualiser = createVisualiser({ source: () => levels });
   safely('visualiser', () => visualiser.start());
 
-  // Lights follow the control window (same laptop, same saved setting).
-  window.addEventListener('storage', (e) => { if (e.key === LIGHTS_KEY) followLights(e.newValue); });
 
   // Click (or F) for fullscreen; the pointer hides itself once fullscreen.
   // Dismissing the hint must not also enter fullscreen.
@@ -171,7 +167,6 @@ export function runCrowd(library) {
       if (op) Promise.resolve(safely('mech', () => op(data))).catch(() => {});
     } else if (type === 'snapshot') {
       applyState(data.state);
-      followLights(data.lights);
       const playing = trackById.get(data.state.nowId);
       if (playing && data.state.phase !== 'idle') {
         mech.showPlaying(volumeById.get(playing.volume), { trackId: playing.id, paused: data.state.phase === 'paused' });

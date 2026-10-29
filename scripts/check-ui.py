@@ -56,22 +56,22 @@ def close_tools(page):
 
 def keyboard_checks(page, tracks):
     phase = state(page)["phase"]
-    lights = page.locator("#btn-lights")
-    previous = lights.get_attribute("aria-pressed")
-    lights.focus()
+    toggle = page.locator("#btn-shuffle")
+    previous = toggle.get_attribute("aria-pressed")
+    toggle.focus()
     page.keyboard.press("Space")
-    page.wait_for_function("value => document.querySelector('#btn-lights').getAttribute('aria-pressed') !== value", arg=previous)
-    require(state(page)["phase"] == phase, "Space on LIGHTS changed playback")
-    page.keyboard.press("Space")  # Restore CALM for deterministic, faster swaps.
+    page.wait_for_function("value => document.querySelector('#btn-shuffle').getAttribute('aria-pressed') !== value", arg=previous)
+    require(state(page)["phase"] == phase, "Space on SHUFFLE changed playback")
+    page.keyboard.press("Space")  # Back to SHUFFLE: ON.
 
     type_code(page, tracks[1]["code"], submit=False)
     pending = page.locator("#readout-code").text_content()
     before_queue = state(page)["queue"]
-    lights.focus()
+    toggle.focus()
     page.keyboard.press("Enter")
-    require(state(page)["queue"] == before_queue, "Enter on LIGHTS submitted a pending song")
+    require(state(page)["queue"] == before_queue, "Enter on SHUFFLE submitted a pending song")
     require(page.locator("#readout-code").text_content() == pending, "Native activation discarded the pending code")
-    require(state(page)["phase"] == phase, "Enter on LIGHTS changed playback")
+    require(state(page)["phase"] == phase, "Enter on SHUFFLE changed playback")
     page.keyboard.press("Space")
     page.locator("#key-clear").click()
 
@@ -227,7 +227,7 @@ def main():
     except ImportError:
         parser.exit(2, "Python Playwright is required: pip install playwright\n")
     executable = args.chromium or ("/usr/bin/chromium" if Path("/usr/bin/chromium").is_file() else None)
-    init_script = "sessionStorage.setItem('sn_booted','1');localStorage.setItem('sn-lights','calm')"
+    init_script = "sessionStorage.setItem('sn_booted','1')"
     errors = []
     with sync_playwright() as playwright:
         options = {"headless": True}

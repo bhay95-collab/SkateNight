@@ -201,7 +201,7 @@ const calm = await page.evaluate(async () => {
   document.getElementById('rack-next').click();
   await new Promise((r) => setTimeout(r, 100));
   const during = document.querySelector('#rack-sleeve').getAnimations().length;
-  document.getElementById('btn-lights').click();
+  (await import('/fx.js')).followLights('calm');   // no switch on screen now; the CALM paths still exist
   await new Promise((r) => setTimeout(r, 60));
   return {
     during,
@@ -217,8 +217,7 @@ await page.waitForTimeout(40);
 flip = await readFlip();
 check(flip.sleeve.length === 0 && flip.page.length === 0, 'and CALM starts no new turn',
   `sleeve=${flip.sleeve.length} page=${flip.page.length}`);
-await page.click('#btn-lights');
-await page.waitForFunction(() => document.documentElement.dataset.lights === 'full');
+await page.evaluate(async () => (await import('/fx.js')).followLights('full'));
 
 section('[6] requests slide into UP NEXT instead of teleporting');
 const codes = await page.evaluate(() => window.__skateNight.library.tracks.slice(0, 3).map((t) => t.code));

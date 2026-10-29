@@ -226,8 +226,6 @@ place; follow these steps only if you want to swap it for a new one.
       with the cabinet background focused)
       while someone stands at the back of the rink. The laptop's own volume
       should be about three-quarters up; use the jukebox slider to fine-tune.
-- [ ] If the picture looks too busy for the room, press **LIGHTS: FULL** to
-      switch to **LIGHTS: CALM** (no flashing or moving effects).
 - [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
 
 **If the page is closed or reloaded by accident:** open the site again and press
@@ -284,8 +282,8 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 
   Any spare rows in UP NEXT show the house's plan, greyed out under **IF NOBODY
   PICKS** - exactly the songs that will play, in order, if nobody chooses one.
-  Pick one of those songs yourself and it moves up into your list instead. Your
-  SHUFFLE choice is remembered on that laptop.
+  Pick one of those songs yourself and it moves up into your list instead.
+  SHUFFLE is on every time the page loads.
 - **SKIP** (or **N** / the right arrow) plays the next song straight away.
 - **BACK** (or **P** / the left arrow): more than 3 seconds into a song it starts
   that song again; press it within the first 3 seconds (or twice) to go to the
@@ -340,16 +338,11 @@ focus, blocks cabinet shortcuts, and returns focus to CHECK TRACKS.JS on closing
 
 Laptop **media keys** (play / pause / next / previous) work too.
 
-### LIGHTS: FULL / CALM
+### Lights
 
-The machine is full of moving lights. **LIGHTS: CALM** turns every decorative
-animation off and shows the finished picture instead (the clock, the progress bar
-and the queue still update). It starts in whichever mode the laptop's own "reduce
-motion" setting asks for, and remembers your choice.
-
-In **LIGHTS: FULL**, the whole screen gently swells with cyan/magenta edge
-light in time with the bass beat. It settles when the music stops; CALM holds
-the glow still.
+The machine is full of moving lights, always at full. The whole screen gently
+swells with cyan/magenta edge light in time with the bass beat, and settles
+when the music stops.
 
 The effects are built to stay safe for people who are sensitive to flashing:
 nothing flashes faster than three times a second, and music-driven lights swell
@@ -368,7 +361,6 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 | New song does not appear | GitHub can take a minute or two to publish. Reload, then press LOAD THE CRATES again. |
 | Light says **NOT OFFLINE YET** | Press the status, then **LOAD THE CRATES** while you have internet. |
 | Light says **SAVED - NEEDS HTTPS** | The page was opened from a plain `http://` address. Use the GitHub Pages `https://` address. |
-| Screen is too bright / busy | Press **LIGHTS: CALM**. |
 | Crowd screen says the operator is disconnected | Return to the laptop window and keep it open. The warning clears when its heartbeat returns; reopen CROWD SCREEN if needed. |
 
 ---
@@ -378,8 +370,8 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 - Static site: plain HTML + CSS + ES modules, no build step.
 - Tests: `npm test` (uses Node's built-in test runner, nothing to install).
   Covers the queue, selection-code generation, tracks.js validation, the house
-  rotation, the copy pools, the audio maths, keyboard routing, UI state, responsive
-  artwork and the lights switch.
+  rotation, the copy pools, the audio maths, keyboard routing, UI state and responsive
+  artwork.
 - To look at it locally: serve the folder with any static server that supports
   byte ranges (for example `npx http-server`) and open it in Chrome. Opening
   `index.html` straight from disk will not work (browsers block ES modules there).
@@ -415,7 +407,7 @@ sub-path):
 
 - `npm test` covers the queue, codes, `tracks.js` validation,
   house rotation and shuffle deck, in-order mode, copy pools, audio maths,
-  lights switch, CSS safety rules, unskippable arrival, and sound assets/fallbacks.
+  CSS safety rules, unskippable arrival, and sound assets/fallbacks.
 - Boot, INSERT COIN, selection by keyboard / keypad code, UP NEXT, house
   rotation, record changer frames, now-playing readouts, idle attract mode.
 - Natural song change: about 40 ms between songs. Skip: about 1.2-1.4 s (the
@@ -437,5 +429,5 @@ media keys, real fullscreen and screen-sleep prevention (the headless browser
 refuses the wake lock), a three-hour run, Safari and Firefox, and performance on
 a genuinely slow laptop (the headless browser draws in software, so it is a
 pessimistic stand-in). Please do a 10-minute run-through on the venue laptop a
-day before. If it ever stutters, **LIGHTS: CALM** removes nearly all the work.
+day before.
 

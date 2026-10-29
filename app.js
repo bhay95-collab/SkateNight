@@ -18,7 +18,7 @@ import {
   createRotator,
 } from './copy.js';
 import {
-  initLights, flipLights, startBoot, isCalm, onCalmChange, delay, safely, startScreenFlicker,
+  startBoot, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
 import { unlockAudio, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
 import { installCabinetKeyboard } from './keyboard.js';
@@ -46,7 +46,6 @@ const VINYL_LEAD_IN_MS = 1000;    // needle crackles in the lead-in groove befor
 const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light show
 const ATTRACT_PAGE_MS = 9000;    // attract mode turns the rack to the next album this often
 const STORE_VOL = 'sn-volumes';
-const STORE_SHUFFLE = 'sn-shuffle';
 const STORE_QUICK_PICK = 'sn-quick-pick';
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
@@ -73,10 +72,8 @@ async function main() {
     runCrowd(library);
     return;
   }
-  initLights();
   preloadSfxFiles();                                 // original effects and optional MP3 overrides
   safely('screen-flicker', () => startScreenFlicker($('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
-  $('btn-lights').addEventListener('click', () => { flipLights(); sfx.key(); });
 
   // Boot overlay is opaque from first paint; the machine assembles behind it.
   const boot = startBoot($('boot'));
@@ -98,8 +95,7 @@ async function main() {
   let houseLine = [];             // the house rotation's planned picks, in play order (shown greyed in UP NEXT)
   let takenId = null;              // taken off the queue / house line, not started yet (pre-roll)
   let takenFromHouse = false;
-  let shuffle = true;              // SHUFFLE on = shuffled deck; off = play in tracks.js order
-  try { shuffle = localStorage.getItem(STORE_SHUFFLE) !== 'off'; } catch { /* storage blocked - default on */ }
+  let shuffle = true;              // SHUFFLE on = shuffled deck; off = play in tracks.js order. Every load starts on.
   let quickPick = false;
   try { quickPick = localStorage.getItem(STORE_QUICK_PICK) === 'on'; } catch { /* keep code-only default */ }
   let bag = [];                    // songs already played in the current shuffled deck
@@ -176,7 +172,7 @@ async function main() {
     crowdStatus(true);
     crowdOpen = true;
     if (type !== 'hello') return;
-    link.send('snapshot', { state: crowdState(), lights: isCalm() ? 'calm' : 'full' });
+    link.send('snapshot', { state: crowdState() });
   });
   link.send('operator');                           // a crowd screen already open (say, after a reload) says hello back
   setInterval(() => {
@@ -440,7 +436,6 @@ async function main() {
 
   function setShuffle(on, { quiet = false } = {}) {
     shuffle = on;
-    try { localStorage.setItem(STORE_SHUFFLE, on ? 'on' : 'off'); } catch { /* fine */ }
     bag = nowId ? [nowId] : [];
     houseLine = [];
     paintShuffle();
@@ -719,15 +714,6 @@ async function main() {
     fsButton.firstChild.textContent = document.fullscreenElement ? 'EXIT FULLSCREEN ' : 'FULLSCREEN ';
   });
 
-  /* LIGHTS button label follows the real state */
-  const lightsBtn = $('btn-lights');
-  const paintLights = (calm) => {
-    lightsBtn.textContent = calm ? 'LIGHTS: CALM' : 'LIGHTS: FULL';
-    lightsBtn.setAttribute('aria-pressed', String(calm));
-  };
-  onCalmChange(paintLights);
-  paintLights(isCalm());
-
   /* ---------------- legend ---------------- */
   let legendTimer = 0;
   function showLegend(ms = 9000) {
@@ -829,7 +815,10 @@ async function main() {
       if (!s.supported) return setOffline('bad', 'OFFLINE NOT SUPPORTED');
       if (s.saved === s.total && swOk) setOffline('ready', 'OFFLINE READY');
       else if (s.saved === s.total) setOffline('warn', 'SAVED - NEEDS HTTPS');
-      else setOffline('off', s.saved ? `${s.saved}/${s.total} SAVED` : 'NOT OFFLINE YET');
+      else {
+        const songs = await crateStatus(files.filter((f) => f.kind === 'audio'));   // covers are saved too, but only songs are counted
+        setOffline('off', songs.saved ? `${songs.saved}/${songs.total} SONGS SAVED` : 'NOT OFFLINE YET');
+      }
     } catch (err) {
       console.warn('[crates]', err);
     }
@@ -840,6 +829,7 @@ async function main() {
     if (crateBtn.disabled) return;
     const files = crateFiles();
     if (files.length === 0) { ui.toast('NO SONGS FOUND TO SAVE YET'); return; }
+    const songCount = files.filter((f) => f.kind === 'audio').length;
     crateBtn.disabled = true;
     crateBtn.textContent = 'LOADING THE CRATES...';
     setOffline('busy', 'SAVING 0%');
@@ -847,7 +837,7 @@ async function main() {
       const result = await loadCrates(files, {
         onProgress: ({ done, total }) => {
           crateFill.style.transform = `scaleX(${(done / total).toFixed(3)})`;
-          setOffline('busy', `SAVING ${done}/${total}`);
+          setOffline('busy', `SAVING ${Math.min(done, songCount)}/${songCount} SONGS`);   // songs are listed first, covers after
         },
       });
       if (result.unsupported) setOffline('bad', 'OFFLINE NOT SUPPORTED');
