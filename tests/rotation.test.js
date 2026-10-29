@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { RECENT_LIMIT, pushRecent, pickHouseTrack } from '../rotation.js';
+import { RECENT_LIMIT, OPENING_IDS, pushRecent, pickHouseTrack, shuffled, nextOpening } from '../rotation.js';
 
 // A small deterministic random generator so failures are reproducible.
 function seeded(seed) {
@@ -157,4 +157,18 @@ test('the record carousel always turns clockwise to bring the record to the grip
     }
   }
   assert.equal(carouselTarget(30, -1, 10), 30, 'unknown record: no turn');
+});
+
+test('the opening picks are all there, in a fresh order', () => {
+  const order = shuffled(OPENING_IDS, seeded(3));
+  assert.equal(order.length, OPENING_IDS.length);
+  assert.deepEqual([...order].sort(), [...OPENING_IDS].sort());
+  assert.notDeepEqual(order, shuffled(OPENING_IDS, seeded(4)));
+});
+
+test('the next opening pick skips songs queued, planned or unplayable', () => {
+  const opening = ['a', 'b', 'c', 'd'];
+  assert.equal(nextOpening({ opening, pool: ['a', 'b', 'c', 'd'], planned: [] }), 'a');
+  assert.equal(nextOpening({ opening, pool: ['b', 'c', 'd'], planned: ['b'] }), 'c');
+  assert.equal(nextOpening({ opening, pool: ['x'], planned: [] }), null);
 });

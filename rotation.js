@@ -16,6 +16,31 @@
 
 export const RECENT_LIMIT = 5;
 
+/* The night's opening: when SHUFFLE is on, the house plays these first (in a
+   fresh order each time the site loads) before the rest of the library. Queued
+   songs still jump ahead. Nothing on screen marks them out. */
+export const OPENING_IDS = [
+  'doing-away-with-my-religion', 'come-unto-me', 'rejoice-in-the-lord-always',
+  'lift-up-holy-hands', 'you-are-worthy-o-lord', 'according-to-his-power',
+  'praise-lifted-on-high', 'the-way-of-salvation', 'pray-without-ceasing',
+  'bread-of-heaven', 'there-is-a-way',
+];
+
+/* A shuffled copy (Fisher-Yates). */
+export function shuffled(ids, rng = Math.random) {
+  const out = ids.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/* The first opening song that can play now and is not already planned. */
+export function nextOpening({ opening, pool, planned }) {
+  return opening.find((id) => pool.includes(id) && !planned.includes(id)) ?? null;
+}
+
 /* Remember a song as "recently played", keeping only the last few. */
 export function pushRecent(recent, id, limit = RECENT_LIMIT) {
   return [...recent, id].slice(-limit);

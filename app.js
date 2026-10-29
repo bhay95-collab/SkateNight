@@ -12,7 +12,7 @@
    ============================================================ */
 import { buildLibrary, parseCode, findTrackByCode } from './codes.js';
 import { enqueue, enqueueFront, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
-import { pickShuffle, pickInOrder, pushRecent } from './rotation.js';
+import { pickShuffle, pickInOrder, pushRecent, shuffled, nextOpening, OPENING_IDS } from './rotation.js';
 import {
   ATTRACT_LINES, SKATE_JOKES, IDLE_JOKES, OUT_OF_ORDER_LINES,
   createRotator,
@@ -103,6 +103,7 @@ async function main() {
   let quickPick = false;
   try { quickPick = localStorage.getItem(STORE_QUICK_PICK) === 'on'; } catch { /* keep code-only default */ }
   let bag = [];                    // songs already played in the current shuffled deck
+  let opening = shuffled(OPENING_IDS);   // the night's opening songs not yet played (house plays these first)
   let history = [];                // songs started, oldest first (for BACK)
   let nowId = null;
   let phase = 'idle';              // idle | playing | paused | changing
@@ -264,7 +265,10 @@ async function main() {
     let planRecent = recent;
     for (const id of ahead) { deck = [...deckBefore(deck, all), id]; planRecent = pushRecent(planRecent, id); }
     while (houseLine.length < want) {
-      const pick = pickShuffle({ playableIds: pool, bag: deck, recent: planRecent, rng: Math.random });
+      const openingId = nextOpening({ opening, pool, planned: [...ahead, ...houseLine] });
+      const pick = openingId
+        ? { id: openingId, bag: deckBefore(deck, all) }
+        : pickShuffle({ playableIds: pool, bag: deck, recent: planRecent, rng: Math.random });
       if (!pick.id) break;
       houseLine = [...houseLine, pick.id];
       deck = [...pick.bag, pick.id];
@@ -341,6 +345,7 @@ async function main() {
     recent = pushRecent(recent, id);
     if (!bag.includes(id)) bag = [...deckBefore(bag, playableIds()), id];
     history = [...history, id].slice(-HISTORY_LIMIT);
+    opening = opening.filter((o) => o !== id);
     noteStarted(id);
     phase = 'playing';
     mech.setPaused(false);
