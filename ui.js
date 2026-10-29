@@ -77,7 +77,14 @@ export function sleeveFace(volume) {
   sleeve.append(fallback);
   if (volume.cover) {
     const img = el('img', { class: 'sleeve-art', src: volume.cover, alt: '', draggable: 'false', decoding: 'async' });
-    img.addEventListener('error', () => { sleeve.classList.add('is-bare'); img.remove(); });
+    // One failed load (a network blip) would otherwise leave the plain sleeve
+    // up until a reload: try once more before giving up.
+    let retried = false;
+    img.addEventListener('error', () => {
+      if (retried) { sleeve.classList.add('is-bare'); img.remove(); return; }
+      retried = true;
+      img.src = `${volume.cover}?retry=${Date.now()}`;
+    });
     sleeve.append(img);
   } else {
     sleeve.classList.add('is-bare');
