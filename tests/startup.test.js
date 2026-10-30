@@ -45,12 +45,12 @@ test('the film keeps its story: a failed first try, a real silence, and a held, 
 
 test('the dormant attract scene is intentionally dark and instruction-free', () => {
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(css, /attract:not\(\.is-lit\)[\s\S]*?\.cab-sign[\s\S]*?opacity:\s*0/,
+  assert.match(css, /attract:not\(\.is-powered\)[\s\S]*?\.cab-sign[\s\S]*?opacity:\s*0/,
     'the sign is hidden before the cabinet wakes');
-  assert.match(css, /attract:not\(\.is-lit\)[\s\S]*?\.door-text[\s\S]*?opacity:\s*0/,
+  assert.match(css, /attract:not\(\.is-inserting\)[\s\S]*?\.door-text[\s\S]*?opacity:\s*0/,
     'the coin prompt and price stay out of the dark first frame');
-  assert.match(css, /attract:not\(\.is-lit\)[\s\S]*?\.attract-logo[\s\S]*?opacity:\s*0/,
-    'the CRT logo remains a quiet standby glow instead of a visible instruction');
+  assert.match(css, /attract:not\(\.is-powered\)[\s\S]*?\.attract-logo[\s\S]*?opacity:\s*0/,
+    'the CRT logo stays off until the coin goes in');
 });
 
 test('the dormant room is blacked out so the screen is the only light', () => {
@@ -75,4 +75,13 @@ test('the dormant cabinet is the darkest moment: only the picture tube is really
   const [lit] = levels(RESPONSE.sign(1).filter);
   assert.ok(sign < lit / 10, 'the sign is barely there next to the lit machine');
   for (const v of [1, 1.14]) assert.ok(Math.abs(levels(RESPONSE.door(v).filter)[0] - (1 + 0.3 * (v - 0.5))) < 0.01, 'the lit door is as bright as ever');
+});
+
+test('the dormant picture tube is a real light: a glowing, snowy raster the rest of the dark falls away from', () => {
+  const [picture] = levels(RESPONSE.picture(STANDBY, 0).filter);
+  assert.ok(picture >= 0.35, `the tube glows on standby (${picture})`);
+  assert.ok(RESPONSE.static(STANDBY).opacity >= 0.3, 'no signal: the glow is snow');
+  assert.ok(RESPONSE.static(1).opacity <= 0.05, 'the snow clears once the picture locks');
+  assert.ok(levels(RESPONSE.picture(0.03, 0).filter)[0] < 0.02, 'the relay still kills the tube');
+  for (const v of [1, 1.14]) assert.ok(Math.abs(levels(RESPONSE.picture(v, 0).filter)[0] - (v - 0.06) * 1.18) < 0.01, 'the lit picture is unchanged');
 });

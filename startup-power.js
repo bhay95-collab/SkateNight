@@ -43,7 +43,8 @@ export const glow = ({ b, s = 1, hue = 0, split = 0 }) =>
    exactly as bright as they always were. */
 export const RESPONSE = {
   sign: (v) => ({ filter: `brightness(${(v <= 1 ? 0.03 + 0.97 * v * v : 0.1 + 0.9 * v).toFixed(3)}) saturate(${(0.1 + 0.9 * Math.min(v, 1.1)).toFixed(3)})` }),
-  picture: (v, ms) => ({ filter: glow({ b: clamp((v - 0.06) * 1.18, 0, 1.6), s: clamp(0.2 + 0.8 * v, 0, 1.2), ...unsteady(v, ms) }) }),
+  // Below running the tube holds its glow longer than the rest (it is the only light in the room); the relay still kills it.
+  picture: (v, ms) => ({ filter: glow({ b: v <= 1 ? 1.11 * clamp((v - 0.03) / 0.97) ** 0.6 : clamp((v - 0.06) * 1.18, 0, 1.6), s: clamp(0.2 + 0.8 * v, 0, 1.2), ...unsteady(v, ms) }) }),
   door: (v) => ({ filter: `brightness(${(0.03 + 0.97 * (Math.min(v, 0.5) / 0.5) ** 2.5 + 0.3 * Math.max(v - 0.5, 0)).toFixed(3)})` }),
   chrome: (v) => ({ filter: `brightness(${(v <= 1 ? 0.05 + v * v : 0.3 + 0.75 * v).toFixed(3)})` }),
   body: (v) => ({ filter: `brightness(${(v >= 1 ? 1 : 0.1 + 0.9 * v ** 1.5).toFixed(3)})` }),   // the lacquer, seen only by the light on it
@@ -51,7 +52,7 @@ export const RESPONSE = {
   lamp: (v) => ({ opacity: clamp((v - 0.25) * 1.7) }),
   room: (v) => ({ opacity: clamp((v - 0.55) * 2.2) }),
   tubes: (v) => ({ opacity: clamp((v - 0.2) * 1.6) }),
-  static: (v) => ({ opacity: Math.min(0.3 * v, 0.1 - 0.05 * clamp((v - 0.5) * 2)) }),   // faint on standby, .05 once running (styles.css)
+  static: (v) => ({ opacity: Math.min(1.75 * v, 0.35 - 0.3 * clamp((v - 0.5) * 2)) }),   // no signal: snow on standby, .05 once the picture locks (styles.css)
 };
 
 /* Keyframes that follow the supply through map(v, ms), from the relay on. */
@@ -155,6 +156,7 @@ export function stageBulbs(bulbs) {
 }
 
 export function stageIgnition(el, at) {
+  at(relay, () => el.attract.classList.add('is-powered'));   // the sign and logo exist only once the supply moves
   at(ignite, () => el.attract.classList.add('is-lit'));
   el.pillars.forEach((fill) => fill.animate([
     { transform: 'scaleY(.06)' }, { transform: 'scaleY(.7)', offset: (ignite - caught - 300) / (ignite + 700 - caught - 300) },

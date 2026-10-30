@@ -225,8 +225,13 @@ worker.
 - The most important things are the largest: song title (Bungee), the LED clock,
   the UP NEXT titles and the ticker. The strips are reference material for the
   operator; status (NOW / Q2 / OUT OF ORDER) is a small tag clipped onto the
-  strip's corner so titles keep the full width. Now Playing reserves a stable
-  two-line title area, fits against its measured width and keeps its metadata,
+  strip's corner so titles keep the full width. The changer is the hero of
+  Now Playing: the title (1.42rem at most, balanced over two lines) and the
+  meters (4.6rem at most) give it the height, the sleeve beside it is the
+  smaller part, and the paper strips are backlit a step down (#d9cdb0 to
+  #c3b591) so they no longer out-shine it. House rows in UP NEXT are a step
+  tighter than requests, so a preview still fits under two picks. Now Playing
+  reserves a stable two-line title area, fits against its measured width and keeps its metadata,
   clocks and progress in fixed rows. Track/album changes receive one live
   announcement; advancing clocks are not live regions. Meters reserve 48 px
   minimum, or 40 px in short landscape mode. Header space and the decorative
@@ -289,8 +294,11 @@ record changer and the readouts carry the show; the world around it stays dim.
   for the frame, barely alive. Everything inside `.cab` is in cabinet em (1/100
   of its width), so it keeps its proportions anywhere.
   - **The darkest moment comes first.** Before anyone touches it the cabinet
-    is lit by one practical source: the dull phosphor glow of its picture tube
-    (a ghost of the logo, faint static, the roll band, the odd sag). Its light
+    is lit by one practical source: its picture tube, glowing with cool
+    no-signal snow (static at .35, picture at .39 - it holds its glow longer
+    than any other part, and the relay still kills it). No logo, no sign, no
+    printing: the slot lamp reveals the door's markings at the touch, and the
+    sign and logo join the supply only at the relay (`.is-powered`). Its light
     (`.cab-spill`) falls off fast across the bezel, the nearest chrome and the
     top of the door; the lacquer, the arch, the cold bulbs, the dark neon glass
     and the coin door are only just there. No prompt, no blinking text, no
@@ -389,9 +397,12 @@ record changer and the readouts carry the show; the world around it stays dim.
   `prefers-reduced-motion` the same story is told without travel, shake or
   flicker: the coin appears at the slit and is taken, the cabinet fades up,
   and the screen crossfades into the boot.
-- Boot: trivia's pacing - a full, unskippable 13 s hold with the self-test
-  printing across 10 s, then the 640 ms reveal (17 s recovery cap, 18 s CSS
-  failsafe). Header line: SKATE BY FAITH JUKEBOX. Keyboard and pointer input
+- Boot: a short calibration, not a second struggle - the film already told
+  that. An unskippable 6.5 s hold with the self-test printing across 5 s, one
+  steady strike (no flicker dips), then a 640 ms reveal with only a faint
+  phosphor bloom (10 s recovery cap, 11 s CSS failsafe). It is drawn inside the
+  same tube: a faint phosphor face and dark, curved glass corners. The ignition stays
+  the brightest moment of the arrival; the dive into the tube is held below it. Header line: SKATE BY FAITH JUKEBOX. Keyboard and pointer input
   cannot reach controls behind the arrival. CALM holds the same duration with
   static diagnostics. A completed arrival is remembered once per tab; reloading
   during warm-up starts the full sequence again.

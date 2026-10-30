@@ -154,12 +154,12 @@ button{ font:inherit; color:inherit; }
 }
 .attract-beam{
   position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg); opacity:.06; transition:opacity 1.6s ease;
-  background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.015) 40%, rgba(255,232,196,.02) 50%, rgba(255,232,196,.012) 62%, transparent 82%);
+  background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.035) 40%, rgba(255,232,196,.06) 50%, rgba(255,232,196,.03) 62%, transparent 82%);
 }
 .attract.is-lit .attract-beam{ opacity:.8; }
 .attract-floor{        /* the cabinet's light reaching the floor, once it is awake */
   position:absolute; left:0; right:0; bottom:0; height:34%; opacity:0;
-  background:radial-gradient(56% 80% at 50% 100%, rgba(37,232,226,.03), rgba(255,45,149,.02) 45%, transparent 75%);
+  background:radial-gradient(56% 80% at 50% 100%, rgba(37,232,226,.14), rgba(255,45,149,.09) 45%, transparent 75%);
 }
 .mote{
   position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%;
@@ -205,8 +205,8 @@ button{ font:inherit; color:inherit; }
 .cab-spill{
   position:absolute; inset:0; pointer-events:none; opacity:.8;
   background:
-    radial-gradient(30em 27em at 50% 39%, rgba(150,200,212,.075), rgba(150,200,212,.03) 55%, transparent),
-    radial-gradient(52em 50em at 50% 42%, rgba(120,160,180,.03), transparent 70%);
+    radial-gradient(30em 27em at 50% 39%, rgba(150,200,212,.15), rgba(150,200,212,.06) 55%, transparent),
+    radial-gradient(52em 50em at 50% 42%, rgba(120,160,180,.06), transparent 70%);
 }
 .cab-arch{             /* the chrome tube: lit from above, its sides catching the window */
   position:absolute; left:1.6em; right:1.6em; top:1.6em; height:108.4em; padding:2.4em; border-radius:34.4em 34.4em 0 0;
@@ -268,23 +268,16 @@ button{ font:inherit; color:inherit; }
   box-shadow:0 0 0 .7em #2f2539, 0 0 0 .95em #0e0814, inset 0 0 0 .2em rgba(255,255,255,.05), inset 0 0 3.5em rgba(0,0,0,.95), 0 1em 2em rgba(0,0,0,.6);
   filter:brightness(.069) saturate(.28);
 }
-.attract:not(.is-lit) .cab-sign,
-.attract:not(.is-lit) .attract-title,
-.attract:not(.is-lit) .attract-tagline,
-.attract:not(.is-lit) .door-text,
-.attract:not(.is-lit) .mech-price,
-.attract:not(.is-lit) .attract-logo{
+/* Nothing printed or lit shows in the dark. The slot lamp reveals the door's
+   markings at the press; the sign and logo join the supply model at the relay. */
+.attract:not(.is-inserting) .door-text,
+.attract:not(.is-inserting) .mech-price,
+.attract:not(.is-powered) .cab-sign,
+.attract:not(.is-powered) .attract-title,
+.attract:not(.is-powered) .attract-tagline,
+.attract:not(.is-powered) .attract-logo{
   opacity:0;
   visibility:hidden;
-}
-.attract.is-lit .cab-sign,
-.attract.is-lit .attract-title,
-.attract.is-lit .attract-tagline,
-.attract.is-lit .door-text,
-.attract.is-lit .mech-price,
-.attract.is-lit .attract-logo{
-  opacity:1;
-  visibility:visible;
 }
 .sign-bloom{
   position:absolute; left:-24%; right:-24%; top:-70%; bottom:-70%; border-radius:50%; pointer-events:none; opacity:0; mix-blend-mode:screen;
@@ -315,7 +308,7 @@ button{ font:inherit; color:inherit; }
 .tv-picture{
   position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2.6em;
   background:radial-gradient(70% 70% at 50% 46%, rgba(46,20,72,.95), #0c0516 75%);
-  filter:brightness(.165) saturate(.36); transform-origin:50% 50%;
+  filter:brightness(.39) saturate(.36); transform-origin:50% 50%;
 }
 .attract-logo{ width:15em; height:15em; filter:drop-shadow(0 0 .9em rgba(37,232,226,.4)); }
 .attract-fault{ font:700 max(1.9em, 10px) var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--red); max-width:88%; text-align:center; text-wrap:balance; }
@@ -337,7 +330,7 @@ button{ font:inherit; color:inherit; }
     radial-gradient(120% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.75));
 }
 .attract-grain{
-  position:absolute; inset:-50%; background-image:var(--grain); opacity:.06;
+  position:absolute; inset:-50%; background-image:var(--grain); opacity:.35;
   animation:grain-jump 1s steps(1) infinite;
 }
 @keyframes grain-jump{
@@ -416,8 +409,8 @@ button{ font:inherit; color:inherit; }
 }
 .attract-coin.is-credited{ color:#fff3c4; text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4); }
 .door-price{ font:700 max(1.5em, 8px) var(--font-mono); letter-spacing:.22em; color:var(--cream); opacity:.75; }
-.attract:not(.is-lit) .door-price,
-.attract:not(.is-lit) .attract-coin{ opacity:0; }
+.attract:not(.is-inserting) .door-price,
+.attract:not(.is-inserting) .attract-coin{ opacity:0; }
 .cab-glint{ position:absolute; inset:0; border-radius:36em 36em 1.6em 1.6em; overflow:hidden; pointer-events:none; }
 .cab-glint i{          /* light catching the glass and chrome as the cabinet comes up */
   position:absolute; top:-10%; bottom:-10%; left:0; width:22%; transform:translateX(-120%) skewX(-18deg); mix-blend-mode:screen;
@@ -469,18 +462,23 @@ button{ font:inherit; color:inherit; }
 
 /* ================= BOOT: CRT power-on (ported from trivia) ================= */
 .boot{
-  position:fixed; inset:0; z-index:100; background:#05030B; display:grid; place-items:center; overflow:hidden;
-  animation:boot-failsafe 18s linear forwards;   /* safety net if JS never reveals; outlasts the 13 s hold + 17 s cap */
+  position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow:hidden;
+  background:radial-gradient(120% 100% at 50% 45%, #0c1115, #06070b 55%, #030206);   /* the face of the same tube: a faint phosphor falloff */
+  animation:boot-failsafe 11s linear forwards;   /* safety net if JS never reveals; outlasts the 6.5 s hold + 10 s cap */
 }
 .boot[hidden]{ display:none; }
 .boot::before{ content:""; position:absolute; inset:0; z-index:4; pointer-events:none; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.32) 2px 3px); }
-.boot::after{ content:""; position:absolute; inset:0; z-index:4; pointer-events:none; background:radial-gradient(125% 105% at 50% 50%, transparent 52%, rgba(0,0,0,.75)); }
+.boot::after{        /* we are inside the same curved tube the film dived into: its glass corners and falloff */
+  content:""; position:absolute; inset:0; z-index:4; pointer-events:none; border-radius:9vmin / 8vmin;
+  background:radial-gradient(125% 105% at 50% 50%, transparent 52%, rgba(0,0,0,.75));
+  box-shadow:0 0 0 50vmax #020104, inset 0 0 4vmin 1vmin rgba(0,0,0,.85);
+}
 .boot-screen{
   position:relative; z-index:2; width:fit-content; max-width:94vw; padding:0 1rem;
   color:var(--cyan); font:700 1.05rem/2.15 var(--font-mono); text-shadow:0 0 .5rem rgba(37,232,226,.6);
   transform-origin:center center; opacity:0;
 }
-.boot.is-booting .boot-screen{ animation:boot-strike .55s ease-out both, boot-flicker 2.4s steps(1,end) .55s both; }
+.boot.is-booting .boot-screen{ animation:boot-strike .55s ease-out both; }
 .boot-stack{ position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:1rem; max-width:100%; }
 .boot-logo{
   display:block; width:8.5rem; height:auto;
@@ -491,7 +489,6 @@ button{ font:inherit; color:inherit; }
 @keyframes boot-logo-on{
   0%{ opacity:0; clip-path:inset(0 0 100% 0); filter:brightness(2.4) drop-shadow(0 0 3px rgba(36,238,242,.25)); }
   12%{ opacity:.85; clip-path:inset(0 0 0 0); filter:brightness(1.7) drop-shadow(0 0 4px rgba(36,238,242,.28)); }
-  20%{ opacity:.4; } 24%{ opacity:1; } 45%{ opacity:.55; } 49%{ opacity:1; } 70%{ opacity:.7; } 74%{ opacity:1; }
   82%{ opacity:1; filter:brightness(1.18) drop-shadow(0 0 9px rgba(36,238,242,.34)) drop-shadow(0 0 12px rgba(255,25,137,.14)); }
   100%{ opacity:1; clip-path:inset(0 0 0 0); filter:drop-shadow(0 0 7px rgba(36,238,242,.30)) drop-shadow(0 0 12px rgba(255,25,137,.12)); }
 }
@@ -500,12 +497,6 @@ button{ font:inherit; color:inherit; }
   30%{ opacity:1; transform:scaleY(.02); filter:brightness(3.2); }
   55%{ opacity:1; transform:scaleY(1); filter:brightness(2); }
   100%{ opacity:1; transform:scaleY(1); filter:brightness(1); }
-}
-/* Tubes settling. Trivia's version packed four dips into one second; here the
-   dips are at least 0.45 s apart (never more than 3 in any second, WCAG 2.3.1). */
-@keyframes boot-flicker{
-  0%,100%{ opacity:1 } 10%{ opacity:.5 } 12%{ opacity:1 } 30%{ opacity:.65 } 32%{ opacity:1 }
-  55%{ opacity:.4 } 57%{ opacity:1 } 80%{ opacity:.75 } 82%{ opacity:1 }
 }
 .boot-roll{
   position:absolute; left:0; right:0; top:0; height:24%; z-index:3; pointer-events:none;
@@ -526,7 +517,7 @@ button{ font:inherit; color:inherit; }
 .boot-flash{ position:absolute; inset:0; z-index:5; background:#EAF7FF; opacity:0; pointer-events:none; }
 .boot.is-done{ animation:boot-out .6s ease-out both; }
 .boot.is-done .boot-flash{ animation:boot-flash .6s ease-out both; }
-@keyframes boot-flash{ 0%{ opacity:0 } 12%{ opacity:.85 } 24%{ opacity:.85 } 55%{ opacity:0 } 100%{ opacity:0 } }
+@keyframes boot-flash{ 0%{ opacity:0 } 18%{ opacity:.12 } 55%{ opacity:0 } 100%{ opacity:0 } }   /* the ignition stays the brightest moment */
 @keyframes boot-out{ 0%,32%{ opacity:1 } 100%{ opacity:0 } }
 @keyframes boot-failsafe{ 0%,95%{ opacity:1; visibility:visible } 100%{ opacity:0; visibility:hidden } }
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { startBoot, followLights } from '../fx.js';
 
 // A deterministic clock verifies the real arrival controller without waiting
-// thirteen seconds or depending on CSS animation completion.
+// the whole hold or depending on CSS animation completion.
 function arrivalScene(t, { seen = false, mode = 'full' } = {}) {
   let now = 0;
   let nextTimer = 0;
@@ -66,7 +66,7 @@ function arrivalScene(t, { seen = false, mode = 'full' } = {}) {
   };
 }
 
-test('arrival keeps its full thirteen-second hold and has no skip API', async (t) => {
+test('arrival keeps its full six-and-a-half-second hold and has no skip API', async (t) => {
   const scene = arrivalScene(t);
   const boot = startBoot(scene.overlay);
   assert.equal(boot.played, true);
@@ -75,7 +75,7 @@ test('arrival keeps its full thirteen-second hold and has no skip API', async (t
   scene.tick(1000);
   boot.reveal();
   boot.reveal(); // readiness may be reported more than once
-  scene.tick(11999);
+  scene.tick(5499);
   assert.equal(scene.classes.has('is-booting'), true);
   assert.equal(scene.overlay.hidden, false);
   scene.tick(1);
@@ -106,7 +106,7 @@ test('arrival consumes keyboard and pointer input and restores existing inert st
     assert.equal(scene.overlay.hidden, false);
   }
   boot.reveal();
-  scene.tick(13640);
+  scene.tick(7140);
   await boot.finished;
   assert.equal(scene.cabinet.inert, false);
   assert.equal(scene.alreadyInert.inert, true);
@@ -121,7 +121,7 @@ test('CALM preserves the entire arrival with visible static diagnostics', async 
   assert.match(scene.log.innerHTML, /LOADING THE CRATES/);
   assert.equal([...scene.log.innerHTML.matchAll(/class="ln" style="opacity:1;/g)].length, 9);
   boot.reveal();
-  scene.tick(12999);
+  scene.tick(6499);
   assert.equal(scene.overlay.hidden, false);
   scene.tick(641);
   await boot.finished;
@@ -141,7 +141,7 @@ test('refresh in the same tab does not replay or block input', (t) => {
 test('recovery cap never truncates the required arrival hold', async (t) => {
   const scene = arrivalScene(t);
   const boot = startBoot(scene.overlay, { capMs: 1000 });
-  scene.tick(12999);
+  scene.tick(6499);
   assert.equal(scene.overlay.hidden, false);
   assert.equal(scene.classes.has('is-booting'), true);
   scene.tick(641);

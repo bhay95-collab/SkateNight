@@ -90,8 +90,8 @@ export function countUp(el, to, { ms = 600, format = (n) => String(Math.round(n)
 
 /* ============================================================
    Arcade boot sequence. The tube strikes to a bright line, warms up
-   with a flicker, prints a short random self-test, then flashes and
-   fades to reveal the machine behind it. Plays once per browser tab
+   steadily, prints a short random self-test, then lets go softly to
+   reveal the machine behind it. Plays once per browser tab
    (sessionStorage), so a refresh mid-night does not replay it.
    ============================================================ */
 const BOOT_FLAG = 'sn_booted';
@@ -101,7 +101,7 @@ export function hasBooted() {
   try { return Boolean(sessionStorage.getItem(BOOT_FLAG)); } catch { return false; }
 }
 const BOOT_TEST_LINES = 5;
-const BOOT_LOG_MS = 10000;           // the self-test prints across this long (trivia's pacing)
+const BOOT_LOG_MS = 5000;            // the self-test prints across this long: the film already told the struggle
 
 function renderBootLog(overlay, holdMs) {
   const log = overlay.querySelector('.boot-log');
@@ -174,7 +174,7 @@ export function holdArrivalInput(overlay) {
 
 /* reveal() schedules the complete arrival once the machine is ready. There
    is deliberately no skip API. A refresh in the same tab does not replay it. */
-export function startBoot(overlay, { minMs = 13000, capMs = 17000 } = {}) {
+export function startBoot(overlay, { minMs = 6500, capMs = 10000 } = {}) {
   const none = { reveal() {}, played: false };
   if (!overlay) return none;
 

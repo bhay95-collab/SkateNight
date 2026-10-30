@@ -30,8 +30,8 @@
   --ivory-1:#efe7d4;
   --ivory-2:#cdc2a6;
   --ivory-edge:#6e6450;
-  --strip-1:#e6dbc0;
-  --strip-2:#d2c4a0;
+  --strip-1:#d9cdb0;
+  --strip-2:#c3b591;
   /* light */
   --amber:#ffb547;
   --amber-deep:#9a5a0c;
@@ -537,14 +537,15 @@ body.on-attract .rig{ visibility:hidden; }
 .mech-nameplate b{ color:var(--tungsten); font-weight:500; }
 
 /* the title register: the song in large, readable lettering */
-.np-info{ text-align:center; min-height:0; flex:0 0 4.85rem; display:grid; grid-template-rows:3.7rem 1.05rem; gap:.1rem; }
+.np-info{ text-align:center; min-height:0; flex:0 0 4.25rem; display:grid; grid-template-rows:3.1rem 1.05rem; gap:.1rem; }
 .np-title{
   margin:0; font-family:var(--font-display); font-weight:400; color:var(--phosphor); padding:.1rem 0;
-  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; white-space:normal; align-content:center; block-size:3.7rem; line-height:1.05;
-  overflow:hidden; text-shadow:0 0 1.2rem rgba(255,226,190,.12);
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; white-space:normal; align-content:center; block-size:3.1rem; line-height:1.05;
+  overflow:hidden; text-wrap:balance; text-shadow:0 0 1.2rem rgba(255,226,190,.12);
 }
-.np-title[data-size="l"]{ font-size:1.7rem; } .np-title[data-size="m"]{ font-size:1.5rem; }
-.np-title[data-size="s"]{ font-size:1.3rem; } .np-title[data-size="xs"]{ font-size:1.1rem; }
+/* big enough for the back of the rink, small enough that the changer stays the hero */
+.np-title[data-size="l"]{ font-size:1.42rem; } .np-title[data-size="m"]{ font-size:1.28rem; }
+.np-title[data-size="s"]{ font-size:1.14rem; } .np-title[data-size="xs"]{ font-size:1rem; }
 .np-meta{ margin:0; min-height:1.05rem; display:flex; justify-content:center; align-items:center; gap:.7rem;
   font:700 .8rem/1 var(--font-body); letter-spacing:.14em; text-transform:uppercase; color:var(--label); }
 .np-code{ background:var(--glass); border-radius:.3rem; padding:.08rem .5rem; font-size:.85rem; box-shadow:inset 0 .12rem .2rem rgba(0,0,0,.8), var(--bezel); }
@@ -562,7 +563,7 @@ body.on-attract .rig{ visibility:hidden; }
   box-shadow:0 0 .4rem rgba(37,232,226,.5);
 }
 /* the instruments: two needle meters in chrome bezels either side of the spectrum window */
-.np-meters{ display:grid; grid-template-columns:4.8rem minmax(0,1fr) 4.8rem; gap:.55rem; align-items:center; flex:0 0 clamp(48px,3rem,88px); min-height:48px; max-height:6.2rem; grid-template-rows:minmax(0,1fr); }
+.np-meters{ display:grid; grid-template-columns:4.8rem minmax(0,1fr) 4.8rem; gap:.55rem; align-items:center; flex:0 0 clamp(48px,3rem,88px); min-height:48px; max-height:4.6rem; grid-template-rows:minmax(0,1fr); }
 .np-meters canvas{ min-height:0; }
 .vu{ width:100%; aspect-ratio:4 / 3; height:auto; max-height:100%; min-height:0; align-self:center; border-radius:.35rem; display:block;
   box-shadow:0 0 0 .12rem #0a070c, 0 0 0 .22rem var(--chrome), 0 0 0 .26rem #0a070c, 0 .2rem .4rem rgba(0,0,0,.6), 0 0 .9rem rgba(255,210,150,.12); }
@@ -602,7 +603,7 @@ body.on-attract .rig{ visibility:hidden; }
 }
 .q-divider:first-child{ border-top:0; margin-top:0; padding-top:0; }
 .q-requests{ color:var(--cyan); }
-.q-row.is-house{ min-height:2.5rem; grid-template-areas:"pos text text" "pos text text"; }
+.q-row.is-house{ min-height:2.1rem; padding:.12rem 0 .2rem; grid-template-areas:"pos text text" "pos text text"; }   /* a preview, a step quieter and tighter than a request */
 .q-row.is-house .q-pos{ color:var(--label); text-shadow:none; }
 .q-row.is-house .q-title{ color:#d9ccd6; font-weight:500; }
 .q-row:not(.is-house) .q-pos{ color:var(--cyan); font-size:.78rem; padding:.2rem .08rem; background:var(--glass); border-radius:.2rem; box-shadow:inset 0 1px 2px rgba(0,0,0,.8), 0 0 0 1px rgba(37,232,226,.25); }

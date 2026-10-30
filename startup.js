@@ -64,7 +64,7 @@ function grainTile() {
   const img = ctx.createImageData(size, size);
   for (let i = 0; i < img.data.length; i += 4) {
     const v = 150 + Math.random() * 105;      // light specks only, so it can lighten the glass without a blend mode
-    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i] = v * 0.86; img.data[i + 1] = v * 0.9; img.data[i + 2] = v;   // a cool phosphor, like the reference's starlight
     img.data[i + 3] = Math.random() < 0.5 ? 0 : 255;
   }
   ctx.putImageData(img, 0, 0);
@@ -338,7 +338,7 @@ function shudder(target, delay, duration, amplitude) {
 }
 
 function stageRelays(el, at, cue) {
-  at(relay, () => { cue('relay'); cue('power'); });
+  at(relay, () => { cue('relay'); cue('power'); el.attract.classList.add('is-powered'); });
   impulse(el.cab, 0.42, relay);
   el.sign?.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(.35deg)' }, { transform: 'rotate(-.2deg)' }, { transform: 'rotate(.08deg)' }, { transform: 'rotate(0)' }],
     { delay: relay + 70, duration: 420, easing: 'ease-out', composite: 'add' });   // the sign is a little loose on its brackets
@@ -359,12 +359,12 @@ function stageRelays(el, at, cue) {
    the line the boot screen strikes from. */
 function stageHandoff(el, at, cue, line) {
   at(surge, () => cue('collapse'));
-  el.flash?.animate([{ opacity: 0 }, { opacity: 0.85 }], { delay: collapse - 120, duration: 340, fill: 'forwards', easing: 'ease-in' });
+  el.flash?.animate([{ opacity: 0 }, { opacity: 0.12 }], { delay: collapse - 120, duration: 340, fill: 'forwards', easing: 'ease-in' });
   const dy = line.y - innerHeight / 2;
   const sx = clamp(line.width / innerWidth, 0.15, 1);
   el.world.animate([
     { transform: 'translateY(0) scale(1, 1)', filter: 'brightness(1)', easing: 'cubic-bezier(.55,0,.9,.45)' },
-    { transform: `translateY(${dy.toFixed(1)}px) scale(1, .014)`, filter: 'brightness(2.2)', offset: 0.62 },
+    { transform: `translateY(${dy.toFixed(1)}px) scale(1, .014)`, filter: 'brightness(1.25)', offset: 0.62 },
     { transform: `translateY(${dy.toFixed(1)}px) scale(${sx.toFixed(3)}, .006)`, filter: 'brightness(2.6)' },
   ], { delay: collapse, duration: end - collapse, fill: 'forwards' });
 }

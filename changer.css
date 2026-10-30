@@ -43,7 +43,7 @@
   position:absolute; z-index:1; left:.8em; top:calc(50% - 3.7em); width:7.4em; height:7.4em;
   transform-origin:0 0; opacity:0; will-change:transform;
 }
-.mech-slot, .mech-sleeve-well{ font-size:min(1rem,11cqh,4.8cqw); }
+.mech-slot, .mech-sleeve-well{ font-size:min(.88rem,9.2cqh,4.1cqw); }
 .mech-sleeve{ width:100%; }
 .mech[data-phase="playing"] .mech-slot, .mech.is-idle-cover .mech-slot{ opacity:1; }
 /* A shared, unscaled coordinate space keeps all fixed hardware inside glass. */

@@ -242,7 +242,7 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   the machine tries to start, nearly makes it, dies, sits dark, catches on a
   second try, and comes alive bulb by bulb - then dives into its own screen
   (about fourteen and a half seconds in all). The power-on screen
-  then runs for its full 13 seconds before the jukebox appears. It cannot be skipped. Once completed, it does not replay when
+  then runs for its full 6.5 seconds before the jukebox appears. It cannot be skipped. Once completed, it does not replay when
   refreshing the same browser tab (the coin still goes in, then straight to the
   jukebox).
 - **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
