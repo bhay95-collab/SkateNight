@@ -1,17 +1,17 @@
 /* ============================================================
-   ARCH - the cabinet's crown. A glass tube rises out of each side
+   ARCH - the cabinet's crown. A chrome rail rises out of each side
    bubble tube, runs up beside the ticker and arches over the top,
    passing behind the marquee sign, so the whole screen reads as the
-   outline of a classic jukebox. Drawn as one SVG path, measured from
-   the real tube positions (so it fits any screen) and redrawn on
-   resize. Its colour follows the bubble tubes (--tube-col, set by
-   visualiser.js); a few bubbles drift along it (CSS, off in CALM).
+   outline of a classic jukebox - the same arch, lined with the same
+   amber bulbs, as the cabinet in the INSERT COIN film. Drawn as one SVG
+   path, measured from the real tube positions (so it fits any screen)
+   and redrawn on resize; the bulbs are round dashes along it (CSS).
    ============================================================ */
 const NS = 'http://www.w3.org/2000/svg';
 
 export function mountArch(svg, { rig, tubes, cabinet }) {
   if (!svg || !rig || !cabinet || tubes.some((t) => !t)) return;
-  const paths = ['arch-glass', 'arch-liquid', 'arch-bubbles', 'arch-shine'].map((cls) => {
+  const paths = ['arch-glass', 'arch-liquid', 'arch-shine', 'arch-bulbs'].map((cls) => {
     const p = document.createElementNS(NS, 'path');
     p.setAttribute('class', cls);
     svg.append(p);

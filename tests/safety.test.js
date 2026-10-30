@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+const css = ['styles.css', 'jukebox.css'].map((f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')).join('\n');
 
 const toSeconds = (n, unit) => (unit === 'ms' ? Number(n) / 1000 : Number(n));
 

@@ -247,7 +247,7 @@ if (queued.length >= 2) {
 
 section('[7] SELECTION ACCEPTED wipes rather than dissolving');
 await page.waitForFunction(() => !document.getElementById('sign-flash').classList.contains('is-on'), null, { timeout: 8000 });
-await page.waitForTimeout(150);
+await page.waitForTimeout(400);       // well past the 120 ms wipe, even on a busy machine
 const rest = await page.evaluate(() => {
   const s = getComputedStyle(document.getElementById('sign-flash'));
   return { clip: s.clipPath, transition: s.transitionProperty };
