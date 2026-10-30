@@ -324,6 +324,18 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   cabinet sounds. Music, Effects and Vinyl texture show their current
   percentages. Resuming a paused song does not replay the needle drop.
 
+### The machine's hum while it waits (optional)
+
+Before the night, with the dark cabinet on the projector, press
+**Alt+Shift+D** (on a Mac: Option+Shift+D). Nothing appears on screen and
+no coin goes in; after a few seconds a low electrical drone rises out of
+the speakers and breathes with the little robot on the tube. Press it again
+to switch it off. The laptop remembers, so after a reload (or next time, if
+the browser allows this site sound) it hums by itself. Without it the
+waiting screen is silent, as browsers require. Either way, when someone
+touches the machine the hum stirs, steps back for the coin, and dies away
+into the film's own power-up. It follows the EFFECTS volume.
+
 ### Keyboard
 
 | Key | Does |

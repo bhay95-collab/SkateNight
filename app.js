@@ -20,7 +20,8 @@ import {
 import {
   startBoot, bootLine, hasBooted, holdArrivalInput, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
-import { unlockAudio, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
+import { unlockAudio, getEngine, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
+import { createDrone } from './drone.js';
 import { installCabinetKeyboard } from './keyboard.js';
 import { sfx, preloadSfxFiles, decodeSfxFiles } from './sound.js';
 import { createPlayer, probeAll } from './player.js';
@@ -48,6 +49,7 @@ const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light sho
 const ATTRACT_PAGE_MS = 9000;    // attract mode turns the rack to the next album this often
 const STORE_VOL = 'sn-volumes';
 const STORE_QUICK_PICK = 'sn-quick-pick';
+const STORE_DRONE = 'sn-drone';            // the operator armed the dormant drone (Alt+Shift+D)
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
 const HANDOFF_MS = 200;        // the INSERT COIN line fading into the boot screen's first strike (styles.css .is-handing)
@@ -898,7 +900,7 @@ async function main() {
     const releaseInput = holdArrivalInput(attractScreen);
     try {
       await cabinetStart?.insert({
-        lift: () => play('lift'), contact: later('contact'), chute: later('chute'), relay: later('relay'),
+        lift: () => { play('lift'); safely('drone', wakeDrone); }, contact: later('contact'), chute: later('chute'), relay: later('relay'),
         power: later('power'), tube: later('tube'), collapse: later('collapse'),
       }, { collapseTo: firstBoot ? bootLine($('boot')) || { y: innerHeight / 2, width: innerWidth / 2 } : null });
     } catch (err) {
@@ -960,10 +962,54 @@ async function main() {
     refreshOfflineLed();
   }
 
+  /* ---------------- the dormant drone (drone.js) ----------------
+     The machine humming in the dark while it waits. Browsers allow sound
+     only after someone presses something, so it is the operator's: before
+     the night, Alt+Shift+D arms it (that key press is the permission) and
+     pressing it again disarms it. Remembered, so a browser that already
+     allows this site sound starts it on load. Unarmed, the dormant cabinet
+     is silent and the visitor's touch wakes it quietly under the coin. */
+  let drone = null;
+  const newDrone = (engine) => createDrone(engine, cabinetStart?.breath);
+  function toggleDrone() {
+    if (drone?.state === 'dormant') {
+      drone.stop();
+      drone = null;
+      try { localStorage.setItem(STORE_DRONE, 'off'); } catch { /* fine */ }
+      return;
+    }
+    const engine = unlockAudio();                    // this key press is the browser's gesture
+    if (!engine) return;
+    drone = newDrone(engine).start();
+    try { localStorage.setItem(STORE_DRONE, 'on'); } catch { /* armed for this visit only */ }
+  }
+  function wakeDrone() {                             // the coin: the film takes the drone over
+    const engine = getEngine();
+    if (!engine) return;
+    if (drone?.state !== 'dormant') drone = newDrone(engine);
+    drone.awaken();
+  }
+  let rememberedDrone = false;
+  try { rememberedDrone = localStorage.getItem(STORE_DRONE) === 'on'; } catch { /* not armed */ }
+  if (rememberedDrone) safely('drone', () => {
+    const engine = unlockAudio();                    // stays suspended (and silent) unless this browser allows sound here
+    if (!engine) return;
+    drone = newDrone(engine);
+    const begin = () => { if (engine.ctx.state === 'running' && !started && drone?.state === 'dormant') drone.start(); };
+    engine.ctx.addEventListener('statechange', begin);
+    begin();
+  });
+  document.addEventListener('visibilitychange', () => drone?.setVisible(!document.hidden));
+
   /* Anything pressed on the attract screen starts the night. */
   attractScreen.addEventListener('click', () => startNight());
   window.addEventListener('keydown', (e) => {
     if (started || attractScreen.hidden) return;
+    if (e.code === 'KeyD' && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey) {   // the operator arming the drone, not the coin
+      e.preventDefault();
+      safely('drone', toggleDrone);
+      return;
+    }
     if (['Shift', 'Control', 'Alt', 'Meta', 'Tab', 'CapsLock'].includes(e.key)) return;
     e.preventDefault();
     startNight();

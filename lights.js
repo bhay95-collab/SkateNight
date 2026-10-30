@@ -127,3 +127,39 @@ export function planBreath(rng = Math.random) {
     rolls: rolls.filter((ms) => ms + BREATH.rollMs < t),
   };
 }
+
+/* The breath's level at any moment of its loop, eased exactly as the robot
+   is (the keyframes' CSS easings), so the dormant drone (drone.js) can
+   breathe with what is on the screen rather than on a rhythm of its own. */
+const EASINGS = { linear: [0, 0, 1, 1], ease: [0.25, 0.1, 0.25, 1], 'ease-in': [0.42, 0, 1, 1], 'ease-out': [0, 0, 0.58, 1], 'ease-in-out': [0.42, 0, 0.58, 1] };
+
+export function ease(name, x) {
+  const [x1, y1, x2, y2] = EASINGS[name] ?? (name.match(/cubic-bezier\(([^)]+)\)/)?.[1].split(',').map(Number) || EASINGS.linear);
+  const bez = (a, b, s) => 3 * a * s * (1 - s) ** 2 + 3 * b * s * s * (1 - s) + s ** 3;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 24; i++) { const mid = (lo + hi) / 2; if (bez(x1, x2, mid) < x) lo = mid; else hi = mid; }
+  return bez(y1, y2, (lo + hi) / 2);
+}
+
+export function breathLevelAt(plan, ms) {
+  const frames = plan.keyframes;
+  const p = (((ms % plan.duration) + plan.duration) % plan.duration) / plan.duration;
+  let n = 1;
+  while (n < frames.length - 1 && frames[n].offset < p) n++;
+  const a = frames[n - 1];
+  const z = frames[n];
+  const span = z.offset - a.offset;
+  return span <= 0 ? z.level : a.level + (z.level - a.level) * ease(a.easing, (p - a.offset) / span);
+}
+
+/* Where the breath stumbles: the falters (a dip on the way up) and the
+   rolling bands, as ms into the loop, for the drone to stumble with it. */
+export function breathTroubles(plan) {
+  const falters = [];
+  plan.keyframes.forEach((k, n) => {
+    const next = plan.keyframes[n + 1];
+    if (next && k.easing === 'ease-out' && next.level < k.level) falters.push(Math.round(k.offset * plan.duration));
+  });
+  return { falters, rolls: plan.rolls.slice() };
+}

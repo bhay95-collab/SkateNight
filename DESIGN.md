@@ -318,7 +318,22 @@ record changer and the readouts carry the show; the world around it stays dim.
     supply at the relay (`.is-powered`), and the lit logo takes over from the
     phosphor robot only once the relay has collapsed the picture
     (`.is-tube-lit`, relay + 100 ms), so the two are never on together; the
-    robot breathes on through the coin until then. The tube's light falls off
+    robot breathes on through the coin until then.
+    The sound of it waiting (`drone.js`): a low drone on 50 Hz - the mains
+    the film's transformer hums on, so its harmonics are the same machine -
+    from detuned saws through a resonant low-pass, a ghost of the 6th and
+    7th harmonics in a dark echo, a distant flyback whine and a little hiss.
+    It breathes on the robot's own plan (`breathLevelAt` at the screen's
+    phase, re-read every second, the sound a fifth of a second behind the
+    light): brighter robot, more harmonics through the filter, less hiss;
+    a falter sags its pitch and ticks a contact; a rolling band sweeps the
+    hiss. Measured dormant: about -29 LUFS, 15 dB under the lit machine.
+    The operator arms it before the night (Alt+Shift+D, remembered); unarmed
+    the dormant screen is silent and the touch wakes it quietly. At the
+    press it stirs and steps back for the coin, drops out with standby at
+    the relay, its ghost rides the first attempt and dies with it by fail +
+    350 ms: the dark and the second attempt are the film's alone
+    (`AFTER_PRESS`, `tests/drone.test.js`). The tube's light falls off
     fast across the bezel, the nearest chrome and the top of the door; the
     lacquer (.06), the arch (.035), the cold bulbs, the dark neon glass and
     the coin door (.04) are only just there. No prompt, no blinking text, no
@@ -833,6 +848,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `lights.js` | Screen flicker and the dormant robot's breath, planned (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
 | `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |
+| `drone.js` | The dormant machine's breathing drone and its hand-off to the film |
 | `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
 | `carousel.js` | The record carousel: turn maths (pure) and its drawing |
 | `arch.js` | The arched cabinet crown |

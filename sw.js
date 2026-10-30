@@ -20,7 +20,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v25';
+const SHELL_CACHE = 'skatenight-shell-v26';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -31,7 +31,7 @@ const SHELL_FILES = [
   'styles.css', 'jukebox.css', 'changer.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
   'fx.js', 'keyboard.js', 'lights.js', 'mechanism.js', 'neon.js', 'player.js', 'queue.js', 'rack-layout.js',
-  'arch.js', 'carousel.js', 'crowd.js', 'link.js', 'rink.js', 'rotation.js', 'sound.js', 'startup.js', 'startup-coin.js', 'startup-power.js', 'startup-timing.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
+  'arch.js', 'carousel.js', 'crowd.js', 'drone.js', 'link.js', 'rink.js', 'rotation.js', 'sound.js', 'startup.js', 'startup-coin.js', 'startup-power.js', 'startup-timing.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
   'rfai-logo.png',
   'fonts/bungee-400.woff2', 'fonts/barlow-400.woff2', 'fonts/barlow-500.woff2',
   'fonts/barlow-700.woff2', 'fonts/jetbrains-mono.woff2',

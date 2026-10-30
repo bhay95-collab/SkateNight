@@ -9,7 +9,7 @@
    tube draws the robot as faint phosphor that gathers and loses its light,
    and the static, the tube's light on the cabinet and the odd rolling band
    move with it, as one tired signal (planBreath in lights.js). It returns
-   { insert }.
+   { insert, breath } (breath is for the dormant drone, drone.js).
 
    insert(sound, { collapseTo }) plays the film. Everything is scheduled at
    the press on the document timeline, from startup-timing.js:
@@ -301,7 +301,9 @@ export function wakeAttract(attract) {
     await film.until(collapseTo ? end : surge);
   }
 
-  return { insert };
+  // breath: the robot's breathing plan and where in it the screen is now
+  // (ms into the loop; null when the robot is still), for drone.js to breathe with.
+  return { insert, breath: { plan: dormant.plan, phase: dormant.phase } };
 }
 
 /* One clock for the whole film: the document timeline. at() runs a step on
@@ -327,7 +329,7 @@ function clock(root) {
    Reduced motion or calm lights: the robot simply glows, still. */
 function startDormant(el) {
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.lights === 'calm';
-  if (still) return { stop() {} };
+  if (still) return { stop() {}, plan: null, phase: () => null };
   const plan = planBreath();
   const timing = { duration: plan.duration, iterations: Infinity };
   const running = [];
@@ -368,7 +370,12 @@ function startDormant(el) {
   loop(el.robot.holder, slip);
 
   return {
-    stop() { running.forEach((anim) => anim.cancel()); },
+    plan,
+    phase() {
+      const t = running[0]?.currentTime;
+      return Number.isFinite(t) ? t % plan.duration : null;
+    },
+    stop() { running.forEach((anim) => anim.cancel()); running.length = 0; },
   };
 }
 
