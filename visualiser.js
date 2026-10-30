@@ -7,7 +7,7 @@
    then feeds:
      - the neon SPECTRUM bars and the twin needle VU meters (canvas)
      - the two BUBBLE TUBES (canvas), which also speed up with the music
-     - the grid speed and the bulb chase speed (animation playbackRate)
+     - the marquee's bulb chase speed (animation playbackRate)
      - the BASS PULSE across the monitor glass (one element's opacity)
      - the mirror-ball light spots
 
@@ -261,7 +261,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   const collectAnimations = () => {
     animations = document.getAnimations().filter((a) => {
       const n = a.animationName;
-      return n === 'grid-scroll' || n === 'bulb-chase' || n === 'star-twinkle';
+      return n === 'bulb-chase';
     });
   };
   let lastRate = -1;

@@ -36,7 +36,7 @@
 .mech:has(.gripper.is-picking) .mech-wall::before{ opacity:1; transition-duration:.2s; }
 .mech-wall::after{
   content:"READY FOR YOUR SELECTION"; position:absolute; z-index:1; left:1.2rem; bottom:.9rem;
-  font:500 .4rem/1.5 var(--font-mono); letter-spacing:.14em; color:var(--tungsten); opacity:.8;
+  font:500 .5rem/1.5 var(--font-mono); letter-spacing:.14em; color:var(--tungsten);
 }
 .mech[data-phase="playing"] .mech-wall::after, .mech.is-idle-cover .mech-wall::after{ display:none; }
 .mech-slot{
