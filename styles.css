@@ -276,15 +276,18 @@ button{ font:inherit; color:inherit; }
   filter:brightness(.069) saturate(.28);
 }
 /* Nothing printed or lit shows in the dark. The slot lamp reveals the door's
-   markings at the press; the sign joins the supply model at the relay, and
-   the lit logo takes over from the phosphor robot once the relay has
-   collapsed the picture (.is-tube-lit), so the two are never on together. */
+   markings at the press; the sign and logo join the supply model at the
+   relay - and while the phosphor robot is on the tube, the lit logo waits
+   until the relay has collapsed the picture (.is-tube-lit), so the two are
+   never on together. Keyed to the robot being there, so a page whose script
+   never drew it still shows the logo. */
 .attract:not(.is-inserting) .door-text,
 .attract:not(.is-inserting) .mech-price,
 .attract:not(.is-powered) .cab-sign,
 .attract:not(.is-powered) .attract-title,
 .attract:not(.is-powered) .attract-tagline,
-.attract:not(.is-tube-lit) .attract-logo{
+.attract:not(.is-powered) .attract-logo,
+.attract:not(.is-tube-lit) .tv-phosphor.is-ready ~ .attract-logo{
   opacity:0;
   visibility:hidden;
 }
@@ -355,7 +358,7 @@ button{ font:inherit; color:inherit; }
     radial-gradient(120% 110% at 50% 50%, transparent 40%, rgba(0,0,0,.85));
 }
 .attract-grain{
-  position:absolute; inset:-50%; background-image:var(--grain-weak); opacity:.35;
+  position:absolute; inset:-50%; background-image:var(--grain-weak, var(--grain)); opacity:.35;
   animation:grain-jump 1s steps(1) infinite;
 }
 @keyframes grain-jump{

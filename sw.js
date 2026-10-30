@@ -5,7 +5,9 @@
 
    1. The APP itself (page, styles, scripts, fonts, logo):
       network first, so an edit to tracks.js shows up as soon as the
-      laptop is online. If the network is down OR slower than a few
+      laptop is online. Always asked of the server, never the browser's
+      own short-term cache: GitHub Pages lets that hold a file for ten
+      minutes, and a fresh page with a stale script mixes two versions. If the network is down OR slower than a few
       seconds (venue wifi dying often hangs rather than failing), the
       saved copy is used instead.
 
@@ -18,7 +20,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v24';
+const SHELL_CACHE = 'skatenight-shell-v25';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -41,7 +43,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
     // one by one, so a single missing file cannot block the whole install
-    await Promise.all(SHELL_FILES.map((f) => cache.add(f).catch(() => {})));
+    await Promise.all(SHELL_FILES.map((f) => cache.add(new Request(f, { cache: 'reload' })).catch(() => {})));   // from the server, not the browser's cache
     await self.skipWaiting();
   })());
 });
@@ -70,7 +72,7 @@ async function shellFetch(request) {
   const cache = await caches.open(SHELL_CACHE);
   try {
     const fresh = await Promise.race([
-      fetch(request),
+      fetch(request.mode === 'navigate' ? request.url : request, { cache: 'no-cache' }),   // revalidated, so every file is the same version
       new Promise((_, reject) => setTimeout(() => reject(new Error('slow network')), NETWORK_TIMEOUT_MS)),
     ]);
     if (fresh && fresh.ok) cache.put(request, fresh.clone()).catch(() => {});

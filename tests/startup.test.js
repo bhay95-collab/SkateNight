@@ -49,7 +49,7 @@ test('the dormant attract scene is intentionally dark and instruction-free', () 
     'the sign is hidden before the cabinet wakes');
   assert.match(css, /attract:not\(\.is-inserting\)[\s\S]*?\.door-text[\s\S]*?opacity:\s*0/,
     'the coin prompt and price stay out of the dark first frame');
-  assert.match(css, /attract:not\(\.is-tube-lit\)[\s\S]*?\.attract-logo[\s\S]*?opacity:\s*0/,
+  assert.match(css, /attract:not\(\.is-powered\)[\s\S]*?\.attract-logo[\s\S]*?opacity:\s*0/,
     'the lit CRT logo stays off until the relay has the picture');
 });
 
@@ -83,7 +83,7 @@ test('the dormant picture tube is a real light: a starved picture with a weak si
   assert.ok(colour >= 0.7, 'the robot on it keeps its cyan and magenta');
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   const js = readFileSync(new URL('../startup.js', import.meta.url), 'utf8');
-  assert.match(css, /\n\.attract-grain\{[^}]*background-image:var\(--grain-weak\)/, 'on standby the static is a weak signal, not snow');
+  assert.match(css, /\n\.attract-grain\{[^}]*background-image:var\(--grain-weak, var\(--grain\)\)/, 'on standby the static is a weak signal, not snow');
   assert.match(css, /\.attract\.is-tube-lit \.attract-grain\{ background-image:var\(--grain\); \}/, 'the film keeps its own snow');
   assert.match(js, /img\.data\[i \+ 3\] = Math\.random\(\) < 0\.42 \? 0 : 40 \+ Math\.random\(\) \* 34;/, 'the weak signal is a faint, sparse tile');
   assert.ok(RESPONSE.static(1).opacity <= 0.05, 'the snow clears once the picture locks');
@@ -123,7 +123,8 @@ test('the opening is the darkest the cabinet gets while it has any power, and th
 test('one robot on the tube at a time: the phosphor robot gives way to the lit logo behind the collapse', () => {
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   const js = readFileSync(new URL('../startup.js', import.meta.url), 'utf8');
-  assert.match(css, /\.attract:not\(\.is-tube-lit\) \.attract-logo\{\s*opacity:0;\s*visibility:hidden;/, 'the lit logo waits');
+  assert.match(css, /\.attract:not\(\.is-tube-lit\) \.tv-phosphor\.is-ready ~ \.attract-logo\{\s*opacity:0;\s*visibility:hidden;/, 'the lit logo waits while the robot is there');
+  assert.match(css, /\.attract:not\(\.is-powered\) \.attract-logo,/, 'and without the robot it still lights at the relay');
   assert.match(css, /\.attract\.is-tube-lit \.tv-phosphor/, 'the phosphor robot goes when it comes');
   assert.match(js, /at\(relay \+ 100, \(\) => el\.attract\.classList\.add\('is-tube-lit'\)\)/, 'only once the relay has collapsed the picture');
   assert.ok(BEATS.relay + 100 < BEATS.catch, 'and long before the raster opens again');
