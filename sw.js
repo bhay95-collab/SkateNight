@@ -29,7 +29,7 @@ const SHELL_FILES = [
   'styles.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
   'fx.js', 'keyboard.js', 'lights.js', 'mechanism.js', 'neon.js', 'player.js', 'queue.js', 'rack-layout.js',
-  'arch.js', 'carousel.js', 'crowd.js', 'link.js', 'rink.js', 'rotation.js', 'sound.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
+  'arch.js', 'carousel.js', 'crowd.js', 'link.js', 'rink.js', 'rotation.js', 'sound.js', 'startup.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
   'rfai-logo.png',
   'fonts/bungee-400.woff2', 'fonts/barlow-400.woff2', 'fonts/barlow-500.woff2',
   'fonts/barlow-700.woff2', 'fonts/jetbrains-mono.woff2',

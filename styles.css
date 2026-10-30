@@ -928,33 +928,155 @@ html:fullscreen body.is-crowd{ cursor:none; }
 .modal-list{ margin:0 0 1rem; padding-left:1.2rem; display:grid; gap:.5rem; font-size:.9rem; color:var(--cream); max-height:46vh; overflow:auto; }
 .modal-card .btn{ margin-top:.2rem; }
 
-/* ================= ATTRACT: INSERT COIN ================= */
+/* ================= ATTRACT: INSERT COIN =================
+   The cabinet in the basement, dust sheet just pulled off, on standby power.
+   Dormant: the marquee is dim and washed out with a couple of dead tubes,
+   the glass is grainy and dusty, and startup.js browns the supply out now
+   and then (planSag in lights.js). Only the coin door is properly lit.
+   Insert: the coin drops into the slot, the cabinet powers up, and the
+   picture collapses to the line the boot screen opens from. */
 .attract{
-  position:fixed; inset:0; z-index:90; border:0; padding:0; cursor:pointer; color:inherit;
+  position:fixed; inset:0; z-index:90; border:0; padding:0; cursor:pointer; color:inherit; overflow:hidden;
   display:grid; place-items:center; text-align:center;
-  background:radial-gradient(70rem 40rem at 50% 45%, rgba(20,7,34,.35), rgba(8,3,16,.7));
+  background:radial-gradient(62rem 40rem at 50% 44%, rgba(30,13,48,.62), rgba(5,3,10,.96) 70%);
   transition:opacity .5s ease, transform .5s var(--ease-out);
 }
 .attract.is-leaving{ opacity:0; transform:scale(1.04); pointer-events:none; }
-.attract-inner{ display:flex; flex-direction:column; align-items:center; gap:.9rem; }
+/* The whole screen is the one button and it is focused on load, so a ring
+   would always show: focus brightens the coin door's lamp spill instead. */
+.attract:focus-visible{ outline:none; }
+.attract:focus-visible .door-plate{ box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -.2em 0 rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08), 0 .9em 1.8em rgba(0,0,0,.55), 0 0 3.6em rgba(255,176,40,.22); }
+
+/* the room: a faint shaft of light from a basement window, and dust in it */
+.attract-room{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.attract-beam{
+  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg);
+  background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.035) 40%, rgba(255,232,196,.06) 50%, rgba(255,232,196,.03) 62%, transparent 82%);
+}
+.mote{
+  position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%;
+  background:rgba(255,238,212,.7); filter:blur(.6px); opacity:0;
+  animation:mote-drift var(--d) linear var(--delay) infinite;
+}
+@keyframes mote-drift{
+  0%{ opacity:0; transform:translate(0,0); }
+  15%{ opacity:var(--o); }
+  80%{ opacity:var(--o); }
+  100%{ opacity:0; transform:translate(var(--dx), var(--dy)); }
+}
+
+/* the picture: everything on the tube, so it can collapse to a line */
+.attract-picture{ position:absolute; inset:0; display:grid; place-items:center; transform-origin:50% 50%; }
+.attract-inner{ display:flex; flex-direction:column; align-items:center; gap:1.5rem; position:relative; z-index:1; }
+.attract-marquee{
+  display:flex; flex-direction:column; align-items:center; gap:.9rem;
+  filter:brightness(.5) saturate(.55);      /* standby power - startup.js powers it up */
+}
+.attract.is-powered .attract-marquee{ filter:none; }
 .attract-logo{ width:9.5rem; height:9.5rem; filter:drop-shadow(0 0 .8rem rgba(37,232,226,.4)); }
 .attract-title{
   font-family:var(--font-display); font-size:5.2rem; line-height:1; text-transform:uppercase; white-space:nowrap; color:#fff;
 }
 .attract-title span:first-child{ text-shadow:0 0 .1rem #fff, 0 0 .45rem rgba(37,232,226,.75), 0 0 1.1rem rgba(37,232,226,.32); }
 .attract-title span:last-child{ text-shadow:0 0 .1rem #fff, 0 0 .45rem rgba(255,45,149,.75), 0 0 1.1rem rgba(255,45,149,.32); }
-.attract-coin{
-  margin-top:.6rem; padding:.9rem 3.2rem .75rem; border-radius:1rem;
-  font-family:var(--font-display); font-size:2.7rem; line-height:1; letter-spacing:.03em; color:var(--ink);
-  background:linear-gradient(180deg,#FFD24D,var(--gold));
-  box-shadow:0 .5rem 0 var(--gold-deep), 0 .9rem 1.6rem rgba(0,0,0,.4), 0 0 2.4rem rgba(255,197,49,.35);
-  animation:attract-blink 1.15s steps(1) infinite;
-}
-.attract:hover .attract-coin{ filter:brightness(1.06); }
-.attract:active .attract-coin{ transform:translateY(.4rem); box-shadow:0 .08rem 0 var(--gold-deep); }
+.neon-letter{ font-style:normal; }
+.neon-letter.is-dead{ opacity:.22; text-shadow:none; }
 .attract-tagline{ margin-top:-.2rem; font:700 1.25rem/1.2 var(--font-body); letter-spacing:.16em; text-transform:uppercase; color:var(--cream); }
-.attract-sub{ font:700 1.05rem var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 .6rem rgba(37,232,226,.6); min-height:1.3rem; }
-@keyframes attract-blink{ 50%{ color:rgba(20,7,34,.35); } }
+.attract-sub{ font:700 1.05rem var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 .6rem rgba(37,232,226,.6); min-height:1.3rem; opacity:.85; }
+
+/* the coin door: brushed steel, four screws, a lit slot, a coin ready to go */
+.door-plate{
+  position:relative; display:inline-flex; align-items:center; gap:1.5em; font-size:1rem;
+  padding:1em 2.1em 1em 1.5em; border-radius:1.1em;
+  background:
+    radial-gradient(circle at 1.1em 1.1em, #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
+    radial-gradient(circle at calc(100% - 1.1em) 1.1em, #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
+    radial-gradient(circle at 1.1em calc(100% - 1.1em), #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
+    radial-gradient(circle at calc(100% - 1.1em) calc(100% - 1.1em), #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #3d3248, #241b2f 55%, #1a1322);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.2), inset 0 -.2em 0 rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.05),
+    0 .9em 1.8em rgba(0,0,0,.55), 0 0 3.2em rgba(255,176,40,.13);
+  transition:transform 140ms var(--ease-out);
+}
+.attract:active .door-plate{ transform:translateY(.1em); }
+.door-entry{ position:relative; width:5.2em; height:5.6em; flex:none; }
+.door-slot{
+  position:absolute; left:50%; bottom:.7em; width:4.8em; height:1.7em; transform:translateX(-50%); border-radius:.55em;
+  background:radial-gradient(90% 120% at 50% 50%, #ffcf5c, #f39a12 55%, #8a4a00);
+  box-shadow:inset 0 0 0 .14em #c9bfd4, inset 0 0 0 .2em #4a3f55, 0 0 1.1em rgba(255,170,30,.55), 0 0 2.4em rgba(255,150,20,.25);
+  animation:lamp-breathe 2.8s ease-in-out infinite;
+}
+.door-slot::before{    /* the slit itself, with a dark throat */
+  content:""; position:absolute; left:50%; top:50%; width:3.9em; height:.34em; transform:translate(-50%,-50%); border-radius:.2em;
+  background:#050208; box-shadow:inset 0 .12em .14em rgba(0,0,0,.9), 0 1px 0 rgba(255,236,180,.6), 0 -1px 0 rgba(120,60,0,.6);
+}
+@keyframes lamp-breathe{ 0%,100%{ filter:brightness(.92); } 50%{ filter:brightness(1.12); } }
+.attract:hover .door-slot{ filter:brightness(1.15); }
+
+/* the coin is clipped by the chute, whose bottom edge is the slit */
+.door-chute{ position:absolute; z-index:1; left:-1em; right:-1em; top:-2.4em; bottom:1.55em; overflow:hidden; perspective:20em; }
+.door-chute::after{    /* the slit's throat darkens the coin as it goes in */
+  content:""; position:absolute; z-index:1; left:50%; bottom:0; width:3.9em; height:.4em; transform:translateX(-50%);
+  background:linear-gradient(180deg, transparent, rgba(5,2,8,.7)); border-radius:.2em .2em 0 0;
+}
+.door-coin{
+  position:absolute; left:50%; bottom:.45em; width:3.3em; height:3.3em; margin-left:-1.65em; border-radius:50%;
+  display:grid; place-items:center;
+  background:radial-gradient(circle at 34% 28%, #fff6c4 0 7%, #ffd84d 30%, #e7a600 62%, #a56b00 100%);
+  box-shadow:inset 0 0 0 .2em #c98a00, inset 0 0 0 .27em #ffe27a, inset 0 .25em .35em rgba(255,255,255,.35), inset 0 -.2em .3em rgba(110,60,0,.45), 0 .3em .5em rgba(0,0,0,.45);
+  animation:door-coin-bob 2.8s ease-in-out infinite;
+}
+.door-coin::before{ content:""; position:absolute; inset:.08em; border-radius:50%; border:.12em dotted rgba(140,86,0,.55); }   /* reeded edge */
+.door-coin::after{          /* a glint sweeping across */
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.75) 50%, transparent 62%) no-repeat;
+  background-size:260% 100%; background-position:160% 0; animation:door-coin-glint 4.2s ease-in-out infinite;
+}
+.door-coin-face{ font:1.05em/1 var(--font-display); color:#9a6300; text-shadow:0 1px 0 rgba(255,240,180,.75), 0 -1px 0 rgba(90,50,0,.35); }
+@keyframes door-coin-bob{ 0%,100%{ transform:translateY(0) rotateY(-16deg); } 50%{ transform:translateY(-.24em) rotateY(14deg); } }
+@keyframes door-coin-glint{ 0%,62%{ background-position:160% 0; } 82%,100%{ background-position:-60% 0; } }
+.attract.is-inserting .door-coin, .attract.is-inserting .door-coin::after{ animation:none; }
+
+.door-text{ display:flex; flex-direction:column; align-items:flex-start; gap:.35em; }
+.attract-coin{
+  font-family:var(--font-display); font-size:2.6em; line-height:1; letter-spacing:.03em; color:var(--gold);
+  text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4);
+  animation:coin-blink 1.15s steps(1) infinite;
+}
+.attract-coin{ min-width:7.4em; text-align:left; }    /* holds the door's width when it changes to 1 CREDIT */
+.attract-coin.is-credited{ animation:none; color:#fff3c4; }
+.door-price{ font:700 .82em var(--font-mono); letter-spacing:.22em; color:var(--cream); opacity:.62; }
+@keyframes coin-blink{ 50%{ opacity:.4; text-shadow:none; } }
+
+/* the glass: scanlines, a slow interference roll, grain and basement dust */
+.attract-glass{ position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+.attract-glass::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.28) 2px 3px); }
+.attract-glass::after{
+  content:""; position:absolute; inset:0; transition:opacity .9s ease;
+  background:
+    radial-gradient(38% 30% at 22% 30%, rgba(140,120,96,.10), transparent 70%),
+    radial-gradient(30% 26% at 78% 68%, rgba(140,120,96,.09), transparent 70%),
+    radial-gradient(22% 18% at 64% 20%, rgba(150,130,104,.06), transparent 70%),
+    radial-gradient(125% 105% at 50% 50%, transparent 50%, rgba(0,0,0,.78));
+}
+.attract.is-powered .attract-glass::after{ opacity:.55; }
+.attract-grain{
+  position:absolute; inset:-50%; background-image:var(--grain); opacity:.11; mix-blend-mode:screen;
+  animation:grain-jump 1s steps(1) infinite;
+}
+@keyframes grain-jump{
+  0%{ transform:translate(0,0); } 12.5%{ transform:translate(-7%,4%); } 25%{ transform:translate(5%,-9%); } 37.5%{ transform:translate(-12%,-3%); }
+  50%{ transform:translate(9%,7%); } 62.5%{ transform:translate(-4%,11%); } 75%{ transform:translate(13%,-5%); } 87.5%{ transform:translate(-9%,-11%); }
+}
+.attract.is-powered .attract-grain{ opacity:.05; }
+.attract-roll{
+  position:absolute; left:0; right:0; top:0; height:16%;
+  background:linear-gradient(180deg, transparent, rgba(255,255,255,.03) 35%, rgba(0,0,0,.22) 60%, transparent);
+  animation:attract-roll 6.5s linear infinite;
+}
+@keyframes attract-roll{ from{ transform:translateY(-120%); } to{ transform:translateY(650%); } }
 
 /* idle attract light show on the machine itself */
 body.is-attract .marquee-chase{ animation-duration:1.6s; }
@@ -1032,7 +1154,6 @@ html[data-lights="calm"] *::after{
 }
 html[data-lights="calm"] .boot-screen,
 html[data-lights="calm"] .boot-log .ln{ opacity:1; }
-html[data-lights="calm"] .attract-coin{ color:var(--ink); }
 html[data-lights="calm"] .synth-grid{ opacity:.12; }
 html[data-lights="calm"] .attract.is-leaving{ transform:none; }
 
@@ -1163,7 +1284,7 @@ body.is-crowd #selection-preview, body.is-crowd #queue-continuation, body.is-cro
   .utility-panel{ bottom:6.6rem; right:1rem; max-height:calc(100dvh - 7.6rem); }
   .attract-title{ font-size:clamp(2.2rem,8.5vw,5.2rem); }
   .attract-tagline{ max-width:90vw; font-size:clamp(.65rem,2.3vw,1.25rem); }
-  .attract-coin{ padding:.8rem 1.5rem; font-size:clamp(1.4rem,5vw,2.7rem); }
+  .door-plate{ font-size:clamp(.62rem,2.2vw,1rem); }
   .attract-sub{ font-size:.75rem; letter-spacing:.05em; }
   .attract-logo{ width:clamp(4rem,20vh,9.5rem); height:auto; }
   .attract-inner{ gap:.6rem; }

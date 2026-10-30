@@ -77,3 +77,20 @@ test('the screen flicker patches stay inside the same safety budget', async () =
     assert.ok(depths.size > 1, 'patches do not all dip the same');
   }
 });
+
+test('the dormant cabinet power sags stay inside the flash budget', async () => {
+  const { planSag, SAG } = await import('../lights.js');
+  let seed = 5;
+  const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  for (let i = 0; i < 500; i++) {
+    const plan = planSag(rng);
+    const dims = plan.keyframes.map((k) => k.dim);
+    assert.ok(plan.dips >= 1 && plan.dips <= 2, 'one or two dips per sag');
+    assert.ok(plan.duration < 1000, 'a sag is over within a second');
+    assert.ok(plan.nextInMs >= SAG.minGapMs, 'sags are far enough apart that no second holds 3 dips');
+    assert.ok(Math.max(...dims) <= SAG.maxDim, 'a sag never darkens more than allowed');
+    assert.equal(dims[0], 0);
+    assert.equal(dims[dims.length - 1], 0, 'always recovers');
+    assert.ok(plan.keyframes.every((k) => Math.abs(k.shift) <= SAG.maxShiftEm), 'the picture only jitters a little');
+  }
+});

@@ -95,6 +95,11 @@ export function countUp(el, to, { ms = 600, format = (n) => String(Math.round(n)
    (sessionStorage), so a refresh mid-night does not replay it.
    ============================================================ */
 const BOOT_FLAG = 'sn_booted';
+
+/* Has the full arrival already played in this tab? (startBoot skips it if so.) */
+export function hasBooted() {
+  try { return Boolean(sessionStorage.getItem(BOOT_FLAG)); } catch { return false; }
+}
 const BOOT_TEST_LINES = 5;
 const BOOT_LOG_MS = 10000;           // the self-test prints across this long (trivia's pacing)
 

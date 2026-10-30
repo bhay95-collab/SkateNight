@@ -234,9 +234,12 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 
 ## How it behaves
 
-- The arrival runs for its full 13-second hold and reveal. It cannot be skipped.
-  Once completed, it does not replay when refreshing the same browser tab.
-  CALM keeps the same arrival duration with static diagnostics.
+- The site opens on **INSERT COIN**: the cabinet sitting dark in the basement,
+  waiting. Press it and the coin drops in, the cabinet powers up with a hum and a
+  thump, and the power-on screen runs for its full 13 seconds before the jukebox
+  appears. It cannot be skipped. Once completed, it does not replay when
+  refreshing the same browser tab (the coin still goes in, then straight to the
+  jukebox).
 - **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
   trim and an optional click-to-fill setting. Click it
   or use Enter/Space; Escape or a click outside closes it. Music, effects,

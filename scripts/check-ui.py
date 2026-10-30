@@ -33,6 +33,7 @@ def start(page, base_url):
     page.locator("#attract").click()
     page.wait_for_function("window.__skateNight.state().started && window.__skateNight.player !== null")
     page.wait_for_function("!document.body.classList.contains('on-attract')")
+    page.wait_for_function("document.getElementById('attract').hidden")  # coin drop and power-up finished
 
 
 def type_code(page, code, submit=True):

@@ -20,10 +20,11 @@
 <a class="skip-link" href="#jukebox">Skip to the jukebox</a>
 
 <!-- ============ 1. BOOT: CRT power-on (ported from trivia) ============
-     Opaque from first paint so the machine assembles unseen behind it.
+     Hidden until the coin goes in (see the INSERT COIN screen below), then
+     opaque while the machine finishes assembling behind it.
      fx.js rebuilds the self-test lines at random each power-on; the
      static copy below is only a fallback if the script never runs. -->
-<div class="boot" id="boot" aria-hidden="true">
+<div class="boot" id="boot" aria-hidden="true" hidden>
   <div class="boot-roll"></div>
   <div class="boot-stack">
     <img class="boot-logo" src="rfai-logo.png" width="512" height="512" alt="" fetchpriority="high">
@@ -35,15 +36,33 @@
 </div>
 
 <!-- ============ 2. ATTRACT: INSERT COIN ============
-     The click / tap / key press here is the gesture browsers demand
-     before they allow any sound. -->
-<button class="attract" id="attract" type="button" aria-label="Skate by Faith, Not by Sight. Insert coin to start." hidden>
-  <span class="attract-inner">
-    <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
-    <span class="attract-title"><span>Skate</span> <span class="by">by</span> <span>Faith</span></span>
-    <span class="attract-tagline">Not by Sight &mdash; An 80s Rollerskate Night</span>
-    <span class="attract-coin">INSERT COIN</span>
-    <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
+     The first thing anyone sees: the cabinet in the basement, dust sheet
+     just pulled off, on standby power. Only the coin door is properly lit.
+     The click / tap / key press here is the gesture browsers demand before
+     they allow any sound; startup.js then drops the coin and powers the
+     cabinet up, and the boot screen above opens from the collapsing picture. -->
+<button class="attract" id="attract" type="button" aria-label="Skate by Faith, Not by Sight. Insert coin to start.">
+  <span class="attract-room" aria-hidden="true"><span class="attract-beam"></span></span>
+  <span class="attract-picture">
+    <span class="attract-inner">
+      <span class="attract-marquee">
+        <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
+        <span class="attract-title"><span>Skate</span> <span class="by">by</span> <span>Faith</span></span>
+        <span class="attract-tagline">Not by Sight &mdash; An 80s Rollerskate Night</span>
+      </span>
+      <span class="door-plate" aria-hidden="true">
+        <span class="door-entry">
+          <span class="door-chute"><span class="door-coin"><span class="door-coin-face">25</span></span></span>
+          <span class="door-slot"></span>
+        </span>
+        <span class="door-text">
+          <span class="attract-coin" id="attract-coin">INSERT COIN</span>
+          <span class="door-price">25&cent; &middot; 1 PLAY</span>
+        </span>
+      </span>
+      <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
+    </span>
+    <span class="attract-glass" aria-hidden="true"><span class="attract-grain"></span><span class="attract-roll"></span></span>
   </span>
 </button>
 

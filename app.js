@@ -18,7 +18,7 @@ import {
   createRotator,
 } from './copy.js';
 import {
-  startBoot, isCalm, onCalmChange, delay, safely, startScreenFlicker,
+  startBoot, hasBooted, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
 import { unlockAudio, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
 import { installCabinetKeyboard } from './keyboard.js';
@@ -27,6 +27,7 @@ import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
+import { wakeAttract } from './startup.js';
 import { createLink, isCrowdView } from './link.js';
 import { runCrowd } from './crowd.js';
 import { createUI, createTicker } from './ui.js';
@@ -75,11 +76,10 @@ async function main() {
   preloadSfxFiles();                                 // original effects and optional MP3 overrides
   safely('screen-flicker', () => startScreenFlicker($('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
 
-  // Boot overlay is opaque from first paint; the machine assembles behind it.
-  const boot = startBoot($('boot'));
-  let bootDone = !boot.played;
+  // The INSERT COIN screen is up from first paint; the machine assembles behind it.
   const attractScreen = $('attract');
   attractScreen.hidden = false;
+  const cabinetStart = safely('attract', () => wakeAttract(attractScreen));
 
   const { library, loadError } = await loadLibrary();
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
@@ -891,8 +891,34 @@ async function main() {
     sub.textContent = nextAttractLine();
   }
 
+  /* The coin goes in, the cabinet powers up, then the boot screen (first
+     time in this tab) or straight to the jukebox. */
+  async function powerOn() {
+    const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
+    const firstBoot = !hasBooted();
+    try {
+      await cabinetStart?.insert({
+        onCoin: () => sfxReady.then(() => safely('coin', () => sfx.coin())),
+        onPower: () => sfxReady.then(() => safely('power', () => sfx.power())),
+        collapse: firstBoot,
+      });
+    } catch (err) {
+      console.warn('[startup]', err);
+    }
+    document.body.classList.remove('on-attract');
+    const boot = startBoot($('boot'));
+    if (boot.played) {
+      attractScreen.hidden = true;                   // the boot screen opens from the collapsed picture
+      boot.reveal();
+      await boot.finished;
+    } else {
+      attractScreen.classList.add('is-leaving');
+      setTimeout(() => { attractScreen.hidden = true; }, 520);
+    }
+  }
+
   async function startNight() {
-    if (started || !bootDone) return;
+    if (started) return;
     started = true;
     clearInterval(attractLineTimer);
     const engine = unlockAudio();                      // the click is the browser's required gesture
@@ -900,8 +926,6 @@ async function main() {
     if (engineReady) {
       // A quick keyboard selection must have a player even while effects decode.
       player = createPlayer({ onEnded, onTime, onError, onDuration });
-      await Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]);   // so a recorded coin plays first time
-      safely('coin', () => sfx.coin());
       visualiser = createVisualiser({ tap: (d) => { if (crowdOpen) link.send('levels', d); } });
       safely('visualiser', () => visualiser.start());
       setupMediaSession({
@@ -915,11 +939,9 @@ async function main() {
     }
     credits = 1;
     renderCredits();
-    document.body.classList.remove('on-attract');
-    attractScreen.classList.add('is-leaving');
-    setTimeout(() => { attractScreen.hidden = true; }, isCalm() ? 0 : 520);
-    keepAwake();
     ensureHouseNext();
+    await powerOn();
+    keepAwake();
     ticker.start();
     if (matchMedia('(pointer:fine)').matches && innerWidth >= 1000) showLegend();
     scheduleRender();
@@ -937,20 +959,11 @@ async function main() {
   window.addEventListener('keydown', (e) => {
     if (started || attractScreen.hidden) return;
     if (['Shift', 'Control', 'Alt', 'Meta', 'Tab', 'CapsLock'].includes(e.key)) return;
-    if (!bootDone) return;
     e.preventDefault();
     startNight();
   });
 
-  /* ---------------- boot, then the attract screen ---------------- */
-  if (boot.played) {
-    boot.finished.then(() => {
-      bootDone = true;
-      attractScreen.focus({ preventScroll: true });
-    });
-    try { await Promise.race([document.fonts.ready, delay(2500)]); } catch { /* fonts are a nicety */ }
-    boot.reveal();
-  }
+  /* ---------------- the INSERT COIN screen waits for a coin ---------------- */
   rotateAttractSub();
   attractLineTimer = setInterval(rotateAttractSub, 5000);
   ticker.stop();

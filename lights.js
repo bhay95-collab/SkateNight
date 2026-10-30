@@ -65,3 +65,36 @@ function planPatches(keyframes, dips, rng) {
     };
   });
 }
+
+/* ============================================================
+   POWER SAGS - the dormant cabinet on the INSERT COIN screen is on a tired
+   supply: every so often the picture browns out and jitters sideways.
+   Photosensitive-safe by the same rules as the screen flicker:
+   - a sag is one or two dips, over within a second;
+   - sags are at least 1.2 s apart, so no second ever holds 3 dips;
+   - a dip darkens by at most 55% and the jitter is a fraction of an em.
+   Returns keyframes as { offset, dim, shift } (dim 0 = no extra darkening,
+   shift = sideways jitter in em) for startup.js to turn into WAAPI frames.
+   ============================================================ */
+export const SAG = { minGapMs: 1200, maxGapMs: 4800, maxDim: 0.55, maxShiftEm: 0.18 };
+
+export function planSag(rng = Math.random) {
+  const between = (lo, hi) => lo + rng() * (hi - lo);
+  const dips = rng() < 0.35 ? 2 : 1;
+  const steps = [{ t: 0, dim: 0, shift: 0 }];
+  let t = 0;
+  for (let i = 0; i < dips; i++) {
+    if (i > 0) { t += between(120, 220); steps.push({ t, dim: 0, shift: 0 }); }
+    const dim = between(0.2, SAG.maxDim);
+    const shift = between(-SAG.maxShiftEm, SAG.maxShiftEm);
+    t += 40; steps.push({ t, dim, shift });                       // the supply drops
+    t += between(60, 180); steps.push({ t, dim: dim * 0.7, shift: shift * -0.4 });   // sags, the picture swims back
+    t += 110; steps.push({ t, dim: 0, shift: 0 });               // recovers
+  }
+  return {
+    dips,
+    duration: Math.round(t),
+    keyframes: steps.map((s) => ({ offset: s.t / t, dim: Number(s.dim.toFixed(3)), shift: Number(s.shift.toFixed(3)) })),
+    nextInMs: Math.round(between(SAG.minGapMs, SAG.maxGapMs)),
+  };
+}

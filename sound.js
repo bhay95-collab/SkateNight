@@ -11,10 +11,11 @@
      buzz     a muted refused-selection solenoid
      flicker  legacy hook; silent unless a custom MP3 is supplied
      page     the paper carrier releasing and catching
+     power    the cabinet waking: relay, mains hum, crackle, degauss
 
    Your own recordings: put an MP3 named after the effect in the sfx/
    folder (sfx/coin.mp3, sfx/key.mp3, sfx/confirm.mp3, sfx/whirr.mp3,
-   sfx/thud.mp3, sfx/buzz.mp3, sfx/flicker.mp3, sfx/page.mp3) and it plays instead of the
+   sfx/thud.mp3, sfx/buzz.mp3, sfx/flicker.mp3, sfx/page.mp3, sfx/power.mp3) and it plays instead of the
    original WAV. A missing or unreadable MP3 falls back to that WAV,
    then to a quiet live model. See sfx/README.md for the sample source.
 
@@ -22,7 +23,8 @@
    ============================================================ */
 import { getEngine } from './audio.js';
 
-const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page'];
+const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page', 'power'];
+const MP3_ONLY = new Set(['flicker', 'power']);   // no bundled WAV: a custom MP3 or the live model
 const rawFiles = new Map();      // name -> ordered { path, bytes } candidates
 const buffers = new Map();       // name -> decoded sound, ready to play
 const filePaths = new Map();     // distinguish bundled motors from custom recordings
@@ -39,6 +41,7 @@ const MIX = {
   buzz: { gain: 0.80, variation: 0 },
   page: { gain: 0.85, variation: 0.012 },
   flicker: { gain: 0.70, variation: 0 },
+  power: { gain: 0.90, variation: 0 },
 };
 const activeVoices = new Map();
 const RELEASE_SECONDS = 0.014;
@@ -94,7 +97,7 @@ function createVoice(name) {
 export function preloadSfxFiles() {
   if (!fetching) {
     fetching = Promise.all(SFX_NAMES.map(async (name) => {
-      const formats = name === 'flicker' ? ['mp3'] : ['mp3', 'wav'];
+      const formats = MP3_ONLY.has(name) ? ['mp3'] : ['mp3', 'wav'];
       const candidates = await Promise.all(formats.map(async (format) => {
         const path = `sfx/${name}.${format}`;
         try {
@@ -233,6 +236,32 @@ function thump(voice, { at = 0, dur = 0.08, peak = 0.5, freq = 1600 }) {
   src.stop(t + dur + 0.05);
 }
 
+// A held tone with its own envelope: points are [seconds, gain] pairs.
+function held(voice, { freq, type = 'sine', points, filterHz }) {
+  const { ctx, output, rate } = voice;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq * rate, t);
+  gain.gain.setValueAtTime(0.0001, t);
+  for (const [at, level] of points) gain.gain.linearRampToValueAtTime(Math.max(level, 0.0001), t + at / rate);
+  if (filterHz) {
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = filterHz;
+    osc.connect(filter).connect(gain);
+    voice.track(filter);
+  } else {
+    osc.connect(gain);
+  }
+  gain.connect(output);
+  voice.track(osc, gain);
+  const end = points[points.length - 1][0] / rate;
+  osc.start(t);
+  osc.stop(t + end + 0.05);
+}
+
 const effect = (name, fallback) => (...args) => {
   let voice;
   try {
@@ -287,6 +316,24 @@ export const sfx = {
     thump(voice, { freq: 1600, dur: 0.025, peak: 0.10 });
     thump(voice, { freq: 530, dur: 0.045, peak: 0.13, at: 0.20 });
     thump(voice, { freq: 2100, dur: 0.015, peak: 0.035, at: 0.23 });
+  }),
+
+  // The cabinet waking up after the coin (about 2.6 s). The hum's two sags
+  // line up with the picture's two power dips in startup.js (0.12 s, 0.6 s).
+  power: effect('power', (voice) => {
+    thump(voice, { freq: 1300, dur: 0.025, peak: 0.16 });              // main relay pulls in
+    thump(voice, { freq: 320, dur: 0.07, peak: 0.14, at: 0.01 });
+    const hum = [[0.05, 0.05], [0.12, 0.012], [0.3, 0.06], [0.6, 0.02], [0.8, 0.07], [1.8, 0.05], [2.6, 0]];
+    for (const [freq, share] of [[100, 1], [150, 0.55], [200, 0.35]]) {
+      held(voice, { freq, type: 'sawtooth', filterHz: 600, points: hum.map(([at, level]) => [at, level * share]) });
+    }
+    held(voice, { freq: 92, type: 'sawtooth', filterHz: 380,             // degauss coil: a deep wobbling thwomp
+      points: [[0.34, 0], [0.4, 0.09], [0.55, 0.03], [0.7, 0.07], [0.9, 0.02], [1.1, 0.04], [1.6, 0]] });
+    thump(voice, { freq: 160, dur: 0.3, peak: 0.12, at: 0.36 });
+    for (let i = 0; i < 14; i++) {                                     // static crackle as the tube warms
+      thump(voice, { freq: 2800 + Math.random() * 2600, dur: 0.008 + Math.random() * 0.014, peak: 0.02 + Math.random() * 0.05, at: 0.08 + Math.random() * 1.3 });
+    }
+    held(voice, { freq: 7800, points: [[0.5, 0], [1.2, 0.0035], [2.4, 0.002], [2.8, 0]] });   // faint flyback whine
   }),
 
   // Keep the legacy hook without introducing ambient interference during music.
