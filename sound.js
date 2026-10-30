@@ -69,6 +69,11 @@ const MIX = {
   tube: { gain: 0.70, variation: 0.05 },
   collapse: { gain: 0.85, variation: 0 },
 };
+/* The film's live models are drawn quietly (their partials stack), so they
+   are raised to sit at music level: measured at the 70% Effects fader they
+   were 18-20 dB under a typical track. A custom MP3 keeps its own level; the
+   Effects fader and the limiter still apply. */
+const FILM_BOOST = { lift: 12, contact: 12, chute: 10, relay: 7, power: 8, tube: 8, collapse: 7 };
 const activeVoices = new Map();
 const RELEASE_SECONDS = 0.014;
 
@@ -80,7 +85,8 @@ function createVoice(name) {
   if (!e) return null;
   const { ctx, sfxBus } = e;
   activeVoices.get(name)?.release();
-  const { gain: level, variation } = MIX[name];
+  const { gain, variation } = MIX[name];
+  let level = gain;
   const output = ctx.createGain();
   output.gain.setValueAtTime(level, ctx.currentTime);
   output.connect(sfxBus);
@@ -99,6 +105,10 @@ function createVoice(name) {
           if (activeVoices.get(name) === voice) activeVoices.delete(name);
         }
       };
+    },
+    louder(k) {                     // the live model, raised to its film level
+      level = gain * k;
+      output.gain.setValueAtTime(level, ctx.currentTime);
     },
     release() {
       const t = ctx.currentTime;
@@ -378,6 +388,7 @@ const effect = (name, fallback) => (...args) => {
     if (!buffers.has(name) && !fallback) return;
     voice = createVoice(name);
     if (!voice || playFile(name, voice, name === 'whirr' ? args[0] ?? 0.9 : undefined)) return;
+    if (FILM_BOOST[name]) voice.louder(FILM_BOOST[name]);
     fallback(voice, ...args);
   } catch (err) {
     voice?.release();
