@@ -148,7 +148,7 @@ body.on-attract .rig{ visibility:hidden; }
 .panel-title, .tab{
   position:absolute; z-index:3; top:0; left:.9rem; transform:translateY(-50%);
   margin:0; padding:.28rem .7rem .26rem; white-space:nowrap;
-  font:700 .56rem/1 var(--font-mono); letter-spacing:.24em; text-transform:uppercase;
+  font:700 .64rem/1 var(--font-mono); letter-spacing:.2em; text-transform:uppercase;
   color:var(--plate); text-shadow:0 1px 0 rgba(0,0,0,.8);
   background:
     radial-gradient(circle .06rem at .3rem 50%, #8d7650, #3b2e1b .06rem, transparent .08rem),
