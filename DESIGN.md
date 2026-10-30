@@ -9,35 +9,51 @@ drifting back toward generic defaults.
 
 The creative direction is decided and should not be changed casually:
 
-> The **machine** is full 80s arcade neon (synthwave grid horizon, neon tubes,
-> CRT glass, hard-shadow plastic cabinet, chasing bulbs). The **RFAI album
-> covers** live *inside* it as worn record sleeves - old vinyl in a glowing
-> machine. Both identities stay intact. **Never recolour the covers neon.**
+> **The Living Jukebox.** The machine is the cabinet the INSERT COIN film woke
+> up in a dark basement, now fully running - not a website after a film. A
+> dark lacquered body with precise points of light: the neon wordmark, amber
+> bulbs, cyan LED digits, lit keys, the lamp over the record changer. The
+> **RFAI album covers** live *inside* it as worn record sleeves. **Never
+> recolour the covers.**
 
-The neon cabinet, original layout, colourful carousel and music-reactive world
-are the visual direction. Retain the original mechanical sound pack, precision
-record-change choreography, the **PRECISION RECORD CHANGER** / **45 RPM · STEREO**
-labels, the queue note, and the coin animation. The full thirteen-second arrival
-remains unskippable in both FULL and CALM.
+Darkness is part of its character, never an excuse for low contrast: titles,
+codes, queue positions and times stay large and bright. Colour is emitted light
+and meaningful feedback, not paint on surfaces. The three-column operator
+layout (the archive | the heart | the register and selector) and the control
+deck are kept on purpose: they work at a live event. Retain the original
+mechanical sound pack, precision record-change choreography and timing, the
+**PRECISION RECORD CHANGER** / **45 RPM · STEREO** labels, the queue note, and
+the coin animation. The full thirteen-second arrival remains unskippable.
 
-The neon refinement keeps this palette, composition and reactive lighting.
-Directional highlights, lower cabinet edges and deeper screen recesses give the
-plastic more depth. Gold section legends are smaller and level, with fewer
-decorative borders. Requests and house suggestions both stay bright enough to
-read; their labels and controls establish priority.
+The earlier purple-plastic cabinet over a synthwave grid (ported from trivia)
+was retired for this direction in October 2026; the attract cabinet's lacquer,
+chrome and bulbs (`styles.css` ATTRACT) are the reference for every material.
 
 ## Material system
 
 Everything on screen is built from a short list of physical materials. Nothing
 else gets invented without extending this list first.
 
-- **Cabinet** (`.panel`, `.deck`, `.tube`) - purple moulded plastic with a hard
-  lower edge, restrained contact shadow and a highlight from the top left.
-  Glow belongs to the lighting, while solid surfaces retain their depth.
-- **Screen** (`.screen`, `.led`, `.ticker`, `.queue`, `.readout`, `.mech`) - a
-  recessed near-black CRT display for anything with a number or a queue on it.
-  Inset shadow, scanlines and a curved-glass highlight. Numbers are
-  `JetBrains Mono` tabular.
+- **Lacquer** (`.rig::before`) - one violet-black body behind everything, its
+  crown following the arch, lit from above and by its two tubes. The bays
+  (`.panel`) are **recesses cut into it** (inset shadow, thin chrome trim),
+  never raised cards. The deck (`.deck`) is a brushed steel shelf across its base.
+- **Chrome** (`--chrome`, `--bezel`) - rails, bezels and trim that catch one
+  light from above: the arch, the sign frame, the changer window, VU bezels.
+- **Brass nameplate** (`.panel-title`) - each bay's name engraved on a small
+  screwed plate, mono, letterspaced, `--plate` lettering.
+- **Smoked glass** (`.screen`, `.led`, `.queue`, `.readout`, `.mech`) - recessed
+  near-black windows for anything with a number or a queue on it, with one
+  reflection from the room's light. Numbers are `JetBrains Mono` tabular, cyan.
+- **Amber LED board** (`.ticker`) - lit amber text behind a dot grid.
+- **Hardware** - ivory number keys (`.key`), backlit letter keys showing their
+  album cover (`.key-letter`), steel deck keys (`.btn-deck`), the illuminated
+  START lamp (`.btn-gold`) and SELECT button (`.btn-select`) in chrome bezels,
+  chrome fader caps. A pressed or latched key lights from behind.
+- **The record changer** (`changer.css`) - a dark chamber behind thick glass
+  with one work lamp overhead that comes up while the gripper is working; a
+  machined platter whose strobe dots catch the lamp at speed; vinyl with the
+  gaps between tracks and a reflection that holds still while it turns.
 - **VU meters** read loudness on a decibel scale like a real meter
   (`vuLevel` in `dsp.js`: -30 dBFS at the left stop, -12 dBFS pinned right,
   float samples, about 300 ms ballistics) with the MUSIC slider taken back out,
@@ -51,21 +67,17 @@ else gets invented without extending this list first.
   in `lights.js`): one or two dips, at most 60% darker, under a second, bursts
   25-70 s apart, never in CALM. These visual dips are silent by default;
   `sfx.flicker` is only an optional custom-audio compatibility hook.
-- **Title tab** (`.panel-title`, `.tab`) - a small, level gold legend on the top
-  edge. Bungee keeps its arcade character; reduced size and simpler framing
-  leave the marquee and song title as the strongest labels.
-- **Arcade button** (`.btn-gold`, `.btn-select`, `.btn-deck`, `.key`) - a hard
-  drop shadow that collapses on `:active` as the button physically travels down.
+- **Travel** - every button has a lower edge that collapses on `:active` as it
+  physically travels down.
 - **Neon tube** (`.wordmark`, `.w-cyan`, `.w-mag`, `.neon`) - white core plus
   coloured halos, for **signage only**. Never for body copy, the song title or
   the clock.
-- **Grid horizon** (`.synth-horizon`) - the synthwave world the cabinet sits in:
-  faint perspective grid in the lowest band, starfield in the side gutters, one
-  thin horizon line, glass vignette and whisper scanlines. Kept at trivia's
-  level: atmospheric as a whole, invisible while reading.
-  One fixed layer at the back. Its grid speed follows the music.
-- **Bubble tubes** (`.tube`) - Wurlitzer-1015-style arches either side of the
-  Now Playing panel with rising bubbles and slow colour-cycling.
+- **The room** (`body`, `.mirror-light`) - the same basement as the film: near
+  black, the cabinet's warm light on the floor, a little dust in the air.
+- **Arch** (`.arch`, `arch.js`) - a chrome rail over the crown lined with steady
+  amber bulbs, as on the attract cabinet.
+- **Bubble tubes** (`.tube`) - the cabinet's two pillars, chrome-capped, with
+  rising bubbles and slow colour-cycling.
 - **Sleeve** (`.sleeve`) - the new material: a worn paper record sleeve with a
   hard shadow, scuffed inner edge and a faint **ring-wear** circle (the pale
   mark a record rubs into a sleeve) laid over it. The real RFAI covers already
@@ -99,6 +111,13 @@ The cabinet tokens are trivia's, **exactly**:
 --dim       #A98CC4   secondary text, metadata
 --red       #FF5470   out of order / refused - nothing else
 ```
+
+The running machine adds its material and lamp tokens at the top of
+`jukebox.css`: lacquer (`--lacquer-0..3`, `--bay`), `--glass`, chrome
+(`--chrome`, `--chrome-lo`, `--trim`), steel keys, ivory keys, title-strip
+paper, and the lamps `--amber`, `--tungsten`, `--phosphor` (text on dark),
+`--label` (engraved legends, at least 8:1 on the bays) and `--plate`. The
+purple `--cab*` tokens now belong to the INSERT COIN cabinet only.
 
 Sleeve tokens (used **only** on sleeve and sticker materials, plus the record
 label and the volume code chips):
@@ -509,8 +528,8 @@ LED reads **FREE PLAY** (real arcade term).
 - The record's sheen is a low-contrast highlight rotating at 1.1 passes a second
   over a small area.
 
-Audit list - every `@keyframes` in `styles.css` and its rate:
-`crt-roll` 9 s (one band, whole screen), `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
+Audit list - every `@keyframes` in `styles.css`, `jukebox.css` and `changer.css` and its rate:
+`crt-roll` 11 s (one band, whole screen), `spot-drift` 45-95 s, `logo-breathe` 4.8 s, `bulb-chase`
 4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
 `coin-drop` once, `score-pop` once, boot sequence once per tab. INSERT COIN screen: `coin-blink` 1.15 s, `lamp-breathe` 2.8 s, `attract-roll` 6.5 s, `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s, `bubbles-rise` 2.6 s once lit; power sags and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
@@ -716,7 +735,9 @@ from 10 metres). Everything about reading and validating that file lives in
 | `index.html` | Page structure: boot overlay, attract screen, background world, the machine |
 | `cabinet.js` | Native TOOLS disclosure, keyboard activation, dismissal and shortcut help |
 | `keyboard.js` | Cabinet shortcuts that respect native controls, scroll areas and modal dialogs |
-| `styles.css` | All styling and every `@keyframes` (single stylesheet, tokens at the top) |
+| `styles.css` | Fonts, shared tokens and base rules, the INSERT COIN film and the boot screen |
+| `jukebox.css` | The running machine: lacquer, chrome and glass tokens, every bay, the deck, crowd screen and small-screen layouts |
+| `changer.css` | The record changer's chamber, platter, vinyl and tonearm (loaded before `jukebox.css`) |
 | `app.js` | The conductor: state, queue flow, keypad, keyboard, attract, crates |
 | `tracks.js` | **The one file Ben edits** |
 | `codes.js` | Reads `tracks.js` into the library; generates selection codes |
