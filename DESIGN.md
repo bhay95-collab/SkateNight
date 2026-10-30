@@ -293,35 +293,57 @@ record changer and the readouts carry the show; the world around it stays dim.
   picture tube, a brushed-steel coin door) standing in a dark basement, too big
   for the frame, barely alive. Everything inside `.cab` is in cabinet em (1/100
   of its width), so it keeps its proportions anywhere.
-  - **The darkest moment comes first.** Before anyone touches it the cabinet
-    is lit by one practical source: its picture tube, glowing with cool
-    no-signal snow (static at .35, picture at .39 - it holds its glow longer
-    than any other part, and the relay still kills it). No logo, no sign, no
-    printing: the slot lamp reveals the door's markings at the touch, and the
-    sign and logo join the supply only at the relay (`.is-powered`). Its light
-    (`.cab-spill`) falls off fast across the bezel, the nearest chrome and the
-    top of the door; the lacquer, the arch, the cold bulbs, the dark neon glass
-    and the coin door are only just there. No prompt, no blinking text, no
+  - **The darkest moment comes first: the machine that waits.** Before anyone
+    touches it the room is nearly black and the cabinet is lit by one
+    practical source: its starved picture tube (picture at .5, colour kept at
+    .8 so the robot on it is still cyan and magenta). On it, small, with dark
+    all round it, the RFAI robot as the tube would draw it - not the logo
+    pasted on, but its own pixels turned into phosphor light by
+    `drawPhosphor` (`startup.js`): the frame and coin tab dropped, the neon
+    lines kept, the cream face held right down, smeared a little along the
+    scan lines, red and blue a fraction out of register, a faint ghost to the
+    right, and a soft bloom behind. It fades up over 2.4 s as the tube warms.
+    Then it breathes (`planBreath` in `lights.js`, one looping plan of nine
+    4.2-6.8 s breaths): it gathers, holds, relaxes, never vanishes; now and
+    then it falters on the way up or is slow to come back, and now and then a
+    soft band rolls down the tube and the picture slips sideways as it passes
+    the face. The static (.1, fine and mostly dark - a weak signal, not snow)
+    thins as the robot brightens and thickens as it fades, and the tube's
+    light on the cabinet (`.cab-spill`, masked off the tube's own face) swells
+    and sinks with it: one signal, not separate effects. All of it is
+    opacity and transform on a handful of layers, so it runs on the
+    compositor for as long as the machine waits. Reduced motion or calm
+    lights: the robot glows, still. No sign, no printing, no bulbs, no lamp:
+    the slot lamp reveals the door's markings at the touch, the sign joins the
+    supply at the relay (`.is-powered`), and the lit logo takes over from the
+    phosphor robot only once the relay has collapsed the picture
+    (`.is-tube-lit`, relay + 100 ms), so the two are never on together; the
+    robot breathes on through the coin until then. The tube's light falls off
+    fast across the bezel, the nearest chrome and the top of the door; the
+    lacquer (.06), the arch (.035), the cold bulbs, the dark neon glass and
+    the coin door (.04) are only just there. No prompt, no blinking text, no
     lit button: the whole screen is the button (keyboard, mouse and touch; the
     accessible name still says what it does), and people discover it by
     trying. The touch wakes the slot lamp - it stutters and catches - and its
     light is what first shows the coin door and the coin. The credit counter
-    is an unlit window ("0 CREDITS") until it flips to a lit 1 CREDIT. Measured
-    (16-235 video levels): wall 20, lacquer 21, CRT 33 dormant; lacquer 72,
-    CRT 107, coin door 160 once awake - the opening carries the dynamic range,
-    the ignition is no brighter than before.
+    is an unlit window ("0 CREDITS") until it flips to a lit 1 CREDIT.
+    Measured at 1280x720 (0-255): whole frame ~3 on average, lacquer 2-5,
+    bezel 7, empty tube 12-15, robot 27-45 as it breathes - the opening
+    carries the dynamic range, the ignition is no brighter than before.
   - **One supply.** `SUPPLY` in `startup-timing.js` is the voltage (`STANDBY`
     = 0.2, a trickle). The sign, the tube's picture and static, the lacquer,
     the door, the chrome's reflections, the tube's light on the cabinet, the
     room's light and the transformer hum all follow it through their own
     responses (`RESPONSE` in `startup-power.js`), so a sag dims them together
-    and the hum sags with them. Lit parts fall away steeply below running
-    (brightness ~ v squared) and are exactly as bright as ever from running up.
-    The CSS dormant look IS the response at `STANDBY` (`tests/startup.test.js`
-    holds the two together, and that the coin lamp and bubble tubes are dark
-    on standby). Dormant sags come
-    from `planSag` (1.2 s+ apart, at most 2 dips, 55% darker); now and then a
-    dead tube tries to catch during one.
+    and the hum sags with them. From 0.4 up every response is exactly what it
+    was; below it the lacquer, chrome, coin door and static fall into a toe
+    (`toe()`), so standby lights nothing but the tube and the dead moments of
+    the film are at least as dark as the opening. The tube's own curve below
+    0.4 is only ever seen on standby (the raster is a dead line from the relay
+    until the supply is past it), so there it keeps its colour. The CSS
+    dormant look IS the response at `STANDBY` (`tests/startup.test.js` holds
+    the two together, that nothing changed from 0.4 up, and that the coin
+    lamp and bubble tubes are dark on standby).
   - **One clock.** The whole film is scheduled at the press on the document
     timeline (WAAPI animations with delays; steps fire from zero-length timer
     animations), from `BEATS`. Nothing chains timers, so nothing drifts; and a
@@ -593,7 +615,7 @@ Audit list - every `@keyframes` in `styles.css`, `jukebox.css` and `changer.css`
 `crt-roll` 11 s (one band, whole screen), `spot-drift` 45-95 s, `logo-breathe` 4.8 s, `bulb-chase`
 4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
-`coin-drop` once, `score-pop` once, boot sequence once per tab. Dormant cabinet: `lamp-breathe` 2.8 s (the slot lamp, dark until the touch), `attract-roll` 6.5 s, `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s, `bubbles-rise` 2.6 s once lit; power sags and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
+`coin-drop` once, `score-pop` once, boot sequence once per tab. Dormant cabinet: `lamp-breathe` 2.8 s (the slot lamp, dark until the touch), `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s (dimmed until the touch), `attract-roll` 6.5 s once the relay has the picture, `bubbles-rise` 2.6 s once lit; the robot's breath (a WAAPI loop from `planBreath`: level never moves more than a quarter of its range in a quarter second, at most two flashes in any second, checked in `tests/safety.test.js`) and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
 Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
 1 s, bursts at least 25 s apart, never more than 60% darker - so never more
 than 2 flashes in any second. The burst plays across a blurred 4x3 grid of
@@ -808,7 +830,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `copy.js` | All rotating text pools and the rotator (pure) |
 | `format.js` | LED clock formatting, volume curve (pure) |
 | `dsp.js` | Spectrum bands, loudness, envelope, beat detector and gate, logo glow (pure) |
-| `lights.js` | Screen flicker planning (pure) |
+| `lights.js` | Screen flicker and the dormant robot's breath, planned (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
 | `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |
 | `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
@@ -822,7 +844,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `visualiser.js` | Shared loop, canvases, mirror light |
 | `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
 | `fx.js` | Boot sequence, screen flicker, count-up |
-| `startup.js` | The INSERT COIN cabinet: building it, its dormant supply, the camera, the relays, the handoff, the reduced-motion telling |
+| `startup.js` | The INSERT COIN cabinet: building it, the phosphor robot and its breath, the camera, the relays, the handoff, the reduced-motion telling |
 | `startup-coin.js` | The coin going in: flight, tumble, catch, slip, chute, credit counter |
 | `startup-power.js` | The one supply and every part's response to it; tubes, raster, bulbs, ignition |
 | `startup-timing.js` | The film's score: `BEATS`, `CHUTE_CLINKS_MS`, `SUPPLY` (pure, shared with sound.js) |

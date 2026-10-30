@@ -67,34 +67,63 @@ function planPatches(keyframes, dips, rng) {
 }
 
 /* ============================================================
-   POWER SAGS - the dormant cabinet on the INSERT COIN screen is on a tired
-   supply: every so often the picture browns out and jitters sideways.
-   Photosensitive-safe by the same rules as the screen flicker:
-   - a sag is one or two dips, over within a second;
-   - sags are at least 1.2 s apart, so no second ever holds 3 dips;
-   - a dip darkens by at most 55% and the jitter is a fraction of an em.
-   Returns keyframes as { offset, dim, shift } (dim 0 = no extra darkening,
-   shift = sideways jitter in em) for startup.js to turn into WAAPI frames.
+   THE BREATH - the dormant cabinet's picture tube, barely powered, with the
+   robot on it gathering and losing its light. One plan drives the robot,
+   its glow, the static and the tube's light on the cabinet, so they are one
+   weak signal: brighter robot, clearer picture, less snow, more light on
+   the bezel. It loops, so it is a few dozen seconds of breaths that never
+   read as a repeat.
+   - each breath is 4.2 to 6.8 s: it gathers, holds, relaxes, rests;
+   - the level runs 0 (dim, never gone - startup.js keeps a floor) to 1;
+   - now and then it falters on the way up (a shallow dip, then on), or
+     takes longer to come back;
+   - now and then a soft band rolls down the tube, and the picture slips
+     sideways a fraction of an em as it passes the robot's face.
+   Photosensitive-safe: the robot is a small part of the screen, the level
+   never moves more than maxStep in a quarter second, and a falter (at most
+   one a breath) is the only change that turns back on itself quickly.
+   Returns { duration, keyframes: [{ offset, level, easing }], rolls: [ms] }.
    ============================================================ */
-export const SAG = { minGapMs: 1200, maxGapMs: 4800, maxDim: 0.55, maxShiftEm: 0.18 };
+export const BREATH = {
+  breaths: 9, minMs: 4200, maxMs: 6800, falter: 0.2, falterChance: 0.3, lingerChance: 0.25, maxStep: 0.25,
+  rollChance: 0.3, rollMs: 1700, maxShiftEm: 0.3,
+};
 
-export function planSag(rng = Math.random) {
+export function planBreath(rng = Math.random) {
   const between = (lo, hi) => lo + rng() * (hi - lo);
-  const dips = rng() < 0.35 ? 2 : 1;
-  const steps = [{ t: 0, dim: 0, shift: 0 }];
+  const steps = [];
+  const rolls = [];
+  const rest = () => between(0, 0.1);
+  const first = rest();
   let t = 0;
-  for (let i = 0; i < dips; i++) {
-    if (i > 0) { t += between(120, 220); steps.push({ t, dim: 0, shift: 0 }); }
-    const dim = between(0.2, SAG.maxDim);
-    const shift = between(-SAG.maxShiftEm, SAG.maxShiftEm);
-    t += 40; steps.push({ t, dim, shift });                       // the supply drops
-    t += between(60, 180); steps.push({ t, dim: dim * 0.7, shift: shift * -0.4 });   // sags, the picture swims back
-    t += 110; steps.push({ t, dim: 0, shift: 0 });               // recovers
+  let level = first;
+  const to = (dt, next, easing = 'ease-in-out') => { steps.push({ t, level, easing }); t += dt; level = next; };
+  for (let i = 0; i < BREATH.breaths; i++) {
+    const length = between(BREATH.minMs, BREATH.maxMs);
+    const peak = between(0.72, 1);
+    const rise = length * between(0.38, 0.48);
+    const hold = length * between(0.06, 0.12);
+    const fall = length * between(0.3, 0.38);
+    const last = i === BREATH.breaths - 1;
+    const trough = last ? first : rest();
+    if (rng() < BREATH.falterChance) {          // it gathers, hesitates, then carries on
+      const part = between(0.5, 0.7);
+      const at = level + (peak - level) * part;
+      to(rise * part, at, 'ease-in');
+      to(260, at - between(0.1, BREATH.falter), 'ease-out');
+      to(Math.max(rise * (1 - part), 1100), peak, 'ease-in-out');   // and gathers itself again, never in a rush
+    } else {
+      to(rise, peak, 'cubic-bezier(.45,0,.55,1)');
+    }
+    to(hold, peak * between(0.9, 0.97), 'ease-in-out');
+    if (rng() < BREATH.rollChance) rolls.push(Math.round(t + between(0, fall * 0.6)));
+    to(fall, trough, 'cubic-bezier(.4,0,.6,1)');
+    to(Math.max(200, length - rise - hold - fall) + (rng() < BREATH.lingerChance ? between(900, 1600) : 0), trough, 'linear');
   }
+  steps.push({ t, level, easing: 'linear' });
   return {
-    dips,
     duration: Math.round(t),
-    keyframes: steps.map((s) => ({ offset: s.t / t, dim: Number(s.dim.toFixed(3)), shift: Number(s.shift.toFixed(3)) })),
-    nextInMs: Math.round(between(SAG.minGapMs, SAG.maxGapMs)),
+    keyframes: steps.map((s) => ({ offset: s.t / t, level: Number(Math.max(0, s.level).toFixed(3)), easing: s.easing })),
+    rolls: rolls.filter((ms) => ms + BREATH.rollMs < t),
   };
 }

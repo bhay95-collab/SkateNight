@@ -4,9 +4,12 @@
    on a tired standby supply. One coin wakes it.
 
    wakeAttract(attract) builds the dormant cabinet (bulbs along the chrome
-   arch, neon tubes, dust in the window light, grain on the glass) and keeps
-   it browning out - sign, picture tube, lamps and chrome sagging together,
-   because they share one supply. It returns { insert }.
+   arch, neon tubes, dust in the window light, a weak signal on the glass)
+   and keeps it breathing: in the dark, on its standby trickle, the picture
+   tube draws the robot as faint phosphor that gathers and loses its light,
+   and the static, the tube's light on the cabinet and the odd rolling band
+   move with it, as one tired signal (planBreath in lights.js). It returns
+   { insert }.
 
    insert(sound, { collapseTo }) plays the film. Everything is scheduled at
    the press on the document timeline, from startup-timing.js:
@@ -32,7 +35,7 @@
    flicker: the coin is taken at the slit and the cabinet fades up.
    sound is { lift, contact, chute, relay, power, tube, collapse }.
    ============================================================ */
-import { planSag } from './lights.js';
+import { BREATH, planBreath } from './lights.js';
 import { BEATS, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
@@ -42,20 +45,23 @@ const DEAD_TUBES = 2;
 const DUST_SPECKS = 10;
 const ARCH = { inset: 2.8, radius: 33.2, foot: 110, gap: 8.4 };   // the chrome tube's centre line, in cabinet em
 const STANDBY_BULBS = [0.28, 0.62, 0.97];                          // the few bulbs still glowing on standby
+const ROBOT_PX = 256;                                              // the phosphor robot is drawn once at this size
 const COIN_ON_SCREEN = 0.145;                                      // the coin at the slit, as a share of the short side
 const SLIT_EM = 1.12;                                              // the slit, down from the top of the coin entry (styles.css)
 const { coinIn, align, descend, contact, gone, credit, relay, attempt, fail, catch: caught, ignite, surge, collapse, end } = BEATS;
 
 const between = (lo, hi) => lo + Math.random() * (hi - lo);
-const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 /* ---------------- building the cabinet ---------------- */
 
 /* A tile of static, made once, for the grain layer to jump about. It is
    drawn normally, not screen-blended: a blended layer re-blends against
-   whatever moves beneath it and shows hard rectangles on the GPU. */
-function grainTile() {
+   whatever moves beneath it and shows hard rectangles on the GPU.
+   weak is the standby signal: fine, low-contrast and mostly dark, a picture
+   struggling rather than snow. The film's snow takes over once the relay
+   has the picture (.is-tube-lit), when there is no supply to show it. */
+function grainTile(weak = false) {
   const size = 140;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
@@ -63,12 +69,110 @@ function grainTile() {
   if (!ctx) return '';
   const img = ctx.createImageData(size, size);
   for (let i = 0; i < img.data.length; i += 4) {
+    if (weak) {
+      const v = 110 + Math.random() ** 2 * 145;   // few bright specks
+      img.data[i] = v * 0.84; img.data[i + 1] = v * 0.93; img.data[i + 2] = v;
+      img.data[i + 3] = Math.random() < 0.42 ? 0 : 40 + Math.random() * 34;
+      continue;
+    }
     const v = 150 + Math.random() * 105;      // light specks only, so it can lighten the glass without a blend mode
     img.data[i] = v * 0.86; img.data[i + 1] = v * 0.9; img.data[i + 2] = v;   // a cool phosphor, like the reference's starlight
     img.data[i + 3] = Math.random() < 0.5 ? 0 : 255;
   }
   ctx.putImageData(img, 0, 0);
   return `url(${canvas.toDataURL()})`;
+}
+
+/* The robot as the starved tube draws it: the logo's own pixels turned into
+   phosphor light - the neon lines keep their colour, the cream face is held
+   right down, the dark ground and the frame give no light at all - smeared
+   a little along the scan lines, red and blue a fraction out of register,
+   with a faint ghost trailing to the right. Behind it, a bloom of the same
+   light, so the breath can move between a sharp robot and a soft one.
+   Drawn once onto two canvases; nothing is redrawn while it breathes. */
+function drawPhosphor(img, core, bloom) {
+  const S = ROBOT_PX;
+  const sheet = (w, h = w) => Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const lit = sheet(S);
+  const ctx = lit.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, S, S);
+  const px = ctx.getImageData(0, 0, S, S);           // throws on a tainted canvas (file://): the caller falls back
+  const d = px.data;
+  const bright = (p) => Math.max(d[p * 4], d[p * 4 + 1], d[p * 4 + 2]) > 50 && d[p * 4 + 3] > 0;
+  // The frame round the robot (and the coin tab on it) is one unbroken line
+  // from the edge in: fill along it from its left side and leave it dark.
+  const frame = new Uint8Array(S * S);
+  const todo = [];
+  for (let x = 0; x < S * 0.12; x++) { const p = (S >> 1) * S + x; if (bright(p)) { frame[p] = 1; todo.push(p); break; } }
+  while (todo.length) {
+    const p = todo.pop();
+    const x = p % S;
+    for (const q of [p - S, p + S, x > 0 ? p - 1 : -1, x < S - 1 ? p + 1 : -1]) {
+      if (q >= 0 && q < S * S && !frame[q] && bright(q)) { frame[q] = 1; todo.push(q); }
+    }
+  }
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const hi = Math.max(d[i], d[i + 1], d[i + 2]);
+    const lo = Math.min(d[i], d[i + 1], d[i + 2]);
+    const x = p % S;
+    const tab = x > S * 0.39 && x < S * 0.61 && p / S > S * 0.83;   // the coin tab hangs off the frame: not the robot either
+    const glow = frame[p] || tab ? 0 : clamp((hi - 50) / 150, 0, 1) * (d[i + 3] / 255);
+    const keep = 0.3 + 0.7 * clamp(((hi ? (hi - lo) / hi : 0) - 0.25) / 0.4, 0, 1);   // white held down, colour kept
+    d[i] *= keep; d[i + 1] *= keep; d[i + 2] *= keep; d[i + 3] = 255 * glow;
+  }
+  ctx.putImageData(px, 0, 0);
+
+  const tint = (colour) => {
+    const t = sheet(S);
+    const c = t.getContext('2d');
+    c.drawImage(lit, 0, 0);
+    c.globalCompositeOperation = 'source-in';
+    c.fillStyle = colour;
+    c.fillRect(0, 0, S, S);
+    return t;
+  };
+  const smear = sheet(Math.round(S * 0.5), S);        // squeezed and stretched back: soft along the lines only
+  smear.getContext('2d').drawImage(lit, 0, 0, smear.width, S);
+
+  const c = core.getContext('2d');
+  core.width = core.height = S;
+  c.globalCompositeOperation = 'lighter';
+  c.globalAlpha = 0.6; c.drawImage(lit, 0, 0);
+  c.globalAlpha = 0.5; c.drawImage(smear, 0, 0, S, S);
+  c.globalAlpha = 0.2; c.drawImage(tint('#ff2d95'), 2.5, 0); c.drawImage(tint('#25e8e2'), -2.5, 0);
+  c.globalAlpha = 0.1; c.drawImage(lit, 9, 0);   // the ghost
+
+  const G = Math.round(S * 1.8);
+  const pad = (G - S) / 2;
+  const b = bloom.getContext('2d');
+  bloom.width = bloom.height = G;
+  b.globalCompositeOperation = 'lighter';
+  for (const [div, alpha] of [[6, 1], [12, 0.9], [28, 0.7]]) {   // blurred by shrinking it and letting the browser smooth it back up
+    const small = sheet(Math.round(S / div));
+    const half = sheet(Math.round(S / div) * 2);
+    small.getContext('2d').drawImage(lit, 0, 0, small.width, small.height);
+    half.getContext('2d').drawImage(small, 0, 0, half.width, half.height);
+    b.globalAlpha = alpha;
+    b.drawImage(half, pad, pad, S, S);
+    b.drawImage(half, pad, pad, S, S);
+  }
+}
+
+function buildRobot(el) {
+  const holder = el.attract.querySelector('.tv-phosphor');
+  if (!holder) return {};
+  const bloom = Object.assign(document.createElement('canvas'), { className: 'phos-bloom' });
+  const core = Object.assign(document.createElement('canvas'), { className: 'phos-core' });
+  holder.append(bloom, core);
+  const plain = () => {                                  // no canvas to read from: the logo itself, held dim
+    const img = el.logo.cloneNode();
+    img.className = 'phos-core is-plain';
+    core.replaceWith(img);
+    return img;
+  };
+  const ready = el.logo.decode().then(() => drawPhosphor(el.logo, core, bloom)).then(() => core, () => { bloom.remove(); return plain(); });
+  ready.then(() => holder.classList.add('is-ready'));
+  return { holder, core, bloom, ready };
 }
 
 function addMotes(room) {
@@ -166,13 +270,14 @@ function gather(attract) {
     door: $('.cab-door'), mech: $('.coin-mech'), gate: $('.mech-top'), lamp: $('.mech-glow'), doorBloom: $('.door-bloom'),
     label: $('.attract-coin'), hero: $('.hero-coin'), spin: $('.hero-spin'), shine: $('.hero-shine'), coinLamp: $('.hero-lamp'),
     shadow: $('.coin-shadow'), throat: $('.coin-throat'), halo: $('.cab-halo'), floor: $('.attract-floor'), glow: $('.cab-light'),
-    body: $('.cab-body'), tubeCases: $$('.cab-tube'), spill: $('.cab-spill'), glint: $('.cab-glint i'), pillars: $$('.cab-tube i'), grain: $('.attract-grain'), room: $('.attract-room'),
+    body: $('.cab-body'), tubeCases: $$('.cab-tube'), spill: $('.cab-spill'), glint: $('.cab-glint i'), pillars: $$('.cab-tube i'), grain: $('.attract-grain'), roll: $('.attract-roll'), room: $('.attract-room'),
   };
 }
 
 export function wakeAttract(attract) {
   const el = gather(attract);
   attract.style.setProperty('--grain', grainTile());
+  attract.style.setProperty('--grain-weak', grainTile(true));
   addMotes(el.room);
   buildCoinEdge(el.spin);
   el.bulbs = placeBulbs(el.cab);
@@ -182,13 +287,14 @@ export function wakeAttract(attract) {
   while (el.tubes.length && el.dead.size < Math.min(DEAD_TUBES, el.tubes.length)) el.dead.add(Math.floor(Math.random() * el.tubes.length));
   el.dead.forEach((i) => el.tubes[i].classList.add('is-dead'));
 
+  el.robot = buildRobot(el);
   const dormant = startDormant(el);
 
   async function insert(sound = {}, { collapseTo = null } = {}) {
     const cue = (name) => { try { sound[name]?.(); } catch (err) { console.warn('[startup]', err); } };
-    dormant.stop();
     attract.classList.add('is-inserting');
     const film = clock(attract);
+    film.at(relay + 120, dormant.stop);   // it breathes on while the coin goes in; the relay takes the picture
     cue('lift');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) stageGently(el, film.at, cue, collapseTo);
     else stageFilm(el, film.at, cue, collapseTo);
@@ -210,67 +316,65 @@ function clock(root) {
   };
 }
 
-/* ---------------- dormant: one tired supply ---------------- */
+/* ---------------- dormant: the machine breathing ---------------- */
+/* One looping plan, every layer on it (opacity and transform only, so it
+   all runs on the compositor): the robot sharpens and brightens as its
+   bloom gathers, the snow thins, the tube's light on the bezel and chrome
+   swells a little; then the robot softens, the snow returns. A soft band
+   rolls down the tube now and then and the picture slips as it passes the
+   face. The relay takes over the light: the film's own animations follow
+   the supply from there, and stop() lets these go once the picture is gone.
+   Reduced motion or calm lights: the robot simply glows, still. */
 function startDormant(el) {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return { stop() {} };   // a steady standby glow: no sags, no stutters
-  let awake = true;
-  const timers = new Set();
-  const running = new Set();
-  const later = (fn, ms) => {
-    const id = setTimeout(() => { timers.delete(id); if (awake) fn(); }, ms);
-    timers.add(id);
-  };
-  const play = (target, frames, options) => {
-    if (!target) return;
-    const anim = target.animate(frames, options);
-    running.add(anim);
-    anim.finished.finally(() => running.delete(anim)).catch(() => {});
-  };
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.lights === 'calm';
+  if (still) return { stop() {} };
+  const plan = planBreath();
+  const timing = { duration: plan.duration, iterations: Infinity };
+  const running = [];
+  const loop = (target, frames) => { if (target) running.push(target.animate(frames, timing)); };
+  const breathe = (target, map) => loop(target, plan.keyframes.map((k) => ({ offset: k.offset, easing: k.easing, ...map(k.level) })));
+  const rest = (v) => Number(v.toFixed(3));
 
-  // A brown-out: everything on the supply dips together, the picture slips sideways.
-  const sag = () => {
-    const plan = planSag();
-    if (!document.hidden) {
-      const opts = { duration: plan.duration, easing: 'linear' };
-      const volts = (k) => STANDBY * (1 - k.dim);
-      for (const [part, map] of [[el.sign, RESPONSE.sign], [el.door, RESPONSE.door], [el.arch, RESPONSE.chrome], [el.body, RESPONSE.body], ...el.tubeCases.map((c) => [c, RESPONSE.body]), [el.spill, RESPONSE.spill], [el.grain, RESPONSE.static]]) {
-        play(part, plan.keyframes.map((k) => ({ offset: k.offset, ...map(volts(k), 0) })), opts);
-      }
-      play(el.picture, plan.keyframes.map((k) => ({
-        offset: k.offset, ...RESPONSE.picture(volts(k), 0), transform: `translateX(${(k.shift * 14).toFixed(1)}px)`,
-      })), opts);
-      const dead = [...el.dead].map((i) => el.tubes[i]);
-      if (dead.length && Math.random() < 0.35) {           // a dead tube tries to catch, then the sag takes it
-        play(pick(dead), [{ opacity: 0.22 }, { opacity: 0.85, offset: 0.08 }, { opacity: 0.7, offset: 0.2 }, { opacity: 0.22, offset: 0.32 }, { opacity: 0.22 }], opts);
-      }
-    }
-    later(sag, plan.duration + plan.nextInMs);
-  };
-  later(sag, between(700, 1600));
+  const spill = RESPONSE.spill(STANDBY).opacity;
+  const snow = RESPONSE.static(STANDBY).opacity;
+  breathe(el.spill, (l) => ({ opacity: rest(spill * (0.8 + 0.32 * l)) }));
+  breathe(el.grain, (l) => ({ opacity: rest(snow * (1.3 - 0.6 * l)) }));
+  el.robot.ready?.then((core) => {
+    breathe(el.robot.bloom, (l) => ({ opacity: rest(0.12 + 0.76 * l) }));
+    breathe(core, (l) => ({ opacity: rest(0.3 + 0.56 * l) }));
+  });
 
-  const stutter = () => {
-    const i = Math.floor(Math.random() * el.tubes.length);
-    if (el.tubes.length && !document.hidden) {
-      const lit = el.dead.has(i) ? 0.22 : 1;
-      play(el.tubes[i], [{ opacity: lit }, { opacity: lit === 1 ? 0.3 : 0.85 }, { opacity: lit }, { opacity: lit === 1 ? 0.4 : 0.7 }, { opacity: lit }],
-        { duration: 460, easing: 'steps(4, end)' });
-    }
-    later(stutter, between(1800, 5200));
-  };
-  if (el.tubes.length) later(stutter, between(900, 2400));
+  // the rolling bands, and the picture slipping as each passes the robot
+  const at = (ms) => ms / plan.duration;
+  const band = [{ offset: 0, transform: 'translateY(-120%)' }];
+  const slip = [{ offset: 0, transform: 'translate(0, 0)' }];
+  let clear = 0;
+  for (const ms of plan.rolls) {
+    if (ms < clear) continue;
+    const end = ms + BREATH.rollMs;
+    band.push({ offset: at(ms), transform: 'translateY(-120%)' }, { offset: at(end), transform: 'translateY(650%)' },
+      { offset: at(end + 1), transform: 'translateY(-120%)' });
+    const face = ms + BREATH.rollMs * 0.49;
+    const dx = (Math.random() < 0.5 ? -1 : 1) * between(0.4, 1) * BREATH.maxShiftEm;
+    slip.push({ offset: at(face - 150), transform: 'translate(0, 0)', easing: 'ease-out' },
+      { offset: at(face), transform: `translate(${dx.toFixed(3)}em, ${(dx * -0.25).toFixed(3)}em)`, easing: 'ease-in-out' },
+      { offset: at(face + 120), transform: `translate(${(dx * -0.35).toFixed(3)}em, 0)`, easing: 'ease-out' },
+      { offset: at(face + 300), transform: 'translate(0, 0)' });
+    clear = end + 400;
+  }
+  band.push({ offset: 1, transform: 'translateY(-120%)' });
+  slip.push({ offset: 1, transform: 'translate(0, 0)' });
+  loop(el.roll, band);
+  loop(el.robot.holder, slip);
 
   return {
-    stop() {
-      awake = false;
-      timers.forEach(clearTimeout);
-      timers.clear();
-      running.forEach((anim) => anim.cancel());
-    },
+    stop() { running.forEach((anim) => anim.cancel()); },
   };
 }
 
 /* ---------------- the film ---------------- */
 function stageFilm(el, at, cue, collapseTo) {
+  at(relay + 100, () => el.attract.classList.add('is-tube-lit'));   // the picture is a dead line by now: the lit logo waits behind it
   stageCamera(el, collapseTo);
   stageCoin(el);
   stageMechanism(el, at, cue);
@@ -378,7 +482,10 @@ function stageGently(el, at, cue, collapseTo) {
   at(contact, () => cue('contact'));
   at(gone, () => cue('chute'));
   at(credit, () => { el.label.textContent = '1 CREDIT'; el.label.classList.add('is-credited'); });
-  at(relay, () => { cue('relay'); cue('power'); });
+  at(relay, () => { cue('relay'); cue('power'); el.attract.classList.add('is-powered'); });   // the sign joins the supply, as in the film
+  fade(el.robot.holder, [{ opacity: 1 }, { opacity: 0 }], attempt, attempt + 900);           // the standby robot gives way to the lit logo
+  at(attempt + 900, () => el.attract.classList.add('is-tube-lit'));
+  fade(el.logo, [{ opacity: 0 }, { opacity: 1 }], attempt + 900, ignite);
   at(ignite, () => {
     el.attract.classList.add('is-lit');
     el.tubes.forEach((tube) => tube.classList.remove('is-dead'));

@@ -16,7 +16,7 @@
 import { BEATS, STANDBY, supplyAt } from './startup-timing.js';
 
 const STEP_MS = 30;
-const STANDBY_EMBER = 0.25;                           // the few bulbs still warm on standby: an ember, not a glow (styles.css .is-standby)
+const STANDBY_EMBER = 0.25;                           // the few bulbs that warm first: an ember, not a glow
 const OFF = 0.12;                                     // an unlit neon tube: just the glass
 const STRIKE_ORDER = [0, 5, 2, 9, 3, 6, 1, 8, 4, 7];  // the order the letters catch in phase B
 const STRUGGLING = new Set([2, 6]);                   // these two catch, drop, then hold
@@ -37,23 +37,47 @@ export const glow = ({ b, s = 1, hue = 0, split = 0 }) =>
     ` drop-shadow(${split.toFixed(2)}px 0 0 rgba(255,40,100,.55)) drop-shadow(${(-split).toFixed(2)}px 0 0 rgba(0,235,255,.55))`);
 
 /* How each part answers the supply. v = STANDBY is the dormant look in
-   styles.css (tests/startup.test.js holds the two together). Lit parts fall
-   away steeply below running, so the trickle the dormant cabinet sits on
-   lights almost nothing but the picture tube; from running up they are
-   exactly as bright as they always were. */
+   styles.css (tests/startup.test.js holds the two together). From running
+   up every part is exactly as bright as it always was. Below KNEE the lit
+   parts fall into a toe: the trickle the dormant cabinet sits on lights
+   nothing but the picture tube - the lacquer, chrome and coin door are seen
+   only by the tube's light on them (.cab-spill) - and the dead moments of
+   the film are as dark. (The static keeps its curve: on standby it is drawn
+   from a fainter tile, startup.js.) toe(curve, floor, standby) bends a curve below KNEE
+   so it reads floor at 0 and standby at STANDBY, and meets it at KNEE. */
+const KNEE = 0.4;
+function toe(curve, floor, standby) {
+  const p = Math.log((standby - floor) / (curve(KNEE) - floor)) / Math.log(STANDBY / KNEE);
+  return (v) => (v >= KNEE ? curve(v) : floor + (curve(KNEE) - floor) * clamp(v / KNEE) ** p);
+}
+const body = toe((v) => (v >= 1 ? 1 : 0.1 + 0.9 * v ** 1.5), 0.02, 0.06);
+const chrome = toe((v) => (v <= 1 ? 0.05 + v * v : 0.3 + 0.75 * v), 0.015, 0.035);
+const door = toe((v) => 0.03 + 0.97 * (Math.min(v, 0.5) / 0.5) ** 2.5 + 0.3 * Math.max(v - 0.5, 0), 0.012, 0.04);
+// The tube: below the knee it is only ever seen on standby (the raster is a
+// dead line from the relay until the supply is past it), so there it keeps
+// its colour for the robot drawn on it, and a little more of its glow.
+// Dead at 0.03, as the relay leaves it.
+const running = (v) => (v <= 1 ? 1.11 * clamp((v - 0.03) / 0.97) ** 0.6 : clamp((v - 0.06) * 1.18, 0, 1.6));
+const TUBE_STANDBY = 0.5;
+const tubeToe = Math.log(TUBE_STANDBY / running(KNEE)) / Math.log((STANDBY - 0.03) / (KNEE - 0.03));
+const tube = (v) => (v >= KNEE ? running(v) : running(KNEE) * clamp((v - 0.03) / (KNEE - 0.03)) ** tubeToe);
+
 export const RESPONSE = {
   sign: (v) => ({ filter: `brightness(${(v <= 1 ? 0.03 + 0.97 * v * v : 0.1 + 0.9 * v).toFixed(3)}) saturate(${(0.1 + 0.9 * Math.min(v, 1.1)).toFixed(3)})` }),
   // Below running the tube holds its glow longer than the rest (it is the only light in the room); the relay still kills it.
-  picture: (v, ms) => ({ filter: glow({ b: v <= 1 ? 1.11 * clamp((v - 0.03) / 0.97) ** 0.6 : clamp((v - 0.06) * 1.18, 0, 1.6), s: clamp(0.2 + 0.8 * v, 0, 1.2), ...unsteady(v, ms) }) }),
-  door: (v) => ({ filter: `brightness(${(0.03 + 0.97 * (Math.min(v, 0.5) / 0.5) ** 2.5 + 0.3 * Math.max(v - 0.5, 0)).toFixed(3)})` }),
-  chrome: (v) => ({ filter: `brightness(${(v <= 1 ? 0.05 + v * v : 0.3 + 0.75 * v).toFixed(3)})` }),
-  body: (v) => ({ filter: `brightness(${(v >= 1 ? 1 : 0.1 + 0.9 * v ** 1.5).toFixed(3)})` }),   // the lacquer, seen only by the light on it
-  spill: (v) => ({ opacity: clamp(v * 4) }),                                                  // the picture tube's light on its surroundings
+  picture: (v, ms) => ({ filter: glow({ b: tube(v), s: v >= KNEE ? clamp(0.2 + 0.8 * v, 0, 1.2) : clamp(0.52 + 1.4 * (KNEE - v)), ...unsteady(v, ms) }) }),
+  door: (v) => ({ filter: `brightness(${door(v).toFixed(3)})` }),
+  chrome: (v) => ({ filter: `brightness(${chrome(v).toFixed(3)})` }),
+  body: (v) => ({ filter: `brightness(${body(v).toFixed(3)})` }),   // the lacquer, seen only by the light on it
+  spill: (v) => ({ opacity: clamp(v * 4) }),                       // the picture tube's light on its surroundings
   lamp: (v) => ({ opacity: clamp((v - 0.25) * 1.7) }),
   room: (v) => ({ opacity: clamp((v - 0.55) * 2.2) }),
   tubes: (v) => ({ opacity: clamp((v - 0.2) * 1.6) }),
-  static: (v) => ({ opacity: Math.min(1.75 * v, 0.35 - 0.3 * clamp((v - 0.5) * 2)) }),   // no signal: snow on standby, .05 once the picture locks (styles.css)
+  static: (v) => ({ opacity: Math.min(1.75 * v, 0.35 - 0.3 * clamp((v - 0.5) * 2)) }),   // no signal: snow on standby (a weak signal there, styles.css), .05 once the picture locks
 };
+
+/* The few bulbs still warm on standby: cold in the dark, an ember once the supply climbs past it. */
+const ember = (v) => STANDBY_EMBER * v * clamp((v - STANDBY) / 0.35);
 
 /* Keyframes that follow the supply through map(v, ms), from the relay on. */
 export function followSupply(target, map, from = relay - STEP_MS, to = end) {
@@ -149,7 +173,7 @@ export function stageBulbs(bulbs) {
   bulbs.forEach(({ el, rise, standby }) => {
     const on = ignite + 60 + Math.round(900 * rise);   // from the foot of the arch up to its crown
     const points = [];
-    for (let ms = relay - STEP_MS; ms < on; ms += STEP_MS) points.push([ms, standby ? clamp(supplyAt(ms) * STANDBY_EMBER) : 0]);
+    for (let ms = relay - STEP_MS; ms < on; ms += STEP_MS) points.push([ms, standby ? ember(supplyAt(ms)) : 0]);
     points.push([on, standby ? 0.5 : 0], [on + 90, 1], [end, 1]);
     el.animate(track(points, relay - STEP_MS, end, 'opacity'), { ...span(relay - STEP_MS, end), easing: 'linear' });
   });

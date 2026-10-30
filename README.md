@@ -235,7 +235,8 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 ## How it behaves
 
 - The site opens on the dormant cabinet: the jukebox standing almost
-  invisible in a dark basement, its old picture tube the only light. There
+  invisible in a dark basement, its old picture tube the only light, and on
+  it the little RFAI robot, faint and slowly breathing in the static. There
   are no instructions on purpose. Click, tap or press any key and the camera
   moves in as the slot lamp catches and a coin swings into the light, lines
   up and drops through the slot; you hear it fall deep inside, a relay thumps,

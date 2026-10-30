@@ -971,7 +971,9 @@ async function main() {
 
   /* ---------------- the dormant cabinet waits: no prompt, just the machine ---------------- */
   ticker.stop();
-  $('attract').focus({ preventScroll: true });
+  attractScreen.dataset.autofocus = '';             // focused for the keys, not by anyone: no focus mark until it is left and come back to
+  attractScreen.addEventListener('blur', () => delete attractScreen.dataset.autofocus, { once: true });
+  attractScreen.focus({ preventScroll: true });
 
   // Handy for tests and for Ben's console: nothing here is needed to run the night.
   window.__skateNight = {

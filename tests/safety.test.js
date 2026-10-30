@@ -78,20 +78,32 @@ test('the screen flicker patches stay inside the same safety budget', async () =
   }
 });
 
-test('the dormant cabinet power sags stay inside the flash budget', async () => {
-  const { planSag, SAG } = await import('../lights.js');
+test('the dormant robot breathes slowly, never vanishes and stays inside the flash budget', async () => {
+  const { planBreath, BREATH } = await import('../lights.js');
   let seed = 5;
   const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-  for (let i = 0; i < 500; i++) {
-    const plan = planSag(rng);
-    const dims = plan.keyframes.map((k) => k.dim);
-    assert.ok(plan.dips >= 1 && plan.dips <= 2, 'one or two dips per sag');
-    assert.ok(plan.duration < 1000, 'a sag is over within a second');
-    assert.ok(plan.nextInMs >= SAG.minGapMs, 'sags are far enough apart that no second holds 3 dips');
-    assert.ok(Math.max(...dims) <= SAG.maxDim, 'a sag never darkens more than allowed');
-    assert.equal(dims[0], 0);
-    assert.equal(dims[dims.length - 1], 0, 'always recovers');
-    assert.ok(plan.keyframes.every((k) => Math.abs(k.shift) <= SAG.maxShiftEm), 'the picture only jitters a little');
+  for (let i = 0; i < 300; i++) {
+    const plan = planBreath(rng);
+    const frames = plan.keyframes.map((k) => ({ ms: k.offset * plan.duration, level: k.level }));
+    assert.ok(plan.duration >= BREATH.breaths * BREATH.minMs, 'breaths are slow');
+    assert.equal(frames[0].level, frames.at(-1).level, 'the loop has no seam');
+    assert.ok(frames.every((f) => f.level >= 0 && f.level <= 1));
+    for (let n = 1; n < frames.length; n++) {
+      const dt = frames[n].ms - frames[n - 1].ms;
+      const change = Math.abs(frames[n].level - frames[n - 1].level);
+      assert.ok(dt >= 200 || change === 0, 'nothing snaps');
+      assert.ok((change / dt) * 250 <= BREATH.maxStep || change === 0, `a slow change, never a jump (${change} in ${dt} ms)`);
+    }
+    const levelAt = (ms) => {
+      const n = frames.findIndex((f) => f.ms >= ms);
+      if (n <= 0) return frames[Math.max(n, 0)].level;
+      const [a, z] = [frames[n - 1], frames[n]];
+      return a.level + ((z.level - a.level) * (ms - a.ms)) / Math.max(z.ms - a.ms, 1e-9);
+    };
+    const legs = supplySwings(levelAt, plan.duration);
+    for (const start of legs) assert.ok(legs.filter((ms) => ms >= start && ms < start + 1000).length <= 4, 'at most two flashes in any second');
+    let last = -Infinity;
+    for (const ms of plan.rolls) { assert.ok(ms - last >= BREATH.rollMs, 'one rolling band at a time'); last = ms; }
   }
 });
 
