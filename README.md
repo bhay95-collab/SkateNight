@@ -234,10 +234,13 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 
 ## How it behaves
 
-- The site opens on **INSERT COIN**: the cabinet sitting dark in the basement,
-  waiting. Press it and the coin drops in, the cabinet powers up with a hum and a
-  thump, and the power-on screen runs for its full 13 seconds before the jukebox
-  appears. It cannot be skipped. Once completed, it does not replay when
+- The site opens on **INSERT COIN**: the jukebox cabinet standing dark in the
+  basement on a failing supply, only its coin slot lit. Press it (click, tap or
+  any key) and the camera moves in as a coin swings into the light, lines up and
+  drops through the slot; you hear it fall deep inside, a relay thumps, the
+  machine tries to start, fails, catches, and comes alive bulb by bulb - then
+  dives into its own screen (about eight seconds in all). The power-on screen
+  then runs for its full 13 seconds before the jukebox appears. It cannot be skipped. Once completed, it does not replay when
   refreshing the same browser tab (the coin still goes in, then straight to the
   jukebox).
 - **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture

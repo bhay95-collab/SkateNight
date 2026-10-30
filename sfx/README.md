@@ -37,6 +37,20 @@ MP3s still fade to fit. Resetting a movement releases its motor sound.
 | `buzz.mp3` | Muted refused-selection solenoid | 0.2 - 0.4 s |
 | `page.mp3` | Carrier catch releasing and landing | 0.2 - 0.4 s |
 
+The INSERT COIN film has no bundled files: its sounds are live models, timed
+from `startup-timing.js`. Any of these replaces one of them; each starts on its
+beat, so line the recording up with the times below (from its own start).
+
+| File | When it plays | Length, and what must land where |
+|---|---|---|
+| `lift.mp3` | The press: the coin taken up and swung into the light | about 1.5 s |
+| `contact.mp3` | The coin's edge meets the slit | about 0.6 s: scrape, slip at 0.3 s, gate at 0.55 s |
+| `chute.mp3` | Swallowed: clinks going deeper inside | about 1.1 s: coin box at 0.67 s |
+| `relay.mp3` | The main relay pulling in | about 1.5 s: the THUNK at the very start |
+| `power.mp3` | Relay to line: hum, the first try dying, catching, the lock | 5.2 s: dies at 0.92 s, second relay at 1.38 s, lock at 2.82 s |
+| `tube.mp3` | One neon letter striking (plays many times) | under 0.25 s |
+| `collapse.mp3` | The surge, the dive, the squeeze to a line | 1.1 s: line and thunk at 1.1 s |
+
 The original pack totals about 124 KB. Peaks are deliberately conservative;
 the needle landing and motor are quieter than the coin and switches. The legacy
 `flicker` API stays silent unless a custom `flicker.mp3` is supplied and explicitly

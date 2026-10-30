@@ -18,7 +18,7 @@ import {
   createRotator,
 } from './copy.js';
 import {
-  startBoot, hasBooted, isCalm, onCalmChange, delay, safely, startScreenFlicker,
+  startBoot, bootLine, hasBooted, holdArrivalInput, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
 import { unlockAudio, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
 import { installCabinetKeyboard } from './keyboard.js';
@@ -50,6 +50,7 @@ const STORE_VOL = 'sn-volumes';
 const STORE_QUICK_PICK = 'sn-quick-pick';
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
+const HANDOFF_MS = 200;        // the INSERT COIN line fading into the boot screen's first strike (styles.css .is-handing)
 
 /* ------------------------------------------------------------
    Load tracks.js without letting a typo in it take the site down.
@@ -891,29 +892,41 @@ async function main() {
     sub.textContent = nextAttractLine();
   }
 
-  /* The coin goes in, the cabinet powers up, then the boot screen (first
-     time in this tab) or straight to the jukebox. */
+  /* The coin goes in and the cabinet wakes; then the boot screen strikes
+     from the collapsed picture (first time in this tab) or the cabinet
+     fades straight to the jukebox. Input is held for the whole film. */
   async function powerOn() {
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
     const firstBoot = !hasBooted();
+    const play = (name) => safely(name, () => sfx[name]());
+    // The lift answers the press at once; later cues give a custom MP3 the chance to decode first.
+    const later = (name) => () => sfxReady.then(() => play(name));
+    const releaseInput = holdArrivalInput(attractScreen);
     try {
       await cabinetStart?.insert({
-        onCoin: () => sfxReady.then(() => safely('coin', () => sfx.coin())),
-        onPower: () => sfxReady.then(() => safely('power', () => sfx.power())),
-        collapse: firstBoot,
-      });
+        lift: () => play('lift'), contact: later('contact'), chute: later('chute'), relay: later('relay'),
+        power: later('power'), tube: later('tube'), collapse: later('collapse'),
+      }, { collapseTo: firstBoot ? bootLine($('boot')) || { y: innerHeight / 2, width: innerWidth / 2 } : null });
     } catch (err) {
       console.warn('[startup]', err);
+    } finally {
+      releaseInput();
     }
     document.body.classList.remove('on-attract');
+    const retire = () => {
+      attractScreen.hidden = true;
+      attractScreen.getAnimations({ subtree: true }).forEach((anim) => anim.cancel());   // the film is over: let it go
+    };
     const boot = startBoot($('boot'));
     if (boot.played) {
-      attractScreen.hidden = true;                   // the boot screen opens from the collapsed picture
+      // The boot screen strikes from the collapsed picture: our line fades as its line comes up.
+      attractScreen.classList.add('is-handing');
+      setTimeout(retire, HANDOFF_MS);
       boot.reveal();
       await boot.finished;
     } else {
       attractScreen.classList.add('is-leaving');
-      setTimeout(() => { attractScreen.hidden = true; }, 520);
+      setTimeout(retire, 520);
     }
   }
 

@@ -94,3 +94,48 @@ test('the dormant cabinet power sags stay inside the flash budget', async () => 
     assert.ok(plan.keyframes.every((k) => Math.abs(k.shift) <= SAG.maxShiftEm), 'the picture only jitters a little');
   }
 });
+
+/* Swings of at least 10% in the supply, as a zig-zag: each leg is one change
+   of brightness, and a flash is a pair of opposing changes (WCAG 2.3.1). */
+function supplySwings(supplyAt, endMs) {
+  const start = supplyAt(0);
+  const legs = [];
+  let dir = 0;
+  let extreme = start;
+  let extremeAt = 0;
+  for (let ms = 0; ms <= endMs; ms += 5) {
+    const v = supplyAt(ms);
+    if (dir === 0) {
+      if (Math.abs(v - start) >= 0.1) { dir = Math.sign(v - start); extreme = v; extremeAt = ms; }
+    } else if ((v - extreme) * dir > 0) {
+      extreme = v;
+      extremeAt = ms;
+    } else if ((extreme - v) * dir >= 0.1) {
+      legs.push(extremeAt);               // the swing turned: that leg is one change
+      dir = -dir;
+      extreme = v;
+      extremeAt = ms;
+    }
+  }
+  if (dir !== 0) legs.push(extremeAt);
+  return legs;
+}
+
+test('the INSERT COIN power-up never packs more than two flashes into a second', async () => {
+  const { BEATS, supplyAt } = await import('../startup-timing.js');
+  const legs = supplySwings(supplyAt, BEATS.end);
+  assert.ok(legs.length >= 8, 'the supply really does struggle before it locks');
+  for (const start of legs) {
+    const inSecond = legs.filter((ms) => ms >= start && ms < start + 1000).length;
+    assert.ok(inSecond <= 4, `at most 4 brightness changes (2 flashes) in the second from ${start} ms (found ${inSecond})`);
+  }
+});
+
+test('the INSERT COIN film keeps its beats in order', async () => {
+  const { BEATS, SUPPLY, CHUTE_CLINKS_MS } = await import('../startup-timing.js');
+  const times = Object.values(BEATS);
+  assert.deepEqual(times, [...times].sort((a, b) => a - b), 'every beat follows the one before');
+  assert.deepEqual(SUPPLY.map(([ms]) => ms), SUPPLY.map(([ms]) => ms).sort((a, b) => a - b), 'the supply curve runs forwards');
+  assert.ok(BEATS.gone + CHUTE_CLINKS_MS.at(-1) < BEATS.credit, 'the coin reaches the box before the credit shows');
+  assert.ok(SUPPLY.every(([, v]) => v >= 0 && v <= 1.3), 'the supply stays in range');
+});

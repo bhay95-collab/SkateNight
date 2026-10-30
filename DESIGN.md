@@ -263,19 +263,62 @@ record changer and the readouts carry the show; the world around it stays dim.
   (4.6 s before music-reactive rate adjustment), neon flicker dips only to 80% so a word never looks switched off.
 - Framed: trivia's CRT bezel at .7 rem with four corner fasteners and an inner
   shadow, with the machine inset from it, so the page reads as a cabinet screen.
-- Start-up order: INSERT COIN first, then the boot, then the jukebox. The
-  INSERT COIN screen (`startup.js`) is the cabinet in a basement, dust sheet just
-  pulled off, on standby power: a dim washed-out marquee with a couple of dead
-  neon tubes, grain, scanlines, a slow interference roll, dust drifting in a
-  window's light, and the supply browning out now and then (`planSag`, 1.2 s+
-  apart, at most 2 dips and 55% darker). Only the coin door is properly lit.
-  Pressing anything lifts the coin and drops it through the slit (`coin` sound),
-  the plate jolts, the slot lamp flares and the label reads 1 CREDIT; the relay
-  pulls in (`power` sound), the marquee surges through two dips with a degauss
-  colour swim and sideways shudder while each tube strikes in its own time
-  (1.15 s), then the picture squeezes to the bright line the boot's strike opens
-  from. About 2.3 s from press to boot. If the boot already ran in this tab, the
-  screen fades to the jukebox instead of collapsing.
+- Start-up order: INSERT COIN first, then the boot, then the jukebox. The idea:
+  **a tiny coin starts an enormous machine.** The INSERT COIN screen is the
+  jukebox's own cabinet (chrome arch with bulbs, bubble tubes, a neon sign, a
+  picture tube, a brushed-steel coin door) standing in a dark basement, too big
+  for the frame, alive only on a tired standby supply. Everything inside `.cab`
+  is in cabinet em (1/100 of its width), so it keeps its proportions anywhere.
+  - **One supply.** `SUPPLY` in `startup-timing.js` is the voltage (0.5 =
+    standby). The sign, the tube's picture, the door lamp, the chrome's
+    reflections, the room's light and the transformer hum all follow it through
+    their own responses (`RESPONSE` in `startup-power.js`), so a sag dims them
+    together and the hum sags with them. The CSS dormant look IS the response
+    at 0.5 (`tests/startup.test.js` holds the two together). Dormant sags come
+    from `planSag` (1.2 s+ apart, at most 2 dips, 55% darker); now and then a
+    dead tube tries to catch during one.
+  - **One clock.** The whole film is scheduled at the press on the document
+    timeline (WAAPI animations with delays; steps fire from zero-length timer
+    animations), from `BEATS`. Nothing chains timers, so nothing drifts; and a
+    paused, seeked film shows any exact frame.
+  The film (~8.4 s, `startup.js`, `startup-coin.js`, `startup-power.js`):
+  1. the coin (0-2.15 s, `lift`, `contact`): the camera pushes in on the coin
+     entry; a struck, worn 3D coin (two faces, reeded edge of stacked discs,
+     moving specular band) swings in from the right close to the lens, out of
+     focus and robot side out, turns through edge-on to the 25, hangs over the
+     entry while the rim catches the light, then sinks toward the door -
+     shrinking as it recedes, its shadow tightening on the entry's top, the slot
+     lamp warming its lower edge. It catches on the slit (the gate gives, it
+     wobbles on its edge), then gravity takes it. The entry clips everything
+     below the slit, so it really goes IN; the clip never changes (the coin only
+     travels above that line), so the coin's layers are never rebuilt mid-film;
+  2. the chute (`chute`): seven clinks going deeper, each jolting the entry
+     less; the coin box clunks and 1 CREDIT flips over like a counter; the
+     camera pulls back to the whole machine;
+  3. the relay (3.2 s, `relay`, `power`): THUNK - the cabinet jolts, the sign
+     rattles on its brackets a beat later, dust shakes off the arch, and the
+     standby supply drops out: dark, and a moment's silence;
+  4. A, the attempt: the hum starts, one tube and one line on the tube try,
+     stumble with the supply, and die - the line shrinking to a dot;
+  5. B, it catches (4.6 s): a second relay, a shudder from the transformer, the
+     raster opening out of the line and rolling to lock, colour swimming and
+     splitting red/cyan as the voltage struggles; the tubes strike in an
+     authored order (two struggle), the bubble tubes warm;
+  6. C, ignition (6.0 s): the supply locks with a relay and a bright accent;
+     the dead tubes catch, bulbs climb the arch from both feet to the crown,
+     the logo lights, gold blooms round the coin door, light glints across
+     glass and chrome, and the machine's own light reveals its lacquer, the
+     wall behind and the floor;
+  7. D, the handoff (7.3 s, `collapse`): the tube surges and tears, the camera
+     dives into it, it washes out, and the clipped view squeezes to the line
+     the boot screen's first strike opens from (`bootLine` in `fx.js` measures
+     that line, and the boot keeps the self-test it was measured with); the
+     line fades as the boot's line comes up (`.is-handing`, 200 ms).
+  Input is held for the whole film. If the boot already ran in this tab, the
+  film plays to D and fades straight to the jukebox. With
+  `prefers-reduced-motion` the same story is told without travel, shake or
+  flicker: the coin appears at the slit and is taken, the cabinet fades up,
+  and the screen crossfades into the boot.
 - Boot: trivia's pacing - a full, unskippable 13 s hold with the self-test
   printing across 10 s, then the 640 ms reveal (17 s recovery cap, 18 s CSS
   failsafe). Header line: SKATE BY FAITH JUKEBOX. Keyboard and pointer input
@@ -470,7 +513,7 @@ Audit list - every `@keyframes` in `styles.css` and its rate:
 `crt-roll` 9 s (one band, whole screen), `star-twinkle` 7 s, `grid-scroll` 3.4 s (movement), `bulb-chase`
 4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
-`coin-drop` once, `score-pop` once, boot sequence once per tab. INSERT COIN screen: `coin-blink` 1.15 s, `door-coin-bob` 2.8 s, `door-coin-glint` 4.2 s, `lamp-breathe` 2.8 s, `attract-roll` 6.5 s, `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s; power sags and the power-up's two dips are JavaScript (see above).
+`coin-drop` once, `score-pop` once, boot sequence once per tab. INSERT COIN screen: `coin-blink` 1.15 s, `lamp-breathe` 2.8 s, `attract-roll` 6.5 s, `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s, `bubbles-rise` 2.6 s once lit; power sags and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
 Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
 1 s, bursts at least 25 s apart, never more than 60% darker - so never more
 than 2 flashes in any second. The burst plays across a blurred 4x3 grid of
@@ -552,7 +595,11 @@ Short moves crossfade its body into the authored ending at constant pitch;
 custom long `whirr` recordings fade to fit. Missing optional MP3s may show harmless 404s.
 Effects remain **off until a person clicks** INSERT COIN, which now comes before
 the arrival, so the coin and the power-up are heard and the boot follows in
-silence. Audio failures must never stop the music.
+silence. The start-up sounds (`lift`, `contact`, `chute`, `relay`, `power`,
+`tube`, `collapse`) are live Web Audio models timed from `BEATS`; an MP3 of the
+same name in `sfx/` replaces any of them. `lift` plays at the press; the rest
+give a custom MP3 up to 0.4 s to decode.
+Audio failures must never stop the music.
 
 | Effect | The one moment it belongs to |
 |---|---|
@@ -563,7 +610,13 @@ silence. Audio failures must never stop the music.
 | `page` | The rack's paper carrier releases and catches |
 | `thud` | The needle lands gently on the record |
 | `buzz` | A muted solenoid refuses a selection |
-| `power` | The cabinet waking after the coin: relay, mains hum (sagging with the picture), crackle, degauss thwomp, faint flyback whine. Live model; `sfx/power.mp3` replaces it |
+| `lift` | The coin taken up and swung into the light; its rim rings faintly as it turns |
+| `contact` | Its edge meeting the slit: a tick and a gritty scrape, the slip, the gate snapping back |
+| `chute` | Clinks going deeper into the cabinet (`CHUTE_CLINKS_MS`), the coin box, the counter ticking over |
+| `relay` | The main relay pulling in: contacts, armature, a deep THUNK and the cabinet booming once |
+| `power` | Relay to line: transformer hum following `SUPPLY` (upper partials opening with the voltage), the first attempt dying, a second relay, degauss, crackle where it struggles, flyback whine, the lock with a bright accent |
+| `tube` | One neon letter striking: a mains buzz and the electrode tick |
+| `collapse` | The surge and the dive: the whine climbing, a falling zip as it squeezes to a line, a thunk |
 | `flicker` | Silent compatibility hook unless a custom MP3 is supplied |
 
 The original WAV pack is precached with the app shell. Effects sit below the
@@ -686,6 +739,10 @@ from 10 metres). Everything about reading and validating that file lives in
 | `visualiser.js` | Shared loop, canvases, mirror light |
 | `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
 | `fx.js` | Boot sequence, screen flicker, count-up |
+| `startup.js` | The INSERT COIN cabinet: building it, its dormant supply, the camera, the relays, the handoff, the reduced-motion telling |
+| `startup-coin.js` | The coin going in: flight, tumble, catch, slip, chute, credit counter |
+| `startup-power.js` | The one supply and every part's response to it; tubes, raster, bulbs, ignition |
+| `startup-timing.js` | The film's score: `BEATS`, `CHUTE_CLINKS_MS`, `SUPPLY` (pure, shared with sound.js) |
 | `neon.js` | Desynced neon flicker |
 | `rink.js` | Wake lock, media session, service worker registration |
 | `crates.js` | LOAD THE CRATES, saved-copy lookup |

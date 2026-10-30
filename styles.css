@@ -929,154 +929,311 @@ html:fullscreen body.is-crowd{ cursor:none; }
 .modal-card .btn{ margin-top:.2rem; }
 
 /* ================= ATTRACT: INSERT COIN =================
-   The cabinet in the basement, dust sheet just pulled off, on standby power.
-   Dormant: the marquee is dim and washed out with a couple of dead tubes,
-   the glass is grainy and dusty, and startup.js browns the supply out now
-   and then (planSag in lights.js). Only the coin door is properly lit.
-   Insert: the coin drops into the slot, the cabinet powers up, and the
-   picture collapses to the line the boot screen opens from. */
+   The jukebox's own cabinet in a basement, dust sheet just pulled off, too
+   big for the frame. Inside .cab everything is in cabinet em (1em is a
+   hundredth of its width), so it keeps its proportions on any screen.
+   The dormant look here is the cabinet on standby supply - v = 0.5 in
+   RESPONSE (startup-power.js) - so change one and change the other.
+   startup.js stages the film on the beats in startup-timing.js. */
 .attract{
   position:fixed; inset:0; z-index:90; border:0; padding:0; cursor:pointer; color:inherit; overflow:hidden;
-  display:grid; place-items:center; text-align:center;
-  background:radial-gradient(62rem 40rem at 50% 44%, rgba(30,13,48,.62), rgba(5,3,10,.96) 70%);
+  background:#05030B; text-align:left; touch-action:manipulation; -webkit-tap-highlight-color:transparent;
   transition:opacity .5s ease, transform .5s var(--ease-out);
 }
 .attract.is-leaving{ opacity:0; transform:scale(1.04); pointer-events:none; }
+/* Handing over: the film's last line lies over the boot screen and fades as the boot's own line strikes. */
+.attract.is-handing{ z-index:101; background:transparent; opacity:0; pointer-events:none; transition:opacity .2s linear; }
 /* The whole screen is the one button and it is focused on load, so a ring
-   would always show: focus brightens the coin door's lamp spill instead. */
+   would always show: focus lights the coin entry's lamp instead. */
 .attract:focus-visible{ outline:none; }
-.attract:focus-visible .door-plate{ box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -.2em 0 rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.08), 0 .9em 1.8em rgba(0,0,0,.55), 0 0 3.6em rgba(255,176,40,.22); }
+@media (hover:hover){ .attract:hover .mech-price{ filter:brightness(1.15); } }   /* the lamp answers the pointer */
+.attract:focus-visible .mech-price{ box-shadow:inset 0 0 0 .07em #2a1d10, inset 0 .1em .2em rgba(0,0,0,.45), 0 0 1.2em rgba(255,186,50,.7); }
+.attract-world{ position:absolute; inset:0; overflow:hidden; transform-origin:50% 50%; will-change:transform; }   /* clipped, so the collapse squeezes only what is on screen */
+.attract-camera{ position:absolute; inset:0; transform-origin:0 0; will-change:transform; }
 
-/* the room: a faint shaft of light from a basement window, and dust in it */
-.attract-room{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+/* the room: a dark wall, a shaft of light from a basement window, dust in it */
+.attract-room{
+  position:absolute; inset:0; pointer-events:none; overflow:hidden;
+  background:radial-gradient(48% 62% at 50% 40%, rgba(46,22,70,.5), transparent 72%), linear-gradient(180deg, #0b0614, #07040d 62%, #040208);
+}
 .attract-beam{
-  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg);
+  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg); opacity:.75; transition:opacity 1.6s ease;
   background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.035) 40%, rgba(255,232,196,.06) 50%, rgba(255,232,196,.03) 62%, transparent 82%);
+}
+.attract.is-lit .attract-beam{ opacity:1; }
+.attract-floor{        /* the cabinet's light reaching the floor, once it is awake */
+  position:absolute; left:0; right:0; bottom:0; height:34%; opacity:0;
+  background:radial-gradient(56% 80% at 50% 100%, rgba(37,232,226,.14), rgba(255,45,149,.09) 45%, transparent 75%);
 }
 .mote{
   position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%;
-  background:rgba(255,238,212,.7); filter:blur(.6px); opacity:0;
+  background:rgba(255,238,212,.7); filter:blur(.6px); opacity:0; transition:filter 1.6s ease;
   animation:mote-drift var(--d) linear var(--delay) infinite;
 }
+.attract.is-lit .mote{ filter:blur(.6px) brightness(1.7); }
 @keyframes mote-drift{
   0%{ opacity:0; transform:translate(0,0); }
   15%{ opacity:var(--o); }
   80%{ opacity:var(--o); }
   100%{ opacity:0; transform:translate(var(--dx), var(--dy)); }
 }
+/* the camera's attention: the room falls away round the coin entry */
+.attract-spot{ position:absolute; inset:0; pointer-events:none; opacity:0; background:radial-gradient(circle at 50% 62%, transparent 0 16vmin, rgba(3,1,6,.9) 62vmin); }
 
-/* the picture: everything on the tube, so it can collapse to a line */
-.attract-picture{ position:absolute; inset:0; display:grid; place-items:center; transform-origin:50% 50%; }
-.attract-inner{ display:flex; flex-direction:column; align-items:center; gap:1.5rem; position:relative; z-index:1; }
-.attract-marquee{
-  display:flex; flex-direction:column; align-items:center; gap:.9rem;
-  filter:brightness(.5) saturate(.55);      /* standby power - startup.js powers it up */
+/* ---- the cabinet ---- */
+.cab{
+  --u:min(.96vh, .94vw);
+  position:absolute; left:50%; top:max(4vh, calc(50vh - 60 * var(--u)));
+  width:100em; height:132em; margin-left:-50em; font-size:var(--u); will-change:transform;
 }
-.attract.is-powered .attract-marquee{ filter:none; }
-.attract-logo{ width:9.5rem; height:9.5rem; filter:drop-shadow(0 0 .8rem rgba(37,232,226,.4)); }
-.attract-title{
-  font-family:var(--font-display); font-size:5.2rem; line-height:1; text-transform:uppercase; white-space:nowrap; color:#fff;
+.cab-halo{             /* its light on the wall behind, once it is awake */
+  position:absolute; left:-46em; right:-46em; top:-14em; height:120em; pointer-events:none; opacity:0;
+  background:
+    radial-gradient(36% 42% at 30% 42%, rgba(37,232,226,.2), transparent 70%),
+    radial-gradient(36% 42% at 70% 42%, rgba(255,45,149,.18), transparent 70%),
+    radial-gradient(46% 30% at 50% 6%, rgba(255,197,49,.12), transparent 70%);
 }
+.cab-body{             /* lacquered sides curving away, dust settled on the crown */
+  position:absolute; inset:0; border-radius:36em 36em 1.6em 1.6em;
+  background:
+    radial-gradient(40% 16% at 34% 9%, rgba(150,130,104,.08), transparent 70%),
+    radial-gradient(28% 20% at 70% 60%, rgba(150,130,104,.05), transparent 70%),
+    radial-gradient(55% 45% at 12% 22%, rgba(255,232,196,.05), transparent 70%),                 /* the window's light on its shoulder */
+    linear-gradient(90deg, #06030b, #120a1e 5%, #1d1030 12%, #150b24 26%, #0e0717 50%, #130a20 74%, #1a0e2c 88%, #100819 95%, #06030b);
+  box-shadow:inset 0 0 0 .4em rgba(0,0,0,.55), inset 0 .6em 1.4em rgba(255,255,255,.04), 0 4em 9em rgba(0,0,0,.9);
+}
+.cab-arch{             /* the chrome tube: lit from above, its sides catching the window */
+  position:absolute; left:1.6em; right:1.6em; top:1.6em; height:108.4em; padding:2.4em; border-radius:34.4em 34.4em 0 0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.22), transparent 9%),
+    linear-gradient(90deg, #241c2e, #9a8faa 3%, #4d4358 6%, #2a2233 50%, #4d4358 94%, #9a8faa 97%, #241c2e);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  filter:brightness(.675);
+}
+.bulb{
+  position:absolute; width:1.7em; height:1.7em; margin:-.85em 0 0 -.85em; border-radius:50%;
+  background:radial-gradient(circle at 36% 32%, rgba(255,255,255,.35) 0 12%, #3a2d40 30%, #1b1320 75%);
+  box-shadow:0 0 0 .18em #120a17, 0 .2em .3em rgba(0,0,0,.6);
+}
+.bulb i{
+  position:absolute; inset:-.2em; border-radius:50%; opacity:0;
+  background:radial-gradient(circle at 40% 36%, #fffbe8 0 18%, #ffd76a 42%, #f29b16 70%, rgba(242,155,22,0) 72%);
+  box-shadow:0 0 .9em .2em rgba(255,190,70,.75), 0 0 2.4em .6em rgba(255,150,30,.3);
+}
+.bulb i.is-standby{ opacity:.3; }
+.dust-speck{ position:absolute; width:.35em; height:.35em; border-radius:50%; background:rgba(255,236,206,.85); opacity:0; pointer-events:none; }
+
+.cab-light{           /* the machine's own light on its lacquer: nothing on standby, all of it awake */
+  position:absolute; inset:0; border-radius:36em 36em 1.6em 1.6em; pointer-events:none; opacity:0; mix-blend-mode:screen;
+  background:
+    radial-gradient(32% 20% at 50% 17%, rgba(235,240,255,.15), transparent 70%),
+    radial-gradient(13% 40% at 9% 52%, rgba(37,232,226,.22), transparent 70%),
+    radial-gradient(13% 40% at 91% 52%, rgba(255,45,149,.22), transparent 70%),
+    radial-gradient(48% 30% at 50% 4%, rgba(255,197,49,.14), transparent 70%),
+    radial-gradient(40% 30% at 50% 68%, rgba(150,120,255,.08), transparent 70%);
+}
+
+/* the bubble tubes either side, as on the jukebox: dark until the supply warms them */
+.cab-tube{
+  position:absolute; top:34em; height:64em; width:5.4em; border-radius:2.7em; overflow:hidden;
+  background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(255,255,255,.015) 35%, rgba(0,0,0,.35) 80%), #0c0714;
+  box-shadow:0 0 0 .3em #2a2034, 0 0 0 .5em #0c0712, inset 0 0 1.2em rgba(0,0,0,.8);
+}
+.cab-tube.is-left{ left:6.2em; --fluid:37,232,226; }
+.cab-tube.is-right{ right:6.2em; --fluid:255,45,149; }
+.cab-tube i{
+  position:absolute; inset:.45em; border-radius:2.3em; transform-origin:50% 100%; transform:scaleY(.06); opacity:.48;
+  background:linear-gradient(0deg, rgba(var(--fluid),.85), rgba(var(--fluid),.35) 60%, transparent);
+}
+.cab-tube i::after{    /* bubbles: a tall strip of them, slid up with transform */
+  content:""; position:absolute; inset:0 0 -9.2em; opacity:0;
+  background:radial-gradient(circle, rgba(255,255,255,.55) 0 .22em, transparent .28em) 0 0 / 2.2em 4.6em;
+}
+.attract.is-lit .cab-tube i::after{ opacity:.7; animation:bubbles-rise 2.6s linear infinite; }
+@keyframes bubbles-rise{ to{ transform:translateY(-9.2em); } }
+
+/* the sign: black glass in a chrome frame, the title in neon tubes */
+.cab-sign{
+  position:absolute; left:13em; right:13em; top:9em; height:18.5em; border-radius:3.4em; transform-origin:50% 0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.5em;
+  background:radial-gradient(80% 90% at 50% 50%, #120a1d, #06030a 80%);
+  box-shadow:0 0 0 .7em #2f2539, 0 0 0 .95em #0e0814, inset 0 0 0 .2em rgba(255,255,255,.05), inset 0 0 3.5em rgba(0,0,0,.95), 0 1em 2em rgba(0,0,0,.6);
+  filter:brightness(.55) saturate(.55);
+}
+.sign-bloom{
+  position:absolute; left:-24%; right:-24%; top:-70%; bottom:-70%; border-radius:50%; pointer-events:none; opacity:0; mix-blend-mode:screen;
+  background:radial-gradient(closest-side, rgba(235,255,253,.5), rgba(37,232,226,.24) 40%, rgba(255,45,149,.1) 70%, transparent);
+}
+.attract-title{ position:relative; font-family:var(--font-display); font-size:6.2em; line-height:1; text-transform:uppercase; white-space:nowrap; color:#fff; }
 .attract-title span:first-child{ text-shadow:0 0 .1rem #fff, 0 0 .45rem rgba(37,232,226,.75), 0 0 1.1rem rgba(37,232,226,.32); }
 .attract-title span:last-child{ text-shadow:0 0 .1rem #fff, 0 0 .45rem rgba(255,45,149,.75), 0 0 1.1rem rgba(255,45,149,.32); }
-.neon-letter{ font-style:normal; }
+.neon-letter{ display:inline-block; font-style:normal; }   /* its own box, so a strike composites instead of repainting the sign */
 .neon-letter.is-dead{ opacity:.22; text-shadow:none; }
-.attract-tagline{ margin-top:-.2rem; font:700 1.25rem/1.2 var(--font-body); letter-spacing:.16em; text-transform:uppercase; color:var(--cream); }
-.attract-sub{ font:700 1.05rem var(--font-mono); letter-spacing:.18em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 .6rem rgba(37,232,226,.6); min-height:1.3rem; opacity:.85; }
+.attract-tagline{ position:relative; font:700 max(1.45em, 6.5px)/1.2 var(--font-mono); letter-spacing:.26em; text-transform:uppercase; color:var(--cream); }
 
-/* the coin door: brushed steel, four screws, a lit slot, a coin ready to go */
-.door-plate{
-  position:relative; display:inline-flex; align-items:center; gap:1.5em; font-size:1rem;
-  padding:1em 2.1em 1em 1.5em; border-radius:1.1em;
+/* the picture tube: a deep bezel, curved glass, the attract picture on standby */
+.cab-screen{
+  position:absolute; left:20.5em; right:20.5em; top:30.5em; height:42em; border-radius:4.6em;
+  background:linear-gradient(180deg, #1a1224, #0c0712 70%);
+  box-shadow:0 0 0 .55em #261b30, 0 0 0 .8em #0b0610, inset 0 .25em .3em rgba(255,255,255,.07), inset 0 -.5em .8em rgba(0,0,0,.65), 0 1.2em 2.4em rgba(0,0,0,.7);
+}
+.tv{
+  position:absolute; inset:2.6em; border-radius:5.2em / 4.4em; overflow:hidden; isolation:isolate;
+  background:radial-gradient(120% 100% at 50% 45%, #121a1d, #080b0e 55%, #020104);
+  box-shadow:inset 0 0 3.2em rgba(0,0,0,.9), 0 0 0 .3em #050208;
+}
+.tv-picture{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2.6em;
+  background:radial-gradient(70% 70% at 50% 46%, rgba(46,20,72,.95), #0c0516 75%);
+  filter:brightness(.52) saturate(.6); transform-origin:50% 50%;
+}
+.attract-logo{ width:15em; height:15em; filter:drop-shadow(0 0 .9em rgba(37,232,226,.4)); }
+.attract-sub{ font:700 max(1.9em, 10px) var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 .6em rgba(37,232,226,.6); min-height:1.3em; max-width:88%; text-align:center; text-wrap:balance; }
+.tv-line{              /* the raster collapsed to one bright line */
+  position:absolute; left:6%; right:6%; top:50%; height:.55em; margin-top:-.275em; border-radius:50%; opacity:0;
+  background:linear-gradient(90deg, transparent, rgba(200,255,250,.9) 18%, #fff 50%, rgba(200,255,250,.9) 82%, transparent);
+  box-shadow:0 0 1.4em .3em rgba(120,255,248,.55), 0 0 4em 1em rgba(37,232,226,.25);
+}
+.tv-glass{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.tv-glass::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.28) 2px 3px); }
+.tv-glass::after{      /* the bulge of the glass, a window reflection, dust, the dark corners */
+  content:""; position:absolute; inset:0;
   background:
-    radial-gradient(circle at 1.1em 1.1em, #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
-    radial-gradient(circle at calc(100% - 1.1em) 1.1em, #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
-    radial-gradient(circle at 1.1em calc(100% - 1.1em), #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
-    radial-gradient(circle at calc(100% - 1.1em) calc(100% - 1.1em), #8d8299 0 .22em, #2b2335 .26em, transparent .3em),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #3d3248, #241b2f 55%, #1a1322);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.2), inset 0 -.2em 0 rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.05),
-    0 .9em 1.8em rgba(0,0,0,.55), 0 0 3.2em rgba(255,176,40,.13);
-  transition:transform 140ms var(--ease-out);
-}
-.attract:active .door-plate{ transform:translateY(.1em); }
-.door-entry{ position:relative; width:5.2em; height:5.6em; flex:none; }
-.door-slot{
-  position:absolute; left:50%; bottom:.7em; width:4.8em; height:1.7em; transform:translateX(-50%); border-radius:.55em;
-  background:radial-gradient(90% 120% at 50% 50%, #ffcf5c, #f39a12 55%, #8a4a00);
-  box-shadow:inset 0 0 0 .14em #c9bfd4, inset 0 0 0 .2em #4a3f55, 0 0 1.1em rgba(255,170,30,.55), 0 0 2.4em rgba(255,150,20,.25);
-  animation:lamp-breathe 2.8s ease-in-out infinite;
-}
-.door-slot::before{    /* the slit itself, with a dark throat */
-  content:""; position:absolute; left:50%; top:50%; width:3.9em; height:.34em; transform:translate(-50%,-50%); border-radius:.2em;
-  background:#050208; box-shadow:inset 0 .12em .14em rgba(0,0,0,.9), 0 1px 0 rgba(255,236,180,.6), 0 -1px 0 rgba(120,60,0,.6);
-}
-@keyframes lamp-breathe{ 0%,100%{ filter:brightness(.92); } 50%{ filter:brightness(1.12); } }
-.attract:hover .door-slot{ filter:brightness(1.15); }
-
-/* the coin is clipped by the chute, whose bottom edge is the slit */
-.door-chute{ position:absolute; z-index:1; left:-1em; right:-1em; top:-2.4em; bottom:1.55em; overflow:hidden; perspective:20em; }
-.door-chute::after{    /* the slit's throat darkens the coin as it goes in */
-  content:""; position:absolute; z-index:1; left:50%; bottom:0; width:3.9em; height:.4em; transform:translateX(-50%);
-  background:linear-gradient(180deg, transparent, rgba(5,2,8,.7)); border-radius:.2em .2em 0 0;
-}
-.door-coin{
-  position:absolute; left:50%; bottom:.45em; width:3.3em; height:3.3em; margin-left:-1.65em; border-radius:50%;
-  display:grid; place-items:center;
-  background:radial-gradient(circle at 34% 28%, #fff6c4 0 7%, #ffd84d 30%, #e7a600 62%, #a56b00 100%);
-  box-shadow:inset 0 0 0 .2em #c98a00, inset 0 0 0 .27em #ffe27a, inset 0 .25em .35em rgba(255,255,255,.35), inset 0 -.2em .3em rgba(110,60,0,.45), 0 .3em .5em rgba(0,0,0,.45);
-  animation:door-coin-bob 2.8s ease-in-out infinite;
-}
-.door-coin::before{ content:""; position:absolute; inset:.08em; border-radius:50%; border:.12em dotted rgba(140,86,0,.55); }   /* reeded edge */
-.door-coin::after{          /* a glint sweeping across */
-  content:""; position:absolute; inset:0; border-radius:50%;
-  background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,.75) 50%, transparent 62%) no-repeat;
-  background-size:260% 100%; background-position:160% 0; animation:door-coin-glint 4.2s ease-in-out infinite;
-}
-.door-coin-face{ font:1.05em/1 var(--font-display); color:#9a6300; text-shadow:0 1px 0 rgba(255,240,180,.75), 0 -1px 0 rgba(90,50,0,.35); }
-@keyframes door-coin-bob{ 0%,100%{ transform:translateY(0) rotateY(-16deg); } 50%{ transform:translateY(-.24em) rotateY(14deg); } }
-@keyframes door-coin-glint{ 0%,62%{ background-position:160% 0; } 82%,100%{ background-position:-60% 0; } }
-.attract.is-inserting .door-coin, .attract.is-inserting .door-coin::after{ animation:none; }
-
-.door-text{ display:flex; flex-direction:column; align-items:flex-start; gap:.35em; }
-.attract-coin{
-  font-family:var(--font-display); font-size:2.6em; line-height:1; letter-spacing:.03em; color:var(--gold);
-  text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4);
-  animation:coin-blink 1.15s steps(1) infinite;
-}
-.attract-coin{ min-width:7.4em; text-align:left; }    /* holds the door's width when it changes to 1 CREDIT */
-.attract-coin.is-credited{ animation:none; color:#fff3c4; }
-.door-price{ font:700 .82em var(--font-mono); letter-spacing:.22em; color:var(--cream); opacity:.62; }
-@keyframes coin-blink{ 50%{ opacity:.4; text-shadow:none; } }
-
-/* the glass: scanlines, a slow interference roll, grain and basement dust */
-.attract-glass{ position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
-.attract-glass::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.28) 2px 3px); }
-.attract-glass::after{
-  content:""; position:absolute; inset:0; transition:opacity .9s ease;
-  background:
-    radial-gradient(38% 30% at 22% 30%, rgba(140,120,96,.10), transparent 70%),
+    radial-gradient(55% 34% at 30% 16%, rgba(255,255,255,.07), transparent 70%),
+    radial-gradient(38% 30% at 22% 30%, rgba(140,120,96,.1), transparent 70%),
     radial-gradient(30% 26% at 78% 68%, rgba(140,120,96,.09), transparent 70%),
-    radial-gradient(22% 18% at 64% 20%, rgba(150,130,104,.06), transparent 70%),
-    radial-gradient(125% 105% at 50% 50%, transparent 50%, rgba(0,0,0,.78));
+    radial-gradient(120% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.75));
 }
-.attract.is-powered .attract-glass::after{ opacity:.55; }
 .attract-grain{
-  position:absolute; inset:-50%; background-image:var(--grain); opacity:.11; mix-blend-mode:screen;
+  position:absolute; inset:-50%; background-image:var(--grain); opacity:.12; mix-blend-mode:screen;
   animation:grain-jump 1s steps(1) infinite;
 }
 @keyframes grain-jump{
   0%{ transform:translate(0,0); } 12.5%{ transform:translate(-7%,4%); } 25%{ transform:translate(5%,-9%); } 37.5%{ transform:translate(-12%,-3%); }
   50%{ transform:translate(9%,7%); } 62.5%{ transform:translate(-4%,11%); } 75%{ transform:translate(13%,-5%); } 87.5%{ transform:translate(-9%,-11%); }
 }
-.attract.is-powered .attract-grain{ opacity:.05; }
+.attract.is-lit .attract-grain{ opacity:.05; }
 .attract-roll{
   position:absolute; left:0; right:0; top:0; height:16%;
   background:linear-gradient(180deg, transparent, rgba(255,255,255,.03) 35%, rgba(0,0,0,.22) 60%, transparent);
   animation:attract-roll 6.5s linear infinite;
 }
 @keyframes attract-roll{ from{ transform:translateY(-120%); } to{ transform:translateY(650%); } }
+.tv-flash{ position:absolute; inset:0; opacity:0; pointer-events:none; background:radial-gradient(80% 70% at 50% 50%, rgba(240,255,254,.98), rgba(150,250,246,.75) 55%, rgba(37,232,226,.45)); }
+
+/* ---- the coin door: brushed steel, the coin entry, the INSERT COIN lamp ---- */
+.cab-door{
+  position:absolute; left:20em; right:20em; top:76em; height:34em; border-radius:2.2em;
+  display:flex; align-items:flex-start; gap:3.4em; padding:3em 3.4em;
+  background:
+    radial-gradient(circle at 1.8em 1.8em, #8d8299 0 .32em, #2b2335 .4em, transparent .46em),
+    radial-gradient(circle at calc(100% - 1.8em) 1.8em, #8d8299 0 .32em, #2b2335 .4em, transparent .46em),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #3d3248, #241b2f 55%, #1a1322);
+  box-shadow:inset 0 .12em 0 rgba(255,255,255,.18), inset 0 0 0 .1em rgba(255,255,255,.05), 0 .9em 1.8em rgba(0,0,0,.55), 0 0 0 .3em #0c0712;
+}
+.door-bloom{
+  position:absolute; left:-30%; right:-30%; top:-45%; bottom:-45%; border-radius:50%; pointer-events:none; opacity:0; mix-blend-mode:screen;
+  background:radial-gradient(closest-side, rgba(255,197,49,.38), rgba(255,150,20,.12) 55%, transparent);
+}
+.coin-mech{ position:relative; flex:none; width:13em; height:17em; }
+.attract:active .coin-mech{ transform:translateY(.12em); }
+.mech-glow{            /* the slot lamp's light, rising out of the slit */
+  position:absolute; left:.5em; right:.5em; bottom:calc(100% - 1.2em); height:7em; pointer-events:none; opacity:.8; mix-blend-mode:screen;
+  background:radial-gradient(55% 100% at 50% 100%, rgba(255,196,80,.55), rgba(255,150,30,.18) 50%, transparent 75%);
+  animation:lamp-breathe 2.8s ease-in-out infinite;
+}
+@keyframes lamp-breathe{ 0%,100%{ filter:brightness(.92); } 50%{ filter:brightness(1.12); } }
+.mech-top{             /* the top of the coin entry, catching the light from above, with the slit in it */
+  position:absolute; left:.2em; right:.2em; top:0; height:2.4em; border-radius:.7em .7em .1em .1em;
+  background:linear-gradient(180deg, #2c2536, #6f6680 40%, #c9c0d6 92%, #e4dcef);
+  box-shadow:inset 0 .1em 0 rgba(255,255,255,.25), 0 -.1em .3em rgba(0,0,0,.4);
+}
+.mech-slit{
+  position:absolute; left:1.7em; right:1.7em; top:.86em; height:.52em; border-radius:.26em;
+  background:linear-gradient(180deg, #000, #0a0510 55%, #ffb43a);   /* the lamp below glows up through it */
+  box-shadow:inset 0 .12em .14em #000, 0 .06em 0 rgba(255,255,255,.4), 0 -.06em 0 rgba(0,0,0,.6);
+}
+.coin-shadow{ position:absolute; left:50%; top:.3em; width:11.2em; height:1.6em; margin-left:-5.6em; border-radius:50%; opacity:0; background:radial-gradient(closest-side, rgba(0,0,0,.7), transparent); }
+/* The coin hangs from the middle of the slit and everything below the slit
+   is clipped, so it goes IN rather than behind. The clip never changes (the
+   coin always travels above it), so the coin's layers are never rebuilt. */
+.coin-path{ position:absolute; left:50%; top:1.12em; width:0; height:0; clip-path:polygon(-500em -500em, 500em -500em, 500em 0, -500em 0); }
+.coin-throat{ position:absolute; left:-6em; width:12em; top:-1.6em; height:1.6em; opacity:0; background:linear-gradient(180deg, transparent, rgba(4,2,7,.88)); }
+.mech-face{
+  position:absolute; left:0; right:0; top:2.15em; bottom:0; border-radius:.5em .5em 1.6em 1.6em;
+  background:repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px), linear-gradient(180deg, #a59cb4, #5a5068 10%, #3a3247 45%, #241d2e);
+  box-shadow:inset 0 .14em 0 rgba(255,255,255,.4), inset 0 -.35em .5em rgba(0,0,0,.6), inset .25em 0 .4em rgba(255,255,255,.06), 0 .8em 1.4em rgba(0,0,0,.65), 0 0 0 .18em #0f0a15;
+}
+.mech-price{           /* the lit price insert; sized in its own em (3 cabinet em) */
+  position:absolute; left:.73em; right:.73em; top:.87em; height:1.87em; border-radius:.2em;
+  font:3em/1.87em var(--font-display); text-align:center; color:#5a2c00; text-shadow:0 .04em 0 rgba(255,236,170,.6);
+  background:radial-gradient(90% 120% at 50% 50%, #ffd77a, #f3a21c 55%, #8a4a00);
+  box-shadow:inset 0 0 0 .07em #2a1d10, inset 0 .1em .2em rgba(0,0,0,.45), 0 0 .6em rgba(255,170,30,.45);
+}
+.mech-return{
+  position:absolute; left:50%; bottom:1.8em; width:3.6em; height:3.6em; margin-left:-1.8em; border-radius:50%;
+  background:radial-gradient(circle at 38% 32%, #d8d0e4, #6b6278 45%, #2a2333 80%);
+  box-shadow:0 0 0 .35em #1a1322, 0 0 0 .5em #4a4157, 0 .3em .5em rgba(0,0,0,.6);
+}
+.door-text{ display:flex; flex-direction:column; align-items:flex-start; gap:1em; padding-top:2.4em; perspective:20em; }
+.attract-coin{
+  font-family:var(--font-display); font-size:4.2em; line-height:1; letter-spacing:.03em; color:var(--gold); min-width:7.4em; text-align:left;
+  text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4);
+  animation:coin-blink 1.15s steps(1) infinite;
+}
+.attract-coin.is-credited{ animation:none; color:#fff3c4; }
+@keyframes coin-blink{ 50%{ opacity:.4; text-shadow:none; } }
+.door-price{ font:700 max(1.5em, 8px) var(--font-mono); letter-spacing:.22em; color:var(--cream); opacity:.75; }
+.cab-glint{ position:absolute; inset:0; border-radius:36em 36em 1.6em 1.6em; overflow:hidden; pointer-events:none; }
+.cab-glint i{          /* light catching the glass and chrome as the cabinet comes up */
+  position:absolute; top:-10%; bottom:-10%; left:0; width:22%; transform:translateX(-120%) skewX(-18deg); mix-blend-mode:screen;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,.07) 40%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.07) 60%, transparent);
+}
+
+/* ---- the coin: a struck, worn disc with a reeded edge, in 3D ---- */
+.hero-coin{
+  --thick:1.75em;
+  position:absolute; left:-12em; bottom:0; width:24em; height:24em; opacity:0;
+  transform-origin:50% 100%; transform:translate(30em, -2em) scale(1.3); perspective:90em; will-change:transform, filter;
+}
+.attract.is-inserting .hero-coin{ opacity:1; }
+.hero-spin{ position:absolute; inset:0; transform-style:preserve-3d; will-change:transform; }
+.hero-face, .hero-edge{ position:absolute; inset:0; border-radius:50%; }
+.hero-face{ backface-visibility:hidden; overflow:hidden; display:grid; place-items:center; }
+.hero-front, .hero-back{
+  background:
+    conic-gradient(from 200deg at 50% 50%, rgba(255,250,225,.32), transparent 14%, rgba(60,30,0,.22) 30%, transparent 46%,
+      rgba(255,250,225,.24) 62%, transparent 76%, rgba(60,30,0,.2) 90%, rgba(255,250,225,.32)),               /* light round the struck field */
+    repeating-conic-gradient(rgba(255,255,255,.035) 0 3deg, rgba(0,0,0,.035) 3deg 6deg),                        /* the die's turning marks */
+    repeating-linear-gradient(118deg, transparent 0 2.2em, rgba(255,255,255,.05) 2.2em 2.27em),               /* fine scratches */
+    radial-gradient(16% 13% at 70% 72%, rgba(70,42,8,.32), transparent 70%),                                  /* tarnish */
+    radial-gradient(12% 10% at 26% 66%, rgba(70,42,8,.22), transparent 70%),
+    radial-gradient(circle at 34% 28%, #fff4cf 0 5%, #f2cf6a 24%, #d29a2a 52%, #9c6814 80%, #6e4708);
+  box-shadow:inset 0 0 0 1.3em #b88327, inset 0 0 0 1.55em #f1d27a, inset 0 0 0 1.9em rgba(110,70,10,.55),
+             inset 0 1.2em 2em rgba(255,250,220,.35), inset 0 -1.4em 2em rgba(60,30,0,.55);
+}
+.hero-front{ transform:translateZ(calc(var(--thick) / 2)); }
+.hero-front b{ position:relative; font:9.4em/1 var(--font-display); color:#a87012; text-shadow:0 .03em 0 rgba(255,244,200,.85), 0 -.025em 0 rgba(70,40,0,.6), 0 .06em .08em rgba(60,30,0,.35); }
+.hero-ring{ position:absolute; inset:0; width:100%; height:100%; font:700 7.4px var(--font-mono); letter-spacing:.9px; text-anchor:middle; fill:#8c5a0c; }
+.hero-ring .hero-ring-lit{ fill:rgba(255,240,196,.7); transform:translate(-.35px, -.4px); }
+.hero-back{ transform:rotateY(180deg) translateZ(calc(var(--thick) / 2)); }
+.hero-back img{ width:56%; height:auto; border-radius:22%; mix-blend-mode:multiply; opacity:.9; filter:sepia(1) saturate(2.2) hue-rotate(-12deg) brightness(.8) contrast(1.35); }
+.hero-edge{ background:repeating-conic-gradient(#8a5a10 0 1.2deg, #e2b14a 1.2deg 2.4deg); }
+.hero-lamp{ position:absolute; inset:0; border-radius:50%; opacity:0; mix-blend-mode:screen; background:radial-gradient(70% 45% at 50% 100%, rgba(255,170,50,.7), transparent 70%); }
+.hero-shine{          /* a band of light three faces wide, slid across with transform (the face clips it) */
+  position:absolute; top:0; bottom:0; left:0; width:300%; pointer-events:none; mix-blend-mode:overlay;
+  background:linear-gradient(115deg, transparent 36%, rgba(255,255,255,.85) 50%, transparent 64%);
+  transform:translateX(-100%);
+}
+
+/* Reduced motion: no drifting dust, jumping grain or blinking lamp; the film
+   itself is told without travel or flicker (stageGently in startup.js). */
+@media (prefers-reduced-motion: reduce){
+  .mote, .attract-grain, .attract-roll, .mech-glow, .attract-coin{ animation:none; }
+  .attract.is-lit .cab-tube i::after{ animation:none; }
+}
 
 /* idle attract light show on the machine itself */
 body.is-attract .marquee-chase{ animation-duration:1.6s; }
@@ -1282,12 +1439,6 @@ body.is-crowd #selection-preview, body.is-crowd #queue-continuation, body.is-cro
   .arch{ display:none; }
   .crt-bezel{ --bezel:.4rem; }
   .utility-panel{ bottom:6.6rem; right:1rem; max-height:calc(100dvh - 7.6rem); }
-  .attract-title{ font-size:clamp(2.2rem,8.5vw,5.2rem); }
-  .attract-tagline{ max-width:90vw; font-size:clamp(.65rem,2.3vw,1.25rem); }
-  .door-plate{ font-size:clamp(.62rem,2.2vw,1rem); }
-  .attract-sub{ font-size:.75rem; letter-spacing:.05em; }
-  .attract-logo{ width:clamp(4rem,20vh,9.5rem); height:auto; }
-  .attract-inner{ gap:.6rem; }
   .boot-logo{ width:min(8.5rem,24vh); }
   .boot-screen{ font-size:clamp(.45rem,1.6vw,1.05rem); }
   body.is-crowd .rig{ grid-template-rows:auto auto auto; }

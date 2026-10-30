@@ -36,33 +36,70 @@
 </div>
 
 <!-- ============ 2. ATTRACT: INSERT COIN ============
-     The first thing anyone sees: the cabinet in the basement, dust sheet
-     just pulled off, on standby power. Only the coin door is properly lit.
-     The click / tap / key press here is the gesture browsers demand before
-     they allow any sound; startup.js then drops the coin and powers the
-     cabinet up, and the boot screen above opens from the collapsing picture. -->
+     The first thing anyone sees: the jukebox's own cabinet in a basement,
+     dust sheet just pulled off, on a tired standby supply. Only the coin
+     entry is properly lit. The click / tap / key press here is the gesture
+     browsers demand before they allow any sound; startup.js then puts the
+     coin in, wakes the cabinet, and dives into its picture tube, which
+     squeezes to the line the boot screen above strikes from. -->
 <button class="attract" id="attract" type="button" aria-label="Skate by Faith, Not by Sight. Insert coin to start.">
-  <span class="attract-room" aria-hidden="true"><span class="attract-beam"></span></span>
-  <span class="attract-picture">
-    <span class="attract-inner">
-      <span class="attract-marquee">
-        <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="RFAI">
-        <span class="attract-title"><span>Skate</span> <span class="by">by</span> <span>Faith</span></span>
-        <span class="attract-tagline">Not by Sight &mdash; An 80s Rollerskate Night</span>
-      </span>
-      <span class="door-plate" aria-hidden="true">
-        <span class="door-entry">
-          <span class="door-chute"><span class="door-coin"><span class="door-coin-face">25</span></span></span>
-          <span class="door-slot"></span>
+  <span class="attract-world" aria-hidden="true">
+    <span class="attract-room"><span class="attract-beam"></span><span class="attract-floor"></span></span>
+    <span class="attract-camera">
+      <span class="cab">
+        <span class="cab-halo"></span>
+        <span class="cab-body"></span>
+        <span class="cab-light"></span>
+        <span class="cab-arch"></span>
+        <span class="cab-tube is-left"><i></i></span>
+        <span class="cab-tube is-right"><i></i></span>
+        <span class="cab-sign">
+          <span class="sign-bloom"></span>
+          <span class="attract-title" translate="no"><span>Skate</span> <span class="by">by</span> <span>Faith</span></span>
+          <span class="attract-tagline">Not by Sight &mdash; An 80s Rollerskate Night</span>
         </span>
-        <span class="door-text">
-          <span class="attract-coin" id="attract-coin">INSERT COIN</span>
-          <span class="door-price">25&cent; &middot; 1 PLAY</span>
+        <span class="cab-screen">
+          <span class="tv">
+            <span class="tv-picture">
+              <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="">
+              <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
+            </span>
+            <span class="tv-line"></span>
+            <span class="tv-glass"><span class="attract-grain"></span><span class="attract-roll"></span></span>
+            <span class="tv-flash"></span>
+          </span>
         </span>
+        <span class="cab-door">
+          <span class="door-bloom"></span>
+          <span class="coin-mech">
+            <span class="mech-glow"></span>
+            <span class="mech-top"><span class="coin-shadow"></span><span class="mech-slit"></span></span>
+            <span class="coin-path">
+              <span class="hero-coin">
+                <span class="hero-spin">
+                  <span class="hero-face hero-front">
+                    <svg class="hero-ring" viewBox="0 0 100 100"><defs><path id="coin-arc-top" d="M 16 50 A 34 34 0 0 1 84 50"/><path id="coin-arc-low" d="M 19 52 A 31 31 0 0 0 81 52"/></defs>
+                      <g class="hero-ring-lit"><text><textPath href="#coin-arc-top" startOffset="50%">SKATE &#183; BY &#183; FAITH</textPath></text><text><textPath href="#coin-arc-low" startOffset="50%">&#9733; NOT BY SIGHT &#9733;</textPath></text></g>
+                      <g><text><textPath href="#coin-arc-top" startOffset="50%">SKATE &#183; BY &#183; FAITH</textPath></text><text><textPath href="#coin-arc-low" startOffset="50%">&#9733; NOT BY SIGHT &#9733;</textPath></text></g>
+                    </svg>
+                    <b>25</b><span class="hero-lamp"></span><span class="hero-shine"></span>
+                  </span>
+                  <span class="hero-face hero-back"><img src="rfai-logo.png" width="512" height="512" alt=""></span>
+                </span>
+              </span>
+              <span class="coin-throat"></span>
+            </span>
+            <span class="mech-face"><span class="mech-price">25&cent;</span><span class="mech-return"></span></span>
+          </span>
+          <span class="door-text">
+            <span class="attract-coin" id="attract-coin">INSERT COIN</span>
+            <span class="door-price">25&cent; &middot; 1 PLAY</span>
+          </span>
+        </span>
+        <span class="cab-glint"><i></i></span>
       </span>
-      <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
     </span>
-    <span class="attract-glass" aria-hidden="true"><span class="attract-grain"></span><span class="attract-roll"></span></span>
+    <span class="attract-spot"></span>
   </span>
 </button>
 
