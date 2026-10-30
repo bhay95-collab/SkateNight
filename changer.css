@@ -124,7 +124,7 @@
 .arm{
   position:absolute; z-index:3; left:8.7em; top:1.05em; width:.8em; height:6.4em;
   transform-origin:.4em .4em; transform:rotate(var(--arm-angle, 3deg));
-  transition:transform .35s linear; will-change:transform; pointer-events:none;
+  transition:transform .35s cubic-bezier(.77,0,.175,1); will-change:transform; pointer-events:none;
 }
 .arm-mount{ position:absolute; z-index:2; left:8.45em; top:.8em; width:1.3em; height:1.3em; border-radius:50%;
   background:radial-gradient(circle,#221b2b 0 38%,#9e91aa 40%,#3f344b 47% 67%,#c4b6ce 69%,#403249 74%); box-shadow:0 .14em .25em #000; }

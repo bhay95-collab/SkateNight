@@ -83,6 +83,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
   // ---- element handles
   const glow = $('cab-glow');
   const logoHalo = $('logo-halo');
+  const reduceMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
   const logoImg = $('marquee-logo');
   let logoLive = false;
   const spectrumCanvas = $('spectrum');
@@ -368,6 +369,7 @@ export function createVisualiser({ source = null, tap = null } = {}) {
     logoLive = true;
     logoHalo.dataset.live = '1';
     logoHalo.style.opacity = g.haloOpacity.toFixed(3);
+    if (reduceMotion?.matches) return;                    // reduced motion: the glow answers, nothing swells
     logoHalo.style.transform = `scale(${g.haloScale.toFixed(3)})`;
     logoImg.style.transform = `scale(${g.logoScale.toFixed(3)})`;
   }

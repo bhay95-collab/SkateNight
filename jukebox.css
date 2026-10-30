@@ -184,8 +184,10 @@ body.on-attract .rig{ visibility:hidden; }
 /* ================= hardware ================= */
 .btn{
   border:0; border-radius:.5rem; cursor:pointer; font-weight:700;
-  transition:transform .1s var(--ease-out), box-shadow .1s var(--ease-out), filter .12s ease;
+  transition:transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out), filter .12s ease;
 }
+/* a key drops the instant it is pressed and springs back a touch slower */
+.btn:active, .key:active, .rack-nav:active, .q-btn:active{ transition-duration:40ms; }
 .btn:disabled{ opacity:.45; cursor:default; }
 /* START / PAUSE: the one big lamp on the deck, in a chrome bezel */
 .btn-gold{
@@ -194,7 +196,7 @@ body.on-attract .rig{ visibility:hidden; }
   font-size:1.05rem; letter-spacing:.02em; padding:.5rem .8rem .42rem; min-width:6.4rem;
   box-shadow:0 .28rem 0 var(--amber-deep), 0 0 0 .14rem #120d15, 0 .28rem 0 .14rem #120d15, 0 0 1.2rem rgba(255,181,58,.28), inset 0 1px 0 rgba(255,255,255,.6);
 }
-.btn-gold:hover{ filter:brightness(1.05); }
+@media (hover:hover) and (pointer:fine){ .btn-gold:hover{ filter:brightness(1.05); } }
 .btn-gold:active{ transform:translateY(.22rem); box-shadow:0 .06rem 0 var(--amber-deep), 0 0 0 .14rem #120d15, 0 .06rem 0 .14rem #120d15, 0 0 .8rem rgba(255,181,58,.22), inset 0 1px 0 rgba(255,255,255,.6); }
 /* SELECT: an illuminated push button, magenta behind frosted plastic */
 .btn-select{
@@ -202,7 +204,7 @@ body.on-attract .rig{ visibility:hidden; }
   background:radial-gradient(110% 90% at 50% 18%, #ff86c0, #e2207f 48%, #8e0b4c);
   box-shadow:0 .26rem 0 #5c0631, 0 0 0 .12rem #120d15, 0 .26rem 0 .12rem #120d15, 0 0 1rem rgba(255,45,149,.25), inset 0 1px 0 rgba(255,220,238,.55);
 }
-.btn-select:hover{ filter:brightness(1.07); }
+@media (hover:hover) and (pointer:fine){ .btn-select:hover{ filter:brightness(1.07); } }
 .btn-select:active{ transform:translateY(.2rem); box-shadow:0 .05rem 0 #5c0631, 0 0 0 .12rem #120d15, 0 .05rem 0 .12rem #120d15, inset 0 1px 0 rgba(255,220,238,.55); }
 /* deck keys: blackened steel caps with engraved legends */
 .btn-deck, .btn-small{
@@ -211,7 +213,7 @@ body.on-attract .rig{ visibility:hidden; }
   border:1px solid var(--trim);
   box-shadow:0 .22rem 0 #050307, inset 0 1px 0 rgba(236,228,244,.12), inset 0 -.1rem .2rem rgba(0,0,0,.4);
 }
-.btn-deck:hover, .btn-small:hover{ color:var(--tungsten); border-color:#5b5064; }
+@media (hover:hover) and (pointer:fine){ .btn-deck:hover, .btn-small:hover{ color:var(--tungsten); border-color:#5b5064; } }
 .btn-deck:active, .btn-small:active{ transform:translateY(.16rem); box-shadow:0 .05rem 0 #050307, inset 0 1px 0 rgba(236,228,244,.08); }
 /* a latching key shows its lamp */
 .btn-deck[aria-pressed="true"]{ color:var(--cyan); border-color:rgba(37,232,226,.45); box-shadow:0 .22rem 0 #050307, inset 0 1px 0 rgba(236,228,244,.12), inset 0 0 .7rem rgba(37,232,226,.18); }
@@ -272,15 +274,20 @@ body.on-attract .rig{ visibility:hidden; }
   filter:drop-shadow(0 .04rem .05rem #000); opacity:.85;
 }
 .marquee-chase{ position:absolute; z-index:0; inset:.27rem .65rem; pointer-events:none;
-  background:linear-gradient(90deg,transparent 0 33%,#ffecc2 48%,transparent 63%) 200% 0 / 200% 100%;
   -webkit-mask-image:radial-gradient(circle .11rem at .5rem 50%,#000 0 .1rem,transparent .13rem),radial-gradient(circle .11rem at .5rem 50%,#000 0 .1rem,transparent .13rem);
   mask-image:radial-gradient(circle .11rem at .5rem 50%,#000 0 .1rem,transparent .13rem),radial-gradient(circle .11rem at .5rem 50%,#000 0 .1rem,transparent .13rem);
   -webkit-mask-size:1.05rem .5rem; mask-size:1.05rem .5rem;
   -webkit-mask-repeat:repeat-x; mask-repeat:repeat-x;
   -webkit-mask-position:0 0,0 100%; mask-position:0 0,0 100%;
-  animation:bulb-chase 4.6s linear infinite; opacity:.6;
+  overflow:hidden; opacity:.6;
 }
-@keyframes bulb-chase{ from{ background-position:200% 0; } to{ background-position:-200% 0; } }
+/* The light band rides a wide strip behind the still bulb mask: transform only,
+   so the chase never repaints. 6 strip-widths, a band every 2, moved 4 per loop. */
+.marquee-chase::before{ content:""; position:absolute; top:0; bottom:0; left:-400%; width:600%;
+  background:linear-gradient(90deg,transparent 0 33%,#ffecc2 48%,transparent 63%) 0 0 / 33.3333% 100% repeat-x;
+  animation:bulb-chase 4.6s linear infinite; will-change:transform;
+}
+@keyframes bulb-chase{ to{ transform:translateX(66.6667%); } }
 .wordmark{
   margin:0; font-family:var(--font-display); font-weight:400; line-height:1; text-transform:uppercase;
   font-size:2.45rem; letter-spacing:-.01em; white-space:nowrap; position:relative; z-index:1;
@@ -391,9 +398,9 @@ body.on-attract .rig{ visibility:hidden; }
   padding:0; cursor:pointer; font-size:.95rem; line-height:1; color:var(--phosphor);
   background:linear-gradient(180deg, var(--steel-1), var(--steel-2)); border:1px solid var(--trim); border-radius:.4rem;
   box-shadow:0 .2rem 0 #050307, inset 0 1px 0 rgba(236,228,244,.12);
-  transition:transform .08s var(--ease-out), box-shadow .08s var(--ease-out);
+  transition:transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
 }
-.rack-nav:hover:not(:disabled){ color:var(--tungsten); border-color:#5b5064; }
+@media (hover:hover) and (pointer:fine){ .rack-nav:hover:not(:disabled){ color:var(--tungsten); border-color:#5b5064; } }
 .rack-nav:active{ transform:translateY(.18rem); box-shadow:0 .03rem 0 #050307; }
 .rack-nav:disabled{ opacity:.3; cursor:default; }
 .rack-label{ margin:0; display:flex; align-items:center; justify-content:center; gap:.35rem; min-width:0; }
@@ -472,7 +479,7 @@ body.on-attract .rig{ visibility:hidden; }
   background:radial-gradient(80% 70% at 50% 35%, #f6f0e2, var(--ivory-1) 45%, var(--ivory-2));
   border:1px solid #1a1418; border-radius:.3rem;
   box-shadow:0 .2rem 0 var(--ivory-edge), 0 .2rem 0 1px #0a070c, inset 0 1px 0 rgba(255,255,255,.7);
-  transition:transform .07s var(--ease-out), box-shadow .07s var(--ease-out);
+  transition:transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
 }
 /* letter keys: smoked plastic over a tiny copy of the album cover, lit from behind */
 .key-letter{
@@ -483,7 +490,7 @@ body.on-attract .rig{ visibility:hidden; }
 .key-letter.is-open{ border-color:var(--magenta); box-shadow:0 .2rem 0 #050307, 0 0 0 .1rem var(--magenta), 0 0 .6rem rgba(255,45,149,.35); }
 .key-fn{ font-size:.62rem; letter-spacing:.06em; color:var(--phosphor);
   background:linear-gradient(180deg, var(--steel-1), var(--steel-2)); box-shadow:0 .2rem 0 #050307, inset 0 1px 0 rgba(236,228,244,.12); }
-.key:hover{ filter:brightness(1.08); }
+@media (hover:hover) and (pointer:fine){ .key:hover{ filter:brightness(1.08); } }
 .key:active{ transform:translateY(.18rem); box-shadow:0 .03rem 0 #050307; }
 /* latched: pushed in and lit from behind until the code is used or cleared */
 .key.is-latched{
@@ -504,6 +511,7 @@ body.on-attract .rig{ visibility:hidden; }
 .coin-slot::before{ content:""; position:absolute; left:50%; top:.2rem; width:.12rem; height:.65rem; margin-left:-.06rem; background:var(--amber); border-radius:.1rem; box-shadow:0 0 .3rem var(--amber); }
 .coin-slot::after{ content:""; position:absolute; left:50%; top:-.9rem; width:.55rem; height:.55rem; margin-left:-.28rem; border-radius:50%; background:#e7c46a; opacity:0; box-shadow:inset 0 0 0 .08rem #9c6814; }
 .is-dropping .coin-slot::after{ animation:coin-drop .55s ease-in both; }
+@keyframes coin-fade{ 0%,80%{ opacity:1; } 100%{ opacity:0; } }
 @keyframes coin-drop{ 0%{ opacity:1; transform:translateY(0); } 80%{ opacity:1; transform:translateY(1.1rem); } 100%{ opacity:0; transform:translateY(1.2rem) scale(.5); } }
 .is-scoring{ animation:score-pop .4s var(--ease-out); }
 @keyframes score-pop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.18); filter:brightness(1.5); } 100%{ transform:scale(1); } }
@@ -582,8 +590,9 @@ body.on-attract .rig{ visibility:hidden; }
   width:32px; height:28px; min-height:28px; padding:0; cursor:pointer; font-size:.72rem; line-height:1;
   color:var(--phosphor); background:linear-gradient(180deg, var(--steel-1), var(--steel-2));
   border:1px solid var(--trim); border-radius:.25rem; box-shadow:0 .12rem 0 #050307, inset 0 1px 0 rgba(236,228,244,.1);
+  transition:transform 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
 }
-.q-btn:hover:not(:disabled){ color:var(--tungsten); border-color:#5b5064; }
+@media (hover:hover) and (pointer:fine){ .q-btn:hover:not(:disabled){ color:var(--tungsten); border-color:#5b5064; } }
 .q-btn:active{ transform:translateY(.1rem); box-shadow:none; }
 .q-btn:disabled{ opacity:.25; cursor:default; }
 /* requests and the house line are told apart by their lamps, not by fading */
@@ -601,7 +610,7 @@ body.on-attract .rig{ visibility:hidden; }
 #queue-continuation{ margin:.12rem .15rem 0; flex:none; color:var(--cyan); font:700 .64rem/1.25 var(--font-body); }
 .panel-title #queue-count{ font:700 .56rem/1 var(--font-mono); letter-spacing:.1em; color:var(--tungsten); }
 .has-quick-pick .strip{ cursor:pointer; }
-.has-quick-pick .strip:hover{ --paper:linear-gradient(180deg,#f3e8cf,#ddcfac); }
+@media (hover:hover) and (pointer:fine){ .has-quick-pick .strip:hover{ --paper:linear-gradient(180deg,#f3e8cf,#ddcfac); } }
 .has-quick-pick .strip:focus-visible{ outline:3px solid var(--cyan); outline-offset:-3px; }
 
 /* ================= THE CONTROL DECK: a steel shelf across the cabinet's base ================= */
@@ -719,11 +728,11 @@ html:fullscreen body.is-crowd{ cursor:none; }
 button, summary{ min-height:24px; }
 .rack-nav{ min-width:28px; min-height:28px; }
 .led-offline{ cursor:pointer; }
-.led-offline:hover{ border-color:#5b5064; }
+@media (hover:hover) and (pointer:fine){ .led-offline:hover{ border-color:#5b5064; } }
 #free-play{ display:block; text-align:center; font:700 .62rem/1.2 var(--font-mono); letter-spacing:.06em; color:var(--label); }
 
 /* idle attract: the lamps run faster while the machine waits */
-body.is-attract .marquee-chase{ animation-duration:1.6s; }
+body.is-attract .marquee-chase::before{ animation-duration:1.6s; }
 body.is-attract .mech.is-idle-cover .mech-slot{ transition:opacity .6s ease; }
 
 /* Reclaim the crown and gutters before reducing useful meter space. */
@@ -860,9 +869,10 @@ body.is-attract .mech.is-idle-cover .mech-slot{ transition:opacity .6s ease; }
   .btn, summary{ min-height:40px; }
 }
 
-/* Reduced motion: the room and the glass hold still. The record still turns
+/* Reduced motion: the room, the glass, the logo and the coin punch hold still. The record still turns
    (that is the machine working, and it is small) and the tonearm still swings. */
 @media (prefers-reduced-motion: reduce){
-  .mirror-light i, .logo-halo, .marquee-chase, .led-offline[data-state="busy"] .led-dot{ animation:none; }
+  .mirror-light i, .logo-halo, .marquee-chase::before, .led-offline[data-state="busy"] .led-dot, .is-scoring{ animation:none; }
+  .is-dropping .coin-slot::after{ animation-name:coin-fade; }
   .crt-glass::before{ display:none; }
 }
