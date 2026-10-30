@@ -14,7 +14,7 @@ import { buildLibrary, parseCode, findTrackByCode } from './codes.js';
 import { enqueue, enqueueFront, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
 import { pickShuffle, pickInOrder, pushRecent, shuffled, nextOpening, OPENING_IDS } from './rotation.js';
 import {
-  ATTRACT_LINES, SKATE_JOKES, IDLE_JOKES, OUT_OF_ORDER_LINES,
+  SKATE_JOKES, IDLE_JOKES, OUT_OF_ORDER_LINES,
   createRotator,
 } from './copy.js';
 import {
@@ -118,7 +118,6 @@ async function main() {
 
   const nextJoke = createRotator(SKATE_JOKES);
   const nextIdleJoke = createRotator(IDLE_JOKES);
-  const nextAttractLine = createRotator(ATTRACT_LINES);
   const nextOutOfOrder = createRotator(OUT_OF_ORDER_LINES);
 
   /* ---------------- the screen ---------------- */
@@ -886,11 +885,6 @@ async function main() {
   setInterval(reprobeMissing, 120000);
 
   /* ---------------- the INSERT COIN moment ---------------- */
-  let attractLineTimer = 0;
-  function rotateAttractSub() {
-    const sub = $('attract-sub');
-    sub.textContent = nextAttractLine();
-  }
 
   /* The coin goes in and the cabinet wakes; then the boot screen strikes
      from the collapsed picture (first time in this tab) or the cabinet
@@ -933,7 +927,6 @@ async function main() {
   async function startNight() {
     if (started) return;
     started = true;
-    clearInterval(attractLineTimer);
     const engine = unlockAudio();                      // the click is the browser's required gesture
     engineReady = Boolean(engine);
     if (engineReady) {
@@ -976,9 +969,7 @@ async function main() {
     startNight();
   });
 
-  /* ---------------- the INSERT COIN screen waits for a coin ---------------- */
-  rotateAttractSub();
-  attractLineTimer = setInterval(rotateAttractSub, 5000);
+  /* ---------------- the dormant cabinet waits: no prompt, just the machine ---------------- */
   ticker.stop();
   $('attract').focus({ preventScroll: true });
 
@@ -992,12 +983,10 @@ async function main() {
 
 main().catch((err) => {
   console.error('[skate by faith] start-up failed', err);
-  // Tell the person at the laptop instead of leaving a dead INSERT COIN screen.
-  const sub = document.getElementById('attract-sub');
-  if (sub) {
-    sub.textContent = 'START-UP PROBLEM - PRESS F5 TO RELOAD';
-    sub.style.color = 'var(--red)';
-  }
+  // Tell the person at the laptop instead of leaving a dead cabinet: the only
+  // words its picture tube ever shows before the coin.
+  const fault = document.getElementById('attract-fault');
+  if (fault) fault.textContent = 'START-UP PROBLEM - PRESS F5 TO RELOAD';
   const attract = document.getElementById('attract');
   if (attract) attract.hidden = false;
   const boot = document.getElementById('boot');

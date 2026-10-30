@@ -16,7 +16,8 @@
    Times are BEATS / CHUTE_CLINKS_MS (startup-timing.js); sound.js plays the
    matching contact, slip and chute on the same beats.
    ============================================================ */
-import { BEATS, CHUTE_CLINKS_MS } from './startup-timing.js';
+import { BEATS, CHUTE_CLINKS_MS, STANDBY } from './startup-timing.js';
+import { RESPONSE } from './startup-power.js';
 
 const EDGE_LAYERS = 14;
 const AT_SLOT = 1 / 3;              // the coin is drawn at its biggest; this is its size at the door
@@ -119,11 +120,22 @@ export function stageMechanism(el, at, cue) {
     { transform: 'translateY(.14em)', offset: 0.5 }, { transform: 'translateY(.3em)', offset: 0.57 },                                 // then gives
     { transform: 'translateY(-.06em)', offset: 0.86 }, { transform: 'translateY(0)' },
   ], { delay: contact, duration: gone + 120 - contact, easing: 'ease-out', composite: 'add' });
-  const lampAt = (ms) => (ms - descend) / (relay - descend);
+  // The touch wakes the slot lamp - it stutters, catches - and its light is
+  // what shows the coin door and the coin (both dark on standby). The relay
+  // cuts it with everything else (followSupply takes over from there).
+  const lampAt = (ms) => ms / relay;
   el.lamp.animate([
-    { opacity: 0.8 }, { opacity: 0.55, offset: lampAt(contact) }, { opacity: 0.3, offset: lampAt(gone) },
+    { opacity: 0 }, { opacity: 0, offset: lampAt(coinIn + 120) }, { opacity: 0.5, offset: lampAt(coinIn + 160) },
+    { opacity: 0.15, offset: lampAt(coinIn + 260) }, { opacity: 0.8, offset: lampAt(coinIn + 520) }, { opacity: 0.8, offset: lampAt(descend) },
+    { opacity: 0.55, offset: lampAt(contact) }, { opacity: 0.3, offset: lampAt(gone) },
     { opacity: 1, offset: lampAt(gone + 140) }, { opacity: 0.85, offset: lampAt(gone + 500) }, { opacity: 0.85 },
-  ], { delay: descend, duration: relay - descend, fill: 'forwards' });
+  ], { duration: relay, fill: 'forwards' });
+  const dark = RESPONSE.door(STANDBY).filter;
+  const lamplit = RESPONSE.door(0.5).filter;
+  el.door.animate([
+    { filter: dark }, { filter: dark, offset: lampAt(coinIn + 120) }, { filter: 'brightness(.62)', offset: lampAt(coinIn + 160) },
+    { filter: 'brightness(.34)', offset: lampAt(coinIn + 260) }, { filter: lamplit, offset: lampAt(coinIn + 560) }, { filter: lamplit },
+  ], { duration: relay, fill: 'forwards' });
   CHUTE_CLINKS_MS.forEach((ms, i) => {
     const fade = 1 - i / CHUTE_CLINKS_MS.length;
     jolt(el.mech, 0.05 + 0.12 * fade, gone + ms);

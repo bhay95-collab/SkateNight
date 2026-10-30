@@ -33,7 +33,7 @@
    sound is { lift, contact, chute, relay, power, tube, collapse }.
    ============================================================ */
 import { planSag } from './lights.js';
-import { BEATS } from './startup-timing.js';
+import { BEATS, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
 
@@ -166,7 +166,7 @@ function gather(attract) {
     door: $('.cab-door'), mech: $('.coin-mech'), gate: $('.mech-top'), lamp: $('.mech-glow'), doorBloom: $('.door-bloom'),
     label: $('.attract-coin'), hero: $('.hero-coin'), spin: $('.hero-spin'), shine: $('.hero-shine'), coinLamp: $('.hero-lamp'),
     shadow: $('.coin-shadow'), throat: $('.coin-throat'), halo: $('.cab-halo'), floor: $('.attract-floor'), glow: $('.cab-light'),
-    glint: $('.cab-glint i'), pillars: $$('.cab-tube i'), grain: $('.attract-grain'), room: $('.attract-room'),
+    body: $('.cab-body'), tubeCases: $$('.cab-tube'), spill: $('.cab-spill'), glint: $('.cab-glint i'), pillars: $$('.cab-tube i'), grain: $('.attract-grain'), room: $('.attract-room'),
   };
 }
 
@@ -232,8 +232,8 @@ function startDormant(el) {
     const plan = planSag();
     if (!document.hidden) {
       const opts = { duration: plan.duration, easing: 'linear' };
-      const volts = (k) => 0.5 * (1 - k.dim);
-      for (const [part, map] of [[el.sign, RESPONSE.sign], [el.door, RESPONSE.door], [el.arch, RESPONSE.chrome], [el.lamp, RESPONSE.lamp]]) {
+      const volts = (k) => STANDBY * (1 - k.dim);
+      for (const [part, map] of [[el.sign, RESPONSE.sign], [el.door, RESPONSE.door], [el.arch, RESPONSE.chrome], [el.body, RESPONSE.body], ...el.tubeCases.map((c) => [c, RESPONSE.body]), [el.spill, RESPONSE.spill], [el.grain, RESPONSE.static]]) {
         play(part, plan.keyframes.map((k) => ({ offset: k.offset, ...map(volts(k), 0) })), opts);
       }
       play(el.picture, plan.keyframes.map((k) => ({
@@ -383,12 +383,15 @@ function stageGently(el, at, cue, collapseTo) {
     el.attract.classList.add('is-lit');
     el.tubes.forEach((tube) => tube.classList.remove('is-dead'));
   });
-  fade(el.sign, [RESPONSE.sign(0.5), RESPONSE.sign(1)], attempt, ignite);
-  fade(el.picture, [RESPONSE.picture(0.5, 0), RESPONSE.picture(1, 0)], attempt, ignite);
-  fade(el.arch, [RESPONSE.chrome(0.5), RESPONSE.chrome(1)], attempt, ignite);
+  fade(el.door, [RESPONSE.door(STANDBY), RESPONSE.door(0.5)], coinIn, align);          // the slot lamp lights the coin door
+  fade(el.lamp, [{ opacity: 0 }, { opacity: 0.8 }], coinIn, align);
+  fade(el.sign, [RESPONSE.sign(STANDBY), RESPONSE.sign(1)], attempt, ignite);
+  fade(el.picture, [RESPONSE.picture(STANDBY, 0), RESPONSE.picture(1, 0)], attempt, ignite);
+  fade(el.arch, [RESPONSE.chrome(STANDBY), RESPONSE.chrome(1)], attempt, ignite);
+  for (const part of [el.body, ...el.tubeCases]) fade(part, [RESPONSE.body(STANDBY), RESPONSE.body(1)], attempt, ignite);
   el.tubes.forEach((tube) => fade(tube, [{ opacity: tube.classList.contains('is-dead') ? 0.22 : 1 }, { opacity: 1 }], caught, ignite));
   el.bulbs.forEach(({ el: bulb }) => fade(bulb, [{ opacity: 0 }, { opacity: 1 }], caught, ignite + 400));
-  el.pillars.forEach((fill) => fade(fill, [{ transform: 'scaleY(.06)', opacity: 0.48 }, { transform: 'scaleY(1)', opacity: 1 }], caught, ignite + 400));
+  el.pillars.forEach((fill) => fade(fill, [{ transform: 'scaleY(.06)', opacity: 0 }, { transform: 'scaleY(1)', opacity: 1 }], caught, ignite + 400));
   for (const part of [el.halo, el.floor, el.glow, el.doorBloom]) fade(part, [{ opacity: 0 }, { opacity: 0.8 }], caught, ignite + 400);
   if (collapseTo) fade(el.world, [{ opacity: 1 }, { opacity: 0 }], surge, end);
 }

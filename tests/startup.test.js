@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { BEATS, supplyAt } from '../startup-timing.js';
+import { BEATS, STANDBY, supplyAt } from '../startup-timing.js';
 import { RESPONSE, tubeSchedule } from '../startup-power.js';
 
 test('the neon tubes catch through phase B and the dead ones last, at ignition', () => {
@@ -21,7 +21,8 @@ test('the dormant cabinet in styles.css is the cabinet on standby supply', () =>
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   const cssFilter = (selector) => css.match(new RegExp(`\\n${selector.replace('.', '\\.')}\\{[^}]*?filter:([^;]+);`))?.[1] ?? '';
   const standby = supplyAt(0);
-  for (const [selector, response] of [['.cab-sign', RESPONSE.sign(standby)], ['.tv-picture', RESPONSE.picture(standby, 0)], ['.cab-arch', RESPONSE.chrome(standby)]]) {
+  for (const [selector, response] of [['.cab-sign', RESPONSE.sign(standby)], ['.tv-picture', RESPONSE.picture(standby, 0)], ['.cab-arch', RESPONSE.chrome(standby)],
+    ['.cab-body', RESPONSE.body(standby)], ['.cab-door', RESPONSE.door(standby)]]) {
     const [b, s] = levels(cssFilter(selector));
     const [vb, vs] = levels(response.filter);
     assert.ok(Math.abs(b - vb) < 0.01 && Math.abs(s - vs) < 0.01, `${selector}: CSS ${b}/${s} vs standby ${vb}/${vs}`);
@@ -40,4 +41,20 @@ test('the film keeps its story: a failed first try, a real silence, and a held, 
   assert.ok(tick > dark[0] && tick < caught, 'the tick lands in the dark');
   for (let ms = ignite + 420; ms <= surge; ms += 50) assert.ok(supplyAt(ms) >= 1, 'the lit machine holds steady');
   assert.ok(surge - ignite >= 1500, 'the lit machine gets its moment before the dive');
+});
+
+test('the dormant cabinet is the darkest moment: only the picture tube is really lit', () => {
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  const opacity = (selector) => Number(css.match(new RegExp(`\\n${selector.replace(/\./g, '\\.')}\\{[^}]*?opacity:([\\d.]+)`))?.[1]);
+  assert.equal(supplyAt(0), STANDBY);
+  assert.equal(RESPONSE.lamp(STANDBY).opacity, 0, 'the coin lamp is dark until someone touches the machine');
+  assert.equal(opacity('.mech-glow'), 0);
+  assert.equal(RESPONSE.tubes(STANDBY).opacity, 0, 'the bubble tubes are cold');
+  assert.equal(opacity('.cab-tube i'), 0);
+  assert.equal(opacity('.cab-spill'), RESPONSE.spill(STANDBY).opacity, 'the tube light on the cabinet is the standby response');
+  assert.equal(opacity('.attract-grain'), Number(RESPONSE.static(STANDBY).opacity.toFixed(2)));
+  const [sign] = levels(RESPONSE.sign(STANDBY).filter);
+  const [lit] = levels(RESPONSE.sign(1).filter);
+  assert.ok(sign < lit / 10, 'the sign is barely there next to the lit machine');
+  for (const v of [1, 1.14]) assert.ok(Math.abs(levels(RESPONSE.door(v).filter)[0] - (1 + 0.3 * (v - 0.5))) < 0.01, 'the lit door is as bright as ever');
 });

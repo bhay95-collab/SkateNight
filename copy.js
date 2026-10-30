@@ -315,24 +315,6 @@ export const IDLE_JOKES = [
   'THIS IS THE EXTENDED SILENT REMIX.',
 ];
 
-/* Shown while the machine waits for someone to use it. */
-export const ATTRACT_LINES = [
-  'INSERT COIN TO BEGIN',
-  'PRESS ANY KEY TO START THE NIGHT',
-  'ONE PLAYER OR ONE HUNDRED SKATERS',
-  'PICK A SONG - BE THE DJ',
-  'SKATE BY FAITH - NOT BY SIGHT',
-  'TODAY ONLY - SPECIAL BUY: GOOD TIMES',
-  'USED VINYL - LOVED BY MANY',
-  '33 1/3 R.P.M. OF PURE FUN',
-  'SYNTHS - MACHINES - MUSIC - FOREVER',
-  'STEREO HI-FI SKATING',
-  'WHO WILL PICK THE NEXT SONG?',
-  'TYPE A CODE LIKE A1 AND PRESS SELECT',
-  'PLAYER ONE: READY',
-  'FREE PLAY - NO COINS NEEDED',
-];
-
 /* Said when a song cannot be played (its MP3 file is missing). */
 export const OUT_OF_ORDER_LINES = [
   'SORRY, THAT RECORD IS OUT OF ORDER',

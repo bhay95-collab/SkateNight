@@ -194,7 +194,7 @@ place; follow these steps only if you want to swap it for a new one.
 **The day before, at home or the venue, on the venue laptop:**
 
 - [ ] Open the site in **Google Chrome** (best supported).
-- [ ] Press **INSERT COIN** (click it, or press any key).
+- [ ] Click the dark cabinet (or press any key) - there is no button on purpose.
 - [ ] Open **TOOLS** (bottom right), then press **LOAD THE CRATES**. The thin strip along the bottom of that button fills and the little
       light at the top right changes to **OFFLINE READY**. This saves every
       song on the laptop so the night runs even if the venue wifi dies. Press it
@@ -208,8 +208,8 @@ place; follow these steps only if you want to swap it for a new one.
       the projector is a second screen (Windows: press the Windows key + **P**,
       choose *Extend*. Mac: System Settings -> Displays -> use as *Extended
       display*, not Mirror).
-- [ ] Open the jukebox site in Chrome on the laptop screen and press
-      **INSERT COIN**.
+- [ ] Open the jukebox site in Chrome on the laptop screen and click the dark
+      cabinet (or press any key) to put the coin in.
 - [ ] Press **CROWD SCREEN ↗** (bottom right). A second window opens: that is the
       **crowd screen** - the jukebox as the room sees it, with no buttons,
       sliders or keypad. **Drag it onto the projector**, then **click it once**
@@ -228,18 +228,20 @@ place; follow these steps only if you want to swap it for a new one.
       should be about three-quarters up; use the jukebox slider to fine-tune.
 - [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
 
-**If the page is closed or reloaded by accident:** open the site again and press
-INSERT COIN -> START (and press CROWD SCREEN again if the crowd screen was closed - an
+**If the page is closed or reloaded by accident:** open the site again, click the dark
+cabinet (or press any key), then START (and press CROWD SCREEN again if the crowd screen was closed - an
 open crowd screen picks the jukebox back up on its own). The queue starts empty (the house rotation fills the gap).
 
 ## How it behaves
 
-- The site opens on **INSERT COIN**: the jukebox cabinet standing dark in the
-  basement on a failing supply, only its coin slot lit. Press it (click, tap or
-  any key) and the camera moves in as a coin swings into the light, lines up and
-  drops through the slot; you hear it fall deep inside, a relay thumps, the
-  machine tries to start, fails, catches, and comes alive bulb by bulb - then
-  dives into its own screen (about eight seconds in all). The power-on screen
+- The site opens on the dormant cabinet: the jukebox standing almost
+  invisible in a dark basement, its old picture tube the only light. There
+  are no instructions on purpose. Click, tap or press any key and the camera
+  moves in as the slot lamp catches and a coin swings into the light, lines
+  up and drops through the slot; you hear it fall deep inside, a relay thumps,
+  the machine tries to start, nearly makes it, dies, sits dark, catches on a
+  second try, and comes alive bulb by bulb - then dives into its own screen
+  (about fourteen and a half seconds in all). The power-on screen
   then runs for its full 13 seconds before the jukebox appears. It cannot be skipped. Once completed, it does not replay when
   refreshing the same browser tab (the coin still goes in, then straight to the
   jukebox).

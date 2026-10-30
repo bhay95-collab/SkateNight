@@ -4,7 +4,6 @@ import {
   BOOT_POOL,
   SKATE_JOKES,
   IDLE_JOKES,
-  ATTRACT_LINES,
   OUT_OF_ORDER_LINES,
   createRotator,
   sample,
@@ -15,7 +14,6 @@ const BLOCKED = ['damn', 'hell', 'crap', 'sucks', 'stupid', 'idiot', 'dumb', 'dr
 const textPools = {
   SKATE_JOKES,
   IDLE_JOKES,
-  ATTRACT_LINES,
   OUT_OF_ORDER_LINES,
 };
 
@@ -56,7 +54,7 @@ test('the ticker has a large pool of skate jokes so a long night never repeats e
 
 test('all copy stays church-family friendly', () => {
   const all = [
-    ...SKATE_JOKES, ...IDLE_JOKES, ...ATTRACT_LINES, ...OUT_OF_ORDER_LINES,
+    ...SKATE_JOKES, ...IDLE_JOKES, ...OUT_OF_ORDER_LINES,
     ...BOOT_POOL.map((b) => `${b.t} ${b.s}`),
   ];
   for (const line of all) {

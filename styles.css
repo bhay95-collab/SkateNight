@@ -121,12 +121,15 @@ button{ font:inherit; color:inherit; }
   53%{ opacity:.82 } 56%{ opacity:1 }
 }
 
-/* ================= ATTRACT: INSERT COIN =================
-   The jukebox's own cabinet in a basement, dust sheet just pulled off, too
-   big for the frame. Inside .cab everything is in cabinet em (1em is a
-   hundredth of its width), so it keeps its proportions on any screen.
-   The dormant look here is the cabinet on standby supply - v = 0.5 in
-   RESPONSE (startup-power.js) - so change one and change the other.
+/* ================= ATTRACT: THE DORMANT CABINET =================
+   The jukebox's own cabinet in a dark basement, dust sheet just pulled off,
+   too big for the frame, barely alive. Nothing on it says what to do; the
+   whole screen is the button. Inside .cab everything is in cabinet em (1em
+   is a hundredth of its width), so it keeps its proportions on any screen.
+   The dormant look here is the cabinet on its standby trickle - STANDBY in
+   startup-timing.js, through RESPONSE (startup-power.js) - so change one and
+   change the other. The only real light is the dull picture tube (.cab-spill
+   is its light falling off across the cabinet).
    startup.js stages the film on the beats in startup-timing.js. */
 .attract{
   position:fixed; inset:0; z-index:90; border:0; padding:0; cursor:pointer; color:inherit; overflow:hidden;
@@ -147,23 +150,23 @@ button{ font:inherit; color:inherit; }
 /* the room: a dark wall, a shaft of light from a basement window, dust in it */
 .attract-room{
   position:absolute; inset:0; pointer-events:none; overflow:hidden;
-  background:radial-gradient(48% 62% at 50% 40%, rgba(46,22,70,.5), transparent 72%), linear-gradient(180deg, #0b0614, #07040d 62%, #040208);
+  background:radial-gradient(48% 62% at 50% 40%, rgba(20,12,30,.45), transparent 72%), linear-gradient(180deg, #06040a, #040307 62%, #020104);
 }
 .attract-beam{
-  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg); opacity:.75; transition:opacity 1.6s ease;
+  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg); opacity:.22; transition:opacity 1.6s ease;
   background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.035) 40%, rgba(255,232,196,.06) 50%, rgba(255,232,196,.03) 62%, transparent 82%);
 }
-.attract.is-lit .attract-beam{ opacity:1; }
+.attract.is-lit .attract-beam{ opacity:.8; }
 .attract-floor{        /* the cabinet's light reaching the floor, once it is awake */
   position:absolute; left:0; right:0; bottom:0; height:34%; opacity:0;
   background:radial-gradient(56% 80% at 50% 100%, rgba(37,232,226,.14), rgba(255,45,149,.09) 45%, transparent 75%);
 }
 .mote{
   position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%;
-  background:rgba(255,238,212,.7); filter:blur(.6px); opacity:0; transition:filter 1.6s ease;
+  background:rgba(255,238,212,.35); filter:blur(.6px); opacity:0; transition:filter 1.6s ease;
   animation:mote-drift var(--d) linear var(--delay) infinite;
 }
-.attract.is-lit .mote{ filter:blur(.6px) brightness(1.7); }
+.attract.is-lit .mote{ filter:blur(.6px) brightness(2.6); }
 @keyframes mote-drift{
   0%{ opacity:0; transform:translate(0,0); }
   15%{ opacity:var(--o); }
@@ -194,6 +197,16 @@ button{ font:inherit; color:inherit; }
     radial-gradient(55% 45% at 12% 22%, rgba(255,232,196,.05), transparent 70%),                 /* the window's light on its shoulder */
     linear-gradient(90deg, #06030b, #120a1e 5%, #1d1030 12%, #150b24 26%, #0e0717 50%, #130a20 74%, #1a0e2c 88%, #100819 95%, #06030b);
   box-shadow:inset 0 0 0 .4em rgba(0,0,0,.55), inset 0 .6em 1.4em rgba(255,255,255,.04), 0 4em 9em rgba(0,0,0,.9);
+  filter:brightness(.18);   /* RESPONSE.body at STANDBY: the lacquer is only seen by light falling on it */
+}
+/* The picture tube's own light on its surroundings, falling off fast: a
+   faint cool wash on the bezel, the nearest chrome and the top of the door.
+   Plain alpha, no blend mode (a blended layer shows hard edges as things move). */
+.cab-spill{
+  position:absolute; inset:0; pointer-events:none; opacity:.8;
+  background:
+    radial-gradient(30em 27em at 50% 39%, rgba(150,200,212,.075), rgba(150,200,212,.03) 55%, transparent),
+    radial-gradient(52em 50em at 50% 42%, rgba(120,160,180,.03), transparent 70%);
 }
 .cab-arch{             /* the chrome tube: lit from above, its sides catching the window */
   position:absolute; left:1.6em; right:1.6em; top:1.6em; height:108.4em; padding:2.4em; border-radius:34.4em 34.4em 0 0;
@@ -202,11 +215,11 @@ button{ font:inherit; color:inherit; }
     linear-gradient(90deg, #241c2e, #9a8faa 3%, #4d4358 6%, #2a2233 50%, #4d4358 94%, #9a8faa 97%, #241c2e);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  filter:brightness(.675);
+  filter:brightness(.09);
 }
 .bulb{
   position:absolute; width:1.7em; height:1.7em; margin:-.85em 0 0 -.85em; border-radius:50%;
-  background:radial-gradient(circle at 36% 32%, rgba(255,255,255,.35) 0 12%, #3a2d40 30%, #1b1320 75%);
+  background:radial-gradient(circle at 36% 32%, rgba(255,255,255,.1) 0 12%, #1e1724 30%, #0d0a10 75%);   /* cold glass: the lit filament covers it */
   box-shadow:0 0 0 .18em #120a17, 0 .2em .3em rgba(0,0,0,.6);
 }
 .bulb i{
@@ -214,7 +227,7 @@ button{ font:inherit; color:inherit; }
   background:radial-gradient(circle at 40% 36%, #fffbe8 0 18%, #ffd76a 42%, #f29b16 70%, rgba(242,155,22,0) 72%);
   box-shadow:0 0 .9em .2em rgba(255,190,70,.75), 0 0 2.4em .6em rgba(255,150,30,.3);
 }
-.bulb i.is-standby{ opacity:.3; }
+.bulb i.is-standby{ opacity:.05; }   /* STANDBY x STANDBY_EMBER (startup-power.js) */
 .dust-speck{ position:absolute; width:.35em; height:.35em; border-radius:50%; background:rgba(255,236,206,.85); opacity:0; pointer-events:none; }
 
 .cab-light{           /* the machine's own light on its lacquer: nothing on standby, all of it awake */
@@ -232,11 +245,12 @@ button{ font:inherit; color:inherit; }
   position:absolute; top:34em; height:64em; width:5.4em; border-radius:2.7em; overflow:hidden;
   background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(255,255,255,.015) 35%, rgba(0,0,0,.35) 80%), #0c0714;
   box-shadow:0 0 0 .3em #2a2034, 0 0 0 .5em #0c0712, inset 0 0 1.2em rgba(0,0,0,.8);
+  filter:brightness(.18);   /* RESPONSE.body at STANDBY, like the lacquer they are set into */
 }
 .cab-tube.is-left{ left:6.2em; --fluid:37,232,226; }
 .cab-tube.is-right{ right:6.2em; --fluid:255,45,149; }
 .cab-tube i{
-  position:absolute; inset:.45em; border-radius:2.3em; transform-origin:50% 100%; transform:scaleY(.06); opacity:.48;
+  position:absolute; inset:.45em; border-radius:2.3em; transform-origin:50% 100%; transform:scaleY(.06); opacity:0;
   background:linear-gradient(0deg, rgba(var(--fluid),.85), rgba(var(--fluid),.35) 60%, transparent);
 }
 .cab-tube i::after{    /* bubbles: a tall strip of them, slid up with transform */
@@ -252,7 +266,7 @@ button{ font:inherit; color:inherit; }
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.5em;
   background:radial-gradient(80% 90% at 50% 50%, #120a1d, #06030a 80%);
   box-shadow:0 0 0 .7em #2f2539, 0 0 0 .95em #0e0814, inset 0 0 0 .2em rgba(255,255,255,.05), inset 0 0 3.5em rgba(0,0,0,.95), 0 1em 2em rgba(0,0,0,.6);
-  filter:brightness(.55) saturate(.55);
+  filter:brightness(.069) saturate(.28);
 }
 .sign-bloom{
   position:absolute; left:-24%; right:-24%; top:-70%; bottom:-70%; border-radius:50%; pointer-events:none; opacity:0; mix-blend-mode:screen;
@@ -268,8 +282,8 @@ button{ font:inherit; color:inherit; }
 /* the picture tube: a deep bezel, curved glass, the attract picture on standby */
 .cab-screen{
   position:absolute; left:20.5em; right:20.5em; top:30.5em; height:42em; border-radius:4.6em;
-  background:linear-gradient(180deg, #1a1224, #0c0712 70%);
-  box-shadow:0 0 0 .55em #261b30, 0 0 0 .8em #0b0610, inset 0 .25em .3em rgba(255,255,255,.07), inset 0 -.5em .8em rgba(0,0,0,.65), 0 1.2em 2.4em rgba(0,0,0,.7);
+  background:linear-gradient(180deg, #110c17, #07050b 70%);   /* blackened, so the tube's own light is what shows it */
+  box-shadow:0 0 0 .55em #17111d, 0 0 0 .8em #07040a, inset 0 0 1.6em rgba(150,200,212,.05), inset 0 -.5em .8em rgba(0,0,0,.65), 0 1.2em 2.4em rgba(0,0,0,.7);
 }
 /* Everything on the tube - picture, line, static, scanlines, roll, flash - is
    clipped to the tube's own curved face by clip-path. overflow + border-radius
@@ -283,10 +297,11 @@ button{ font:inherit; color:inherit; }
 .tv-picture{
   position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2.6em;
   background:radial-gradient(70% 70% at 50% 46%, rgba(46,20,72,.95), #0c0516 75%);
-  filter:brightness(.52) saturate(.6); transform-origin:50% 50%;
+  filter:brightness(.165) saturate(.36); transform-origin:50% 50%;
 }
 .attract-logo{ width:15em; height:15em; filter:drop-shadow(0 0 .9em rgba(37,232,226,.4)); }
-.attract-sub{ font:700 max(1.9em, 10px) var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--cyan); text-shadow:0 0 .6em rgba(37,232,226,.6); min-height:1.3em; max-width:88%; text-align:center; text-wrap:balance; }
+.attract-fault{ font:700 max(1.9em, 10px) var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--red); max-width:88%; text-align:center; text-wrap:balance; }
+.attract-fault:empty{ display:none; }   /* only a start-up failure ever puts words on the dormant tube */
 .tv-line{              /* the raster collapsed to one bright line */
   position:absolute; left:6%; right:6%; top:50%; height:.55em; margin-top:-.275em; border-radius:50%; opacity:0;
   background:linear-gradient(90deg, transparent, rgba(200,255,250,.9) 18%, #fff 50%, rgba(200,255,250,.9) 82%, transparent);
@@ -304,7 +319,7 @@ button{ font:inherit; color:inherit; }
     radial-gradient(120% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.75));
 }
 .attract-grain{
-  position:absolute; inset:-50%; background-image:var(--grain); opacity:.1;
+  position:absolute; inset:-50%; background-image:var(--grain); opacity:.06;
   animation:grain-jump 1s steps(1) infinite;
 }
 @keyframes grain-jump{
@@ -330,6 +345,7 @@ button{ font:inherit; color:inherit; }
     repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 3px),
     linear-gradient(180deg, #3d3248, #241b2f 55%, #1a1322);
   box-shadow:inset 0 .12em 0 rgba(255,255,255,.18), inset 0 0 0 .1em rgba(255,255,255,.05), 0 .9em 1.8em rgba(0,0,0,.55), 0 0 0 .3em #0c0712;
+  filter:brightness(.128);   /* RESPONSE.door at STANDBY: in the dark until the slot lamp catches */
 }
 .door-bloom{
   position:absolute; left:-30%; right:-30%; top:-45%; bottom:-45%; border-radius:50%; pointer-events:none; opacity:0; mix-blend-mode:screen;
@@ -338,8 +354,9 @@ button{ font:inherit; color:inherit; }
 .coin-mech{ position:relative; flex:none; width:13em; height:17em; }
 .attract:active .coin-mech{ transform:translateY(.12em); }
 .mech-glow{            /* the slot lamp's light, rising out of the slit */
-  position:absolute; left:.5em; right:.5em; bottom:calc(100% - 1.2em); height:7em; pointer-events:none; opacity:.8; mix-blend-mode:screen;
+  position:absolute; left:.5em; right:.5em; bottom:calc(100% - 1.2em); height:7em; pointer-events:none; mix-blend-mode:screen;
   background:radial-gradient(55% 100% at 50% 100%, rgba(255,196,80,.55), rgba(255,150,30,.18) 50%, transparent 75%);
+  opacity:0;   /* dark on standby: the touch wakes it (stageMechanism) */
   animation:lamp-breathe 2.8s ease-in-out infinite;
 }
 @keyframes lamp-breathe{ 0%,100%{ filter:brightness(.92); } 50%{ filter:brightness(1.12); } }
@@ -376,13 +393,10 @@ button{ font:inherit; color:inherit; }
   box-shadow:0 0 0 .35em #1a1322, 0 0 0 .5em #4a4157, 0 .3em .5em rgba(0,0,0,.6);
 }
 .door-text{ display:flex; flex-direction:column; align-items:flex-start; gap:1em; padding-top:2.4em; perspective:20em; }
-.attract-coin{
-  font-family:var(--font-display); font-size:4.2em; line-height:1; letter-spacing:.03em; color:var(--gold); min-width:7.4em; text-align:left;
-  text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4);
-  animation:coin-blink 1.15s steps(1) infinite;
+.attract-coin{       /* the credit counter: an unlit window until a coin is accepted */
+  font-family:var(--font-display); font-size:4.2em; line-height:1; letter-spacing:.03em; color:#5a4a2c; min-width:7.4em; text-align:left;
 }
-.attract-coin.is-credited{ animation:none; color:#fff3c4; }
-@keyframes coin-blink{ 50%{ opacity:.4; text-shadow:none; } }
+.attract-coin.is-credited{ color:#fff3c4; text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4); }
 .door-price{ font:700 max(1.5em, 8px) var(--font-mono); letter-spacing:.22em; color:var(--cream); opacity:.75; }
 .cab-glint{ position:absolute; inset:0; border-radius:36em 36em 1.6em 1.6em; overflow:hidden; pointer-events:none; }
 .cab-glint i{          /* light catching the glass and chrome as the cabinet comes up */
@@ -429,7 +443,7 @@ button{ font:inherit; color:inherit; }
 /* Reduced motion: no drifting dust, jumping grain or blinking lamp; the film
    itself is told without travel or flicker (stageGently in startup.js). */
 @media (prefers-reduced-motion: reduce){
-  .mote, .attract-grain, .attract-roll, .mech-glow, .attract-coin{ animation:none; }
+  .mote, .attract-grain, .attract-roll, .mech-glow{ animation:none; }
   .attract.is-lit .cab-tube i::after{ animation:none; }
 }
 

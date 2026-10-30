@@ -13,9 +13,10 @@
    Every animation is created at the press with a delay, on the document
    timeline, so nothing drifts from anything else.
    ============================================================ */
-import { BEATS, supplyAt } from './startup-timing.js';
+import { BEATS, STANDBY, supplyAt } from './startup-timing.js';
 
 const STEP_MS = 30;
+const STANDBY_EMBER = 0.25;                           // the few bulbs still warm on standby: an ember, not a glow (styles.css .is-standby)
 const OFF = 0.12;                                     // an unlit neon tube: just the glass
 const STRIKE_ORDER = [0, 5, 2, 9, 3, 6, 1, 8, 4, 7];  // the order the letters catch in phase B
 const STRUGGLING = new Set([2, 6]);                   // these two catch, drop, then hold
@@ -35,16 +36,22 @@ export const glow = ({ b, s = 1, hue = 0, split = 0 }) =>
   `brightness(${b.toFixed(3)}) saturate(${s.toFixed(3)}) hue-rotate(${hue.toFixed(1)}deg)` + (split < 0.05 ? '' :
     ` drop-shadow(${split.toFixed(2)}px 0 0 rgba(255,40,100,.55)) drop-shadow(${(-split).toFixed(2)}px 0 0 rgba(0,235,255,.55))`);
 
-/* How each part answers the supply. v = 0.5 is the dormant look in styles.css. */
+/* How each part answers the supply. v = STANDBY is the dormant look in
+   styles.css (tests/startup.test.js holds the two together). Lit parts fall
+   away steeply below running, so the trickle the dormant cabinet sits on
+   lights almost nothing but the picture tube; from running up they are
+   exactly as bright as they always were. */
 export const RESPONSE = {
-  sign: (v) => ({ filter: `brightness(${(0.1 + 0.9 * v).toFixed(3)}) saturate(${(0.1 + 0.9 * Math.min(v, 1.1)).toFixed(3)})` }),
+  sign: (v) => ({ filter: `brightness(${(v <= 1 ? 0.03 + 0.97 * v * v : 0.1 + 0.9 * v).toFixed(3)}) saturate(${(0.1 + 0.9 * Math.min(v, 1.1)).toFixed(3)})` }),
   picture: (v, ms) => ({ filter: glow({ b: clamp((v - 0.06) * 1.18, 0, 1.6), s: clamp(0.2 + 0.8 * v, 0, 1.2), ...unsteady(v, ms) }) }),
-  door: (v) => ({ filter: `brightness(${(0.32 + 1.36 * Math.min(v, 0.5) + 0.3 * Math.max(v - 0.5, 0)).toFixed(3)})` }),
-  chrome: (v) => ({ filter: `brightness(${(0.3 + 0.75 * v).toFixed(3)})` }),
-  lamp: (v) => ({ opacity: clamp((v - 0.03) * 1.7) }),
+  door: (v) => ({ filter: `brightness(${(0.03 + 0.97 * (Math.min(v, 0.5) / 0.5) ** 2.5 + 0.3 * Math.max(v - 0.5, 0)).toFixed(3)})` }),
+  chrome: (v) => ({ filter: `brightness(${(v <= 1 ? 0.05 + v * v : 0.3 + 0.75 * v).toFixed(3)})` }),
+  body: (v) => ({ filter: `brightness(${(v >= 1 ? 1 : 0.1 + 0.9 * v ** 1.5).toFixed(3)})` }),   // the lacquer, seen only by the light on it
+  spill: (v) => ({ opacity: clamp(v * 4) }),                                                  // the picture tube's light on its surroundings
+  lamp: (v) => ({ opacity: clamp((v - 0.25) * 1.7) }),
   room: (v) => ({ opacity: clamp((v - 0.55) * 2.2) }),
   tubes: (v) => ({ opacity: clamp((v - 0.2) * 1.6) }),
-  static: (v) => ({ opacity: v <= 0.5 ? 0.2 * v : 0.1 - 0.05 * clamp((v - 0.5) * 2) }),   // .1 on standby, .05 once running (styles.css)
+  static: (v) => ({ opacity: Math.min(0.3 * v, 0.1 - 0.05 * clamp((v - 0.5) * 2)) }),   // faint on standby, .05 once running (styles.css)
 };
 
 /* Keyframes that follow the supply through map(v, ms), from the relay on. */
@@ -141,7 +148,7 @@ export function stageBulbs(bulbs) {
   bulbs.forEach(({ el, rise, standby }) => {
     const on = ignite + 60 + Math.round(900 * rise);   // from the foot of the arch up to its crown
     const points = [];
-    for (let ms = relay - STEP_MS; ms < on; ms += STEP_MS) points.push([ms, standby ? clamp(supplyAt(ms) * 0.6) : 0]);
+    for (let ms = relay - STEP_MS; ms < on; ms += STEP_MS) points.push([ms, standby ? clamp(supplyAt(ms) * STANDBY_EMBER) : 0]);
     points.push([on, standby ? 0.5 : 0], [on + 90, 1], [end, 1]);
     el.animate(track(points, relay - STEP_MS, end, 'opacity'), { ...span(relay - STEP_MS, end), easing: 'linear' });
   });
@@ -164,6 +171,7 @@ export function stageIgnition(el, at) {
   el.glint?.animate(sweep, { delay: ignite + 250, duration: 900, easing: 'cubic-bezier(.45,0,.25,1)' });
   el.glint?.animate(sweep, { delay: ignite + 1350, duration: 1500, easing: 'cubic-bezier(.45,0,.25,1)' });   // the hero moment: light lingering on the chrome
   for (const [part, map] of [[el.sign, RESPONSE.sign], [el.door, RESPONSE.door], [el.arch, RESPONSE.chrome],
-    [el.lamp, RESPONSE.lamp], [el.halo, RESPONSE.room], [el.floor, RESPONSE.room], [el.glow, RESPONSE.room]]) followSupply(part, map);
+    [el.lamp, RESPONSE.lamp], [el.halo, RESPONSE.room], [el.floor, RESPONSE.room], [el.glow, RESPONSE.room],
+    [el.body, RESPONSE.body], ...el.tubeCases.map((c) => [c, RESPONSE.body]), [el.spill, RESPONSE.spill]]) followSupply(part, map);
   el.pillars.forEach((fill) => followSupply(fill, RESPONSE.tubes));
 }

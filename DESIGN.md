@@ -139,8 +139,8 @@ label and the volume code chips):
 
 **One accent per job, never swapped:** magenta means "act here / selected",
 cyan means "this is a number or a light", gold means "this is the biggest
-button on the screen". INSERT COIN is the only gold button on the attract
-screen; START / PAUSE is the only gold button on the machine. SELECT is magenta.
+button on the screen". The dormant cabinet has no button and no prompt at
+all; START / PAUSE is the only gold button on the machine. SELECT is magenta.
 
 ## Typography
 
@@ -286,14 +286,32 @@ record changer and the readouts carry the show; the world around it stays dim.
   **a tiny coin starts an enormous machine.** The INSERT COIN screen is the
   jukebox's own cabinet (chrome arch with bulbs, bubble tubes, a neon sign, a
   picture tube, a brushed-steel coin door) standing in a dark basement, too big
-  for the frame, alive only on a tired standby supply. Everything inside `.cab`
-  is in cabinet em (1/100 of its width), so it keeps its proportions anywhere.
-  - **One supply.** `SUPPLY` in `startup-timing.js` is the voltage (0.5 =
-    standby). The sign, the tube's picture, the door lamp, the chrome's
-    reflections, the room's light and the transformer hum all follow it through
-    their own responses (`RESPONSE` in `startup-power.js`), so a sag dims them
-    together and the hum sags with them. The CSS dormant look IS the response
-    at 0.5 (`tests/startup.test.js` holds the two together). Dormant sags come
+  for the frame, barely alive. Everything inside `.cab` is in cabinet em (1/100
+  of its width), so it keeps its proportions anywhere.
+  - **The darkest moment comes first.** Before anyone touches it the cabinet
+    is lit by one practical source: the dull phosphor glow of its picture tube
+    (a ghost of the logo, faint static, the roll band, the odd sag). Its light
+    (`.cab-spill`) falls off fast across the bezel, the nearest chrome and the
+    top of the door; the lacquer, the arch, the cold bulbs, the dark neon glass
+    and the coin door are only just there. No prompt, no blinking text, no
+    lit button: the whole screen is the button (keyboard, mouse and touch; the
+    accessible name still says what it does), and people discover it by
+    trying. The touch wakes the slot lamp - it stutters and catches - and its
+    light is what first shows the coin door and the coin. The credit counter
+    is an unlit window ("0 CREDITS") until it flips to a lit 1 CREDIT. Measured
+    (16-235 video levels): wall 20, lacquer 21, CRT 33 dormant; lacquer 72,
+    CRT 107, coin door 160 once awake - the opening carries the dynamic range,
+    the ignition is no brighter than before.
+  - **One supply.** `SUPPLY` in `startup-timing.js` is the voltage (`STANDBY`
+    = 0.2, a trickle). The sign, the tube's picture and static, the lacquer,
+    the door, the chrome's reflections, the tube's light on the cabinet, the
+    room's light and the transformer hum all follow it through their own
+    responses (`RESPONSE` in `startup-power.js`), so a sag dims them together
+    and the hum sags with them. Lit parts fall away steeply below running
+    (brightness ~ v squared) and are exactly as bright as ever from running up.
+    The CSS dormant look IS the response at `STANDBY` (`tests/startup.test.js`
+    holds the two together, and that the coin lamp and bubble tubes are dark
+    on standby). Dormant sags come
     from `planSag` (1.2 s+ apart, at most 2 dips, 55% darker); now and then a
     dead tube tries to catch during one.
   - **One clock.** The whole film is scheduled at the press on the document
@@ -425,7 +443,7 @@ Port of trivia's effects, then the jukebox mechanics on top.
 **Ported from trivia:** CRT power-on boot with a random self-test (`startBoot`),
 neon flicker with a random pattern/speed/phase per tube (`neon.js`), the synth
 horizon (grid, stars, glow line), CRT glass roll band, chasing marquee
-bulbs, the blinking attract prompt, score-reel count-ups (`countUp`, used for
+bulbs, score-reel count-ups (`countUp`, used for
 the credits counter).
 
 **Record mechanism** (`mechanism.js`) - on selection, one scheduled timeline of
@@ -557,7 +575,6 @@ LED reads **FREE PLAY** (real arcade term).
 - The boot sequence was changed from trivia's: the screen flicker now has dips at
   least 0.45 s apart, and the logo power-on flicker is spread over 1.4 s. The
   single white boot flash happens once, at 85 % strength.
-- The blinking attract prompt is 0.87 Hz and only changes text colour.
 - The record's sheen is a low-contrast highlight rotating at 1.1 passes a second
   over a small area.
 
@@ -565,7 +582,7 @@ Audit list - every `@keyframes` in `styles.css`, `jukebox.css` and `changer.css`
 `crt-roll` 11 s (one band, whole screen), `spot-drift` 45-95 s, `logo-breathe` 4.8 s, `bulb-chase`
 4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
-`coin-drop` once, `score-pop` once, boot sequence once per tab. INSERT COIN screen: `coin-blink` 1.15 s, `lamp-breathe` 2.8 s, `attract-roll` 6.5 s, `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s, `bubbles-rise` 2.6 s once lit; power sags and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
+`coin-drop` once, `score-pop` once, boot sequence once per tab. Dormant cabinet: `lamp-breathe` 2.8 s (the slot lamp, dark until the touch), `attract-roll` 6.5 s, `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s, `bubbles-rise` 2.6 s once lit; power sags and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
 Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
 1 s, bursts at least 25 s apart, never more than 60% darker - so never more
 than 2 flashes in any second. The burst plays across a blurred 4x3 grid of
@@ -601,8 +618,9 @@ checks 500 random bursts, patch by patch.
   CHECK TRACKS.JS button with a plain-English list instead of crashing. Its
   native modal dialog makes the background inert, blocks cabinet shortcuts,
   closes with Close or Escape, and restores focus to the warning button.
-- A start-up failure shows "START-UP PROBLEM - PRESS F5" on the INSERT COIN
-  screen rather than a dead page.
+- A start-up failure shows "START-UP PROBLEM - PRESS F5" on the dormant
+  cabinet's picture tube (`.attract-fault`, the only words it ever shows
+  before the coin) rather than a dead page.
 
 ## Playback controls: shuffle, skip, back
 

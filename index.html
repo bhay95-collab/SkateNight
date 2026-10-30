@@ -39,8 +39,9 @@
 
 <!-- ============ 2. ATTRACT: INSERT COIN ============
      The first thing anyone sees: the jukebox's own cabinet in a basement,
-     dust sheet just pulled off, on a tired standby supply. Only the coin
-     entry is properly lit. The click / tap / key press here is the gesture
+     dust sheet just pulled off, barely alive: a dull picture tube is the only
+     light, and nothing on it says what to do. The whole screen is the button;
+     the click / tap / key press people try is the gesture
      browsers demand before they allow any sound; startup.js then puts the
      coin in, wakes the cabinet, and dives into its picture tube, which
      squeezes to the line the boot screen above strikes from. -->
@@ -64,7 +65,7 @@
           <span class="tv">
             <span class="tv-picture">
               <img class="attract-logo" src="rfai-logo.png" width="512" height="512" alt="">
-              <span class="attract-sub" id="attract-sub">PRESS ANY KEY OR CLICK TO START</span>
+              <span class="attract-fault" id="attract-fault" role="alert"></span>
             </span>
             <span class="tv-line"></span>
             <span class="tv-glass"><span class="attract-grain"></span><span class="attract-roll"></span></span>
@@ -94,10 +95,11 @@
             <span class="mech-face"><span class="mech-price">25&cent;</span><span class="mech-return"></span></span>
           </span>
           <span class="door-text">
-            <span class="attract-coin" id="attract-coin">INSERT COIN</span>
+            <span class="attract-coin" id="attract-coin">0 CREDITS</span>
             <span class="door-price">25&cent; &middot; 1 PLAY</span>
           </span>
         </span>
+        <span class="cab-spill"></span>
         <span class="cab-glint"><i></i></span>
       </span>
     </span>

@@ -4,11 +4,14 @@
    is the jolt you see. Every time is in ms from the press.
 
    SUPPLY is the cabinet's one electrical supply, 0 (dead) to 1 (running),
-   with 0.5 the tired standby the dormant cabinet sits on. The sign, the
+   with STANDBY the trickle the dormant cabinet sits on: enough for a dull
+   glow on the picture tube and nothing else. The sign, the
    picture tube, the lamps, the room's light and the transformer hum all
    follow it, so a sag dims everything at once and the hum sags with it.
    tests/safety.test.js holds it to the flash budget.
    ============================================================ */
+
+export const STANDBY = 0.2;
 
 export const BEATS = {
   coinIn: 300,      // the coin swings into shot, close to the lens, out of focus
@@ -36,7 +39,7 @@ export const CHUTE_CLINKS_MS = [70, 250, 400, 520, 615, 690, 750];
 /* [ms, volts]. Dips are a few hundred ms wide and at most two to a second. */
 const { relay, attempt, almost, fail, catch: caught, ignite, surge, collapse, end } = BEATS;
 export const SUPPLY = [
-  [0, 0.5], [relay, 0.5], [relay + 50, 0.03],                                         // relay throws: standby drops out
+  [0, STANDBY], [relay, STANDBY], [relay + 50, 0.03],                                         // relay throws: standby drops out
   [attempt, 0.03], [attempt + 500, 0.2], [attempt + 850, 0.38], [almost, 0.55],       // A: the transformer gathers, slowly
   [almost + 200, 0.34], [almost + 330, 0.47], [fail, 0.42], [fail + 380, 0],           //    nearly; a stumble; then it dies away
   [caught, 0], [caught + 120, 0.3], [caught + 500, 0.52], [caught + 680, 0.36],       // B: catches hard, struggles
