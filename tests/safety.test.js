@@ -151,3 +151,26 @@ test('the INSERT COIN film keeps its beats in order', async () => {
   assert.ok(BEATS.gone + CHUTE_CLINKS_MS.at(-1) < BEATS.credit, 'the coin reaches the box before the credit shows');
   assert.ok(SUPPLY.every(([, v]) => v >= 0 && v <= 1.3), 'the supply stays in range');
 });
+
+test('the contact fault adds no flash: small, dim, and the combined sequence stays inside the budget', async () => {
+  const { BEATS, supplyAt } = await import('../startup-timing.js');
+  const { FILM_FAULTS, FAULT } = await import('../startup-fault.js');
+  // every supply swing is a brightness change; each contact is two more (on, off)
+  const changes = [...supplySwings(supplyAt, BEATS.end), ...FILM_FAULTS.flatMap((ev) => [ev.at, ev.at + ev.coreMs + ev.decayMs])].sort((a, b) => a - b);
+  for (const start of changes) {
+    const n = changes.filter((ms) => ms >= start && ms < start + 1000).length;
+    assert.ok(n <= 6, `at most three flashes in any second, sparks included (${n} changes from ${start} ms)`);
+  }
+  // WCAG 2.3.1 counts a flash only over a quarter of a 10-degree field (341 x 256 px at 1024 x 768);
+  // the contact's boxes, at the 1280 x 720 reference (6.91 px a cabinet em), are a fraction of that even
+  // counted whole (most of the light's box is transparent gradient).
+  const em = 6.91;
+  const box = (sel) => {
+    const rule = css.match(new RegExp(`\\n${sel.replace('.', '\\.')}\\{([^}]*)\\}`))[1];
+    const [w, h] = ['width', 'height'].map((k) => Number(rule.match(new RegExp(`${k}:([\\d.]+)em`))[1]));
+    return w * h * em * em;
+  };
+  const lit = box('.cab-fault') + box('.fault-light');
+  assert.ok(lit < 0.25 * 0.25 * 341 * 256, `the contact's boxes cover ${Math.round(lit)} px², under a quarter of a flash area`);
+  assert.ok(FILM_FAULTS.every((ev) => ev.strength <= FAULT.maxStrength && ev.coreMs <= 60), 'never a lamp, never long');
+});

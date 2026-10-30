@@ -39,6 +39,7 @@ import { BREATH, planBreath } from './lights.js';
 import { BEATS, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
+import { gatherFault, stageFaults, startDormantFaults } from './startup-fault.js';
 
 const MOTES = 16;
 const DEAD_TUBES = 2;
@@ -288,10 +289,13 @@ export function wakeAttract(attract) {
   el.dead.forEach((i) => el.tubes[i].classList.add('is-dead'));
 
   el.robot = buildRobot(el);
+  el.fault = gatherFault(attract);
   const dormant = startDormant(el);
+  const faults = startDormantFaults(el.fault, dormant);
 
   async function insert(sound = {}, { collapseTo = null } = {}) {
     const cue = (name) => { try { sound[name]?.(); } catch (err) { console.warn('[startup]', err); } };
+    faults.stop();                         // the dormant contact goes quiet; the film has its own
     attract.classList.add('is-inserting');
     const film = clock(attract);
     film.at(relay + 120, dormant.stop);   // it breathes on while the coin goes in; the relay takes the picture
@@ -390,6 +394,7 @@ function stageFilm(el, at, cue, collapseTo) {
   stageTubes(el.tubes, el.dead, at, cue);
   stageBulbs(el.bulbs);
   stageIgnition(el, at);
+  stageFaults(el.fault);
   if (collapseTo) stageHandoff(el, at, cue, collapseTo);
 }
 

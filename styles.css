@@ -225,6 +225,23 @@ button{ font:inherit; color:inherit; }
   mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   filter:brightness(.035);
 }
+/* The bad contact (startup-fault.js): low on the left seam, behind the side
+   panel. The filament is clipped at the cabinet's silhouette (x = 0), so
+   only what escapes past the housing shows, over the dark room; its light
+   falls on the lacquer rim and the chrome beside it, inside the cabinet's
+   edge. Both are dark at rest - only an animation ever lifts them. */
+.cab-fault{ position:absolute; left:-1.4em; top:89.6em; width:2.2em; height:2.6em; pointer-events:none; clip-path:inset(-1em 0.8em -1em -1em); }
+.fault-arc{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; opacity:0; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.fault-arc path{ stroke:rgba(140,190,255,.32); stroke-width:2.2; }
+.fault-arc path.core{ stroke:#eef8ff; stroke-width:.7; }
+.fault-light{
+  position:absolute; left:0; top:83em; width:6em; height:17em; pointer-events:none; opacity:0;
+  background:
+    radial-gradient(3.4em 5.2em at 0 7.9em, rgba(160,200,255,.3), rgba(120,165,230,.09) 45%, transparent 75%),
+    radial-gradient(.9em 3.4em at 2.8em 7.9em, rgba(215,232,255,.34), transparent 72%);
+}
+html[data-lights="calm"] .cab-fault, html[data-lights="calm"] .fault-light{ display:none; }
+@media (prefers-reduced-motion: reduce){ .cab-fault, .fault-light{ display:none; } }
 .bulb{
   position:absolute; width:1.7em; height:1.7em; margin:-.85em 0 0 -.85em; border-radius:50%;
   background:radial-gradient(circle at 36% 32%, rgba(255,255,255,.02) 0 12%, #060508 30%, #030304 75%);   /* cold glass, catching almost nothing: the lit filament covers it */

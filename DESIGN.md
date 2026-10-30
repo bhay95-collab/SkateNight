@@ -333,7 +333,22 @@ record changer and the readouts carry the show; the world around it stays dim.
     press it stirs and steps back for the coin, drops out with standby at
     the relay, its ghost rides the first attempt and dies with it by fail +
     350 ms: the dark and the second attempt are the film's alone
-    (`AFTER_PRESS`, `tests/drone.test.js`). The tube's light falls off
+    (`AFTER_PRESS`, `tests/drone.test.js`).
+    The fault in the machine (`startup-fault.js`): one bad contact behind
+    the left side panel, low on the seam (about y 90 em - the reference
+    frames end at 100 em). A tiny crooked filament (three hand-drawn
+    shapes, `.fault-arc`) is clipped at the cabinet's silhouette, so only
+    what escapes the housing shows; a little cool light (`.fault-light`)
+    catches the lacquer rim and the chrome beside it. Dark at rest, opacity
+    only, no fill. Dormant: one contact every 20-45 s (sometimes up to
+    65 s, never at load) on the robot's falters or recoveries, one timer at
+    a time, quiet in a hidden tab and stopped at the press. The film: four,
+    on the beats and gated by `supplyAt` - attempt + 440, almost + 210,
+    catch + 130, catch + 1460 - none in the coin, the dead interval, the
+    tick, or from ignition on. With the supply's swings they keep every
+    second to three flashes or fewer, over a lit area under a quarter of a
+    WCAG flash area (`tests/fault.test.js`, `tests/safety.test.js`). None
+    with reduced motion or calm lights. The tube's light falls off
     fast across the bezel, the nearest chrome and the top of the door; the
     lacquer (.06), the arch (.035), the cold bulbs, the dark neon glass and
     the coin door (.04) are only just there. No prompt, no blinking text, no
@@ -849,6 +864,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
 | `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |
 | `drone.js` | The dormant machine's breathing drone and its hand-off to the film |
+| `startup-fault.js` | The bad contact behind the side panel: dormant and film sparks |
 | `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
 | `carousel.js` | The record carousel: turn maths (pure) and its drawing |
 | `arch.js` | The arched cabinet crown |
