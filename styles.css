@@ -150,16 +150,16 @@ button{ font:inherit; color:inherit; }
 /* the room: a dark wall, a shaft of light from a basement window, dust in it */
 .attract-room{
   position:absolute; inset:0; pointer-events:none; overflow:hidden;
-  background:radial-gradient(48% 62% at 50% 40%, rgba(20,12,30,.45), transparent 72%), linear-gradient(180deg, #06040a, #040307 62%, #020104);
+  background:radial-gradient(54% 56% at 50% 42%, rgba(11,8,17,.18), transparent 70%), linear-gradient(180deg, #030209, #010103 62%, #000000);
 }
 .attract-beam{
-  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg); opacity:.22; transition:opacity 1.6s ease;
-  background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.035) 40%, rgba(255,232,196,.06) 50%, rgba(255,232,196,.03) 62%, transparent 82%);
+  position:absolute; top:-30%; left:-12%; width:62%; height:160%; transform:rotate(-24deg); opacity:.06; transition:opacity 1.6s ease;
+  background:linear-gradient(90deg, transparent 18%, rgba(255,232,196,.015) 40%, rgba(255,232,196,.02) 50%, rgba(255,232,196,.012) 62%, transparent 82%);
 }
 .attract.is-lit .attract-beam{ opacity:.8; }
 .attract-floor{        /* the cabinet's light reaching the floor, once it is awake */
   position:absolute; left:0; right:0; bottom:0; height:34%; opacity:0;
-  background:radial-gradient(56% 80% at 50% 100%, rgba(37,232,226,.14), rgba(255,45,149,.09) 45%, transparent 75%);
+  background:radial-gradient(56% 80% at 50% 100%, rgba(37,232,226,.03), rgba(255,45,149,.02) 45%, transparent 75%);
 }
 .mote{
   position:absolute; left:var(--x); top:var(--y); width:var(--s); height:var(--s); border-radius:50%;
@@ -267,6 +267,24 @@ button{ font:inherit; color:inherit; }
   background:radial-gradient(80% 90% at 50% 50%, #120a1d, #06030a 80%);
   box-shadow:0 0 0 .7em #2f2539, 0 0 0 .95em #0e0814, inset 0 0 0 .2em rgba(255,255,255,.05), inset 0 0 3.5em rgba(0,0,0,.95), 0 1em 2em rgba(0,0,0,.6);
   filter:brightness(.069) saturate(.28);
+}
+.attract:not(.is-lit) .cab-sign,
+.attract:not(.is-lit) .attract-title,
+.attract:not(.is-lit) .attract-tagline,
+.attract:not(.is-lit) .door-text,
+.attract:not(.is-lit) .mech-price,
+.attract:not(.is-lit) .attract-logo{
+  opacity:0;
+  visibility:hidden;
+}
+.attract.is-lit .cab-sign,
+.attract.is-lit .attract-title,
+.attract.is-lit .attract-tagline,
+.attract.is-lit .door-text,
+.attract.is-lit .mech-price,
+.attract.is-lit .attract-logo{
+  opacity:1;
+  visibility:visible;
 }
 .sign-bloom{
   position:absolute; left:-24%; right:-24%; top:-70%; bottom:-70%; border-radius:50%; pointer-events:none; opacity:0; mix-blend-mode:screen;
@@ -398,6 +416,8 @@ button{ font:inherit; color:inherit; }
 }
 .attract-coin.is-credited{ color:#fff3c4; text-shadow:0 0 .06em #fff6c8, 0 0 .35em rgba(255,197,49,.8), 0 0 1em rgba(255,150,0,.4); }
 .door-price{ font:700 max(1.5em, 8px) var(--font-mono); letter-spacing:.22em; color:var(--cream); opacity:.75; }
+.attract:not(.is-lit) .door-price,
+.attract:not(.is-lit) .attract-coin{ opacity:0; }
 .cab-glint{ position:absolute; inset:0; border-radius:36em 36em 1.6em 1.6em; overflow:hidden; pointer-events:none; }
 .cab-glint i{          /* light catching the glass and chrome as the cabinet comes up */
   position:absolute; top:-10%; bottom:-10%; left:0; width:22%; transform:translateX(-120%) skewX(-18deg); mix-blend-mode:screen;

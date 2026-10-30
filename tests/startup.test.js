@@ -43,6 +43,24 @@ test('the film keeps its story: a failed first try, a real silence, and a held, 
   assert.ok(surge - ignite >= 1500, 'the lit machine gets its moment before the dive');
 });
 
+test('the dormant attract scene is intentionally dark and instruction-free', () => {
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(css, /attract:not\(\.is-lit\)[\s\S]*?\.cab-sign[\s\S]*?opacity:\s*0/,
+    'the sign is hidden before the cabinet wakes');
+  assert.match(css, /attract:not\(\.is-lit\)[\s\S]*?\.door-text[\s\S]*?opacity:\s*0/,
+    'the coin prompt and price stay out of the dark first frame');
+  assert.match(css, /attract:not\(\.is-lit\)[\s\S]*?\.attract-logo[\s\S]*?opacity:\s*0/,
+    'the CRT logo remains a quiet standby glow instead of a visible instruction');
+});
+
+test('the dormant room is blacked out so the screen is the only light', () => {
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  const opacity = (selector) => Number(css.match(new RegExp(`\\n${selector.replace(/\./g, '\\.')}{[^}]*?opacity:([\\d.]+)`))?.[1]);
+  assert.ok(opacity('.attract-beam') <= 0.12, 'the room beam should be nearly swallowed by darkness');
+  assert.equal(opacity('.attract-floor'), 0, 'the floor should remain blacked out on standby');
+  assert.ok(css.includes('linear-gradient(180deg, #030209, #010103 62%, #000000)'), 'the room should fall fully to black on standby');
+});
+
 test('the dormant cabinet is the darkest moment: only the picture tube is really lit', () => {
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   const opacity = (selector) => Number(css.match(new RegExp(`\\n${selector.replace(/\./g, '\\.')}\\{[^}]*?opacity:([\\d.]+)`))?.[1]);
