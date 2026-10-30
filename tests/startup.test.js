@@ -28,3 +28,16 @@ test('the dormant cabinet in styles.css is the cabinet on standby supply', () =>
   }
   assert.equal(RESPONSE.room(standby).opacity, 0, 'the room only lights once the cabinet is awake');
 });
+
+test('the film keeps its story: a failed first try, a real silence, and a held, lit machine', () => {
+  const { relay, attempt, almost, fail, tick, catch: caught, ignite, surge } = BEATS;
+  assert.ok(supplyAt(relay + 100) < 0.05, 'the relay cuts the standby supply');
+  assert.ok(supplyAt(almost) >= 0.5 && supplyAt(almost) < 0.84, 'the first try nearly reaches running, and no more');
+  assert.ok(attempt < almost && almost < fail, 'it gathers, nearly holds, then fails');
+  const dark = [];
+  for (let ms = fail; ms <= caught; ms += 10) if (supplyAt(ms) < 0.05) dark.push(ms);
+  assert.ok(dark.length && dark.at(-1) - dark[0] >= 500, 'at least half a second of real dark before the second try');
+  assert.ok(tick > dark[0] && tick < caught, 'the tick lands in the dark');
+  for (let ms = ignite + 420; ms <= surge; ms += 50) assert.ok(supplyAt(ms) >= 1, 'the lit machine holds steady');
+  assert.ok(surge - ignite >= 1500, 'the lit machine gets its moment before the dive');
+});

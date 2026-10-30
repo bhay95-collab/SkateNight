@@ -300,39 +300,72 @@ record changer and the readouts carry the show; the world around it stays dim.
     timeline (WAAPI animations with delays; steps fire from zero-length timer
     animations), from `BEATS`. Nothing chains timers, so nothing drifts; and a
     paused, seeked film shows any exact frame.
-  The film (~8.4 s, `startup.js`, `startup-coin.js`, `startup-power.js`):
-  1. the coin (0-2.15 s, `lift`, `contact`): the camera pushes in on the coin
+  The film (~14.5 s, `startup.js`, `startup-coin.js`, `startup-power.js`) is
+  cut like a scene - discovery, contact, the machine's response, a failed
+  first try, silence, a second try, the awakening, a held hero shot, then the
+  dive. Slow where the audience should look, sudden where something heavy
+  moves, and still where nothing should happen. Every time is a `BEATS` entry;
+  `tests/startup.test.js` holds the story (a first try that nearly reaches
+  running, at least half a second of real dark, a steady lit hold of 1.5 s+).
+  1. the coin (0-3.85 s, `lift`, `contact`): the camera pushes in on the coin
      entry; a struck, worn 3D coin (two faces, reeded edge of stacked discs,
      moving specular band) swings in from the right close to the lens, out of
-     focus and robot side out, turns through edge-on to the 25, hangs over the
-     entry while the rim catches the light, then sinks toward the door -
-     shrinking as it recedes, its shadow tightening on the entry's top, the slot
-     lamp warming its lower edge. It catches on the slit (the gate gives, it
-     wobbles on its edge), then gravity takes it. The entry clips everything
-     below the slit, so it really goes IN; the clip never changes (the coin only
-     travels above that line), so the coin's layers are never rebuilt mid-film;
+     focus and robot side out, turns through edge-on to the 25 and hangs there
+     for about a second, breathing, while the rim turns into the light; then it
+     sinks toward the door - shrinking as it recedes, its shadow tightening on
+     the entry's top, the slot lamp warming its lower edge. It catches on the
+     slit and is pressed against it for half a second - it wobbles, the gate
+     pushes back, a gritty scrape and a straining spring - then the gate gives
+     and gravity takes it. The entry clips everything below the slit, so it
+     really goes IN;
   2. the chute (`chute`): seven clinks going deeper, each jolting the entry
-     less; the coin box clunks and 1 CREDIT flips over like a counter; the
-     camera pulls back to the whole machine;
-  3. the relay (3.2 s, `relay`, `power`): THUNK - the cabinet jolts, the sign
+     less; the coin box clunks and 1 CREDIT flips over like a counter while
+     the camera pulls back to reveal the whole machine;
+  3. the relay (5.45 s, `relay`, `power`): THUNK - the cabinet jolts, the sign
      rattles on its brackets a beat later, dust shakes off the arch, and the
-     standby supply drops out: dark, and a moment's silence;
-  4. A, the attempt: the hum starts, one tube and one line on the tube try,
-     stumble with the supply, and die - the line shrinking to a dot;
-  5. B, it catches (4.6 s): a second relay, a shudder from the transformer, the
-     raster opening out of the line and rolling to lock, colour swimming and
-     splitting red/cyan as the voltage struggles; the tubes strike in an
-     authored order (two struggle), the bubble tubes warm;
-  6. C, ignition (6.0 s): the supply locks with a relay and a bright accent;
-     the dead tubes catch, bulbs climb the arch from both feet to the crown,
-     the logo lights, gold blooms round the coin door, light glints across
-     glass and chrome, and the machine's own light reveals its lacquer, the
-     wall behind and the floor;
-  7. D, the handoff (7.3 s, `collapse`): the tube surges and tears, the camera
-     dives into it, it washes out, and the clipped view squeezes to the line
-     the boot screen's first strike opens from (`bootLine` in `fx.js` measures
-     that line, and the boot keeps the self-test it was measured with); the
-     line fades as the boot's line comes up (`.is-handing`, 200 ms).
+     standby supply drops out: dark;
+  4. A, the first attempt (5.95-7.9 s): the transformer gathers itself (a low
+     rising growl under the hum); a dot of light creeps out into a line across
+     the tube; one neon letter weakly catches; the sign half-lights; for a
+     moment (7.1 s) it nearly holds - then it stumbles and dies: the line
+     shrinks to a dot, the letter goes out, the hum winds down, and the
+     cabinet settles on its feet;
+  5. the dark (7.9-8.75 s): nothing on the supply, no static on the tube, no
+     lamp at the slit. One small tick somewhere inside (8.25 s). The camera
+     leans in very slightly, waiting;
+  6. B, it catches (8.75 s): a deeper, heavier relay and a longer shudder; the
+     line snaps across the tube, the degauss thumps as the raster opens out of
+     it and rolls to lock, colour swimming and splitting red/cyan as the
+     voltage struggles; the letters strike one, then another, then quicker
+     (two struggle), the bubble tubes warm;
+  7. C, ignition (11.05 s): the supply locks with a relay and a bright accent;
+     the dead tubes catch, bulbs climb the arch from both feet to the crown
+     over 0.9 s, the logo lights, gold blooms round the coin door, light
+     glints across glass and chrome, and the machine's own light reveals its
+     lacquer, the wall behind and the floor;
+  8. the hero hold (11.05-13.35 s): the machine simply stands there, lit, on a
+     steady deep hum; the camera drifts closer and a second, slower glint
+     travels the chrome;
+  9. D, the handoff (13.35 s, `collapse`): the tube surges and tears, the
+     camera dives into it, it washes out, and the clipped view squeezes to the
+     line the boot screen's first strike opens from (`bootLine` in `fx.js`
+     measures that line, and the boot keeps the self-test it was measured
+     with); the line fades as the boot's line comes up (`.is-handing`, 200 ms).
+  Clean rendering rules the film depends on:
+  - everything on the tube is clipped to its curved face with `clip-path`
+    (`.tv`, `.tv-glass`), not just `overflow` + `border-radius`, which lets
+    animated layers out as rectangles in WebKit;
+  - the coin's faces are `clip-path` discs with no blend modes inside the 3D
+    coin, and the faces also swap visibility at the instant the coin is
+    edge-on, so a flattening engine never paints the wrong side or the edge
+    stack over the face;
+  - the static is drawn plainly (light specks), never screen-blended, and
+    follows the supply, so a dead tube shows no snow;
+  - while the raster is only a line the picture is not drawn at all (the
+    `.tv-line` carries it): a filtered layer squashed to nothing draws as a
+    hard black box on the GPU;
+  - long multi-step WAAPI animations ease each step, never the whole
+    animation (an eased whole bends every beat out of place).
   Input is held for the whole film. If the boot already ran in this tab, the
   film plays to D and fades straight to the jukebox. With
   `prefers-reduced-motion` the same story is told without travel, shake or

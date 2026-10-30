@@ -271,8 +271,12 @@ button{ font:inherit; color:inherit; }
   background:linear-gradient(180deg, #1a1224, #0c0712 70%);
   box-shadow:0 0 0 .55em #261b30, 0 0 0 .8em #0b0610, inset 0 .25em .3em rgba(255,255,255,.07), inset 0 -.5em .8em rgba(0,0,0,.65), 0 1.2em 2.4em rgba(0,0,0,.7);
 }
+/* Everything on the tube - picture, line, static, scanlines, roll, flash - is
+   clipped to the tube's own curved face by clip-path. overflow + border-radius
+   alone lets animated layers out as rectangles in some engines (WebKit). */
 .tv{
   position:absolute; inset:2.6em; border-radius:5.2em / 4.4em; overflow:hidden; isolation:isolate;
+  clip-path:inset(0 round 5.2em / 4.4em);
   background:radial-gradient(120% 100% at 50% 45%, #121a1d, #080b0e 55%, #020104);
   box-shadow:inset 0 0 3.2em rgba(0,0,0,.9), 0 0 0 .3em #050208;
 }
@@ -288,8 +292,9 @@ button{ font:inherit; color:inherit; }
   background:linear-gradient(90deg, transparent, rgba(200,255,250,.9) 18%, #fff 50%, rgba(200,255,250,.9) 82%, transparent);
   box-shadow:0 0 1.4em .3em rgba(120,255,248,.55), 0 0 4em 1em rgba(37,232,226,.25);
 }
-.tv-glass{ position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-.tv-glass::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.28) 2px 3px); }
+.tv-glass{ position:absolute; inset:0; pointer-events:none; overflow:hidden; border-radius:inherit; clip-path:inset(0 round 5.2em / 4.4em); }
+.tv-glass::before{ content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,.28) 2px 3px);
+  -webkit-mask:radial-gradient(75% 70% at 50% 50%, #000 55%, rgba(0,0,0,.45)); mask:radial-gradient(75% 70% at 50% 50%, #000 55%, rgba(0,0,0,.45)); }   /* the lines fade where the glass curves away */
 .tv-glass::after{      /* the bulge of the glass, a window reflection, dust, the dark corners */
   content:""; position:absolute; inset:0;
   background:
@@ -299,7 +304,7 @@ button{ font:inherit; color:inherit; }
     radial-gradient(120% 110% at 50% 50%, transparent 55%, rgba(0,0,0,.75));
 }
 .attract-grain{
-  position:absolute; inset:-50%; background-image:var(--grain); opacity:.12; mix-blend-mode:screen;
+  position:absolute; inset:-50%; background-image:var(--grain); opacity:.1;
   animation:grain-jump 1s steps(1) infinite;
 }
 @keyframes grain-jump{
@@ -394,7 +399,7 @@ button{ font:inherit; color:inherit; }
 .attract.is-inserting .hero-coin{ opacity:1; }
 .hero-spin{ position:absolute; inset:0; transform-style:preserve-3d; will-change:transform; }
 .hero-face, .hero-edge{ position:absolute; inset:0; border-radius:50%; }
-.hero-face{ backface-visibility:hidden; overflow:hidden; display:grid; place-items:center; }
+.hero-face{ -webkit-backface-visibility:hidden; backface-visibility:hidden; clip-path:circle(50%); display:grid; place-items:center; }   /* clip-path: a true disc in every engine, so the shine never shows its box */
 .hero-front, .hero-back{
   background:
     conic-gradient(from 200deg at 50% 50%, rgba(255,250,225,.32), transparent 14%, rgba(60,30,0,.22) 30%, transparent 46%,
@@ -412,12 +417,12 @@ button{ font:inherit; color:inherit; }
 .hero-ring{ position:absolute; inset:0; width:100%; height:100%; font:700 7.4px var(--font-mono); letter-spacing:.9px; text-anchor:middle; fill:#8c5a0c; }
 .hero-ring .hero-ring-lit{ fill:rgba(255,240,196,.7); transform:translate(-.35px, -.4px); }
 .hero-back{ transform:rotateY(180deg) translateZ(calc(var(--thick) / 2)); }
-.hero-back img{ width:56%; height:auto; border-radius:22%; mix-blend-mode:multiply; opacity:.9; filter:sepia(1) saturate(2.2) hue-rotate(-12deg) brightness(.8) contrast(1.35); }
+.hero-back img{ width:56%; height:auto; border-radius:22%; opacity:.8; filter:sepia(1) saturate(2.2) hue-rotate(-12deg) brightness(.62) contrast(1.35); }
 .hero-edge{ background:repeating-conic-gradient(#8a5a10 0 1.2deg, #e2b14a 1.2deg 2.4deg); }
-.hero-lamp{ position:absolute; inset:0; border-radius:50%; opacity:0; mix-blend-mode:screen; background:radial-gradient(70% 45% at 50% 100%, rgba(255,170,50,.7), transparent 70%); }
+.hero-lamp{ position:absolute; inset:0; border-radius:50%; opacity:0; background:radial-gradient(70% 45% at 50% 100%, rgba(255,186,80,.5), transparent 70%); }
 .hero-shine{          /* a band of light three faces wide, slid across with transform (the face clips it) */
-  position:absolute; top:0; bottom:0; left:0; width:300%; pointer-events:none; mix-blend-mode:overlay;
-  background:linear-gradient(115deg, transparent 36%, rgba(255,255,255,.85) 50%, transparent 64%);
+  position:absolute; top:0; bottom:0; left:0; width:300%; pointer-events:none;   /* no blend mode inside the 3D coin: it would flatten it */
+  background:linear-gradient(115deg, transparent 38%, rgba(255,246,214,.42) 50%, transparent 62%);
   transform:translateX(-100%);
 }
 

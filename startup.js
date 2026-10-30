@@ -17,10 +17,13 @@
                   pulls back to the whole machine
      the relay    THUNK - the cabinet jolts, dust shakes off the arch, and
                   the standby supply drops out: dark
-     A            the supply tries: one tube, one line on the tube. It dies.
-     B            a second relay; it catches and climbs, shuddering; tubes
+     A            the transformer gathers; a line creeps across the tube, one
+                  tube weakly catches; it nearly holds - and dies
+     the dark     nothing at all, one tick inside; the camera leans in
+     B            a deeper relay; it catches and climbs, shuddering; tubes
                   strike, the raster opens out of the line and rolls to lock
-     C            it locks: ignition swept through the cabinet
+     C            it locks: ignition swept through the cabinet, then the lit
+                  machine is simply held for a moment
      D            the tube surges, the camera dives into it, and the picture
                   squeezes to the line the boot screen strikes from
                   (collapseTo is that line; without it - boot already seen in
@@ -41,7 +44,7 @@ const ARCH = { inset: 2.8, radius: 33.2, foot: 110, gap: 8.4 };   // the chrome 
 const STANDBY_BULBS = [0.28, 0.62, 0.97];                          // the few bulbs still glowing on standby
 const COIN_ON_SCREEN = 0.145;                                      // the coin at the slit, as a share of the short side
 const SLIT_EM = 1.12;                                              // the slit, down from the top of the coin entry (styles.css)
-const { coinIn, align, descend, contact, gone, credit, relay, attempt, catch: caught, ignite, surge, collapse, end } = BEATS;
+const { coinIn, align, descend, contact, gone, credit, relay, attempt, fail, catch: caught, ignite, surge, collapse, end } = BEATS;
 
 const between = (lo, hi) => lo + Math.random() * (hi - lo);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -49,7 +52,9 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 /* ---------------- building the cabinet ---------------- */
 
-/* A tile of static, made once, for the grain layer to jump about. */
+/* A tile of static, made once, for the grain layer to jump about. It is
+   drawn normally, not screen-blended: a blended layer re-blends against
+   whatever moves beneath it and shows hard rectangles on the GPU. */
 function grainTile() {
   const size = 140;
   const canvas = document.createElement('canvas');
@@ -58,7 +63,7 @@ function grainTile() {
   if (!ctx) return '';
   const img = ctx.createImageData(size, size);
   for (let i = 0; i < img.data.length; i += 4) {
-    const v = Math.random() * 255;
+    const v = 150 + Math.random() * 105;      // light specks only, so it can lighten the glass without a blend mode
     img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
     img.data[i + 3] = Math.random() < 0.5 ? 0 : 255;
   }
@@ -295,13 +300,14 @@ function stageCamera(el, collapseTo) {
 
   const frames = [
     { offset: 0, ...look(mid, 1, mid), easing: 'cubic-bezier(.16,1,.3,1)' },
-    { offset: t(950), ...look(slit, push, onCoin) },
+    { offset: t(align - 250), ...look(slit, push, onCoin) },
     { offset: t(descend), ...look(slit, push, onCoin), easing: 'cubic-bezier(.45,0,.25,1)' },
     { offset: t(contact), ...look(slit, push * 1.06, onCoin) },
     { offset: t(gone + 80), ...look(slit, push * 1.06, onCoin), easing: 'cubic-bezier(.65,0,.35,1)' },
-    { offset: t(relay - 80), ...look(mid, 1, mid) },
-    { offset: t(ignite), ...look(mid, 1, mid), easing: 'cubic-bezier(.3,0,.25,1)' },
-    { offset: t(surge), ...look(mid, 1.03, mid), easing: 'cubic-bezier(.62,0,.3,1)' },
+    { offset: t(relay - 80), ...look(mid, 1, mid), easing: 'cubic-bezier(.45,0,.55,1)' },
+    { offset: t(caught), ...look(mid, 1.012, mid), easing: 'cubic-bezier(.3,0,.25,1)' },     // leaning in, in the dark, waiting
+    { offset: t(ignite), ...look(mid, 1.012, mid), easing: 'cubic-bezier(.33,0,.3,1)' },
+    { offset: t(surge), ...look(mid, 1.045, mid), easing: 'cubic-bezier(.62,0,.3,1)' },     // the lit machine, held, drifting closer
   ];
   if (collapseTo) {
     const screen = el.crt.getBoundingClientRect();
@@ -309,7 +315,7 @@ function stageCamera(el, collapseTo) {
   }
   el.camera.animate(frames, { duration: last, fill: 'forwards' });
   el.spot?.animate([
-    { opacity: 0 }, { opacity: 0.86, offset: 700 / relay }, { opacity: 0.86, offset: (gone + 80) / relay }, { opacity: 0 },
+    { opacity: 0 }, { opacity: 0.86, offset: (coinIn + 600) / relay }, { opacity: 0.86, offset: (gone + 80) / relay }, { opacity: 0 },
   ], { duration: relay, fill: 'forwards', easing: 'ease-in-out' });
 }
 
@@ -343,8 +349,9 @@ function stageRelays(el, at, cue) {
       { opacity: 0, transform: `translate(${between(-3, 3).toFixed(1)}em, ${fall.toFixed(1)}em)` },
     ], { delay: relay + between(20, 260), duration: between(1500, 2400), easing: 'cubic-bezier(.4,0,.8,.6)' });
   });
-  impulse(el.cab, 0.2, caught, 420);
-  shudder(el.cab, caught + 80, 860, 0.16);
+  impulse(el.cab, 0.07, fail + 360, 600);                 // the power gone, the cabinet settles on its feet
+  impulse(el.cab, 0.32, caught, 480);                     // the second relay is the heavier one
+  shudder(el.cab, caught + 100, 1300, 0.17);
   impulse(el.cab, 0.26, ignite, 460);
 }
 

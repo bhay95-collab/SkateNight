@@ -19,7 +19,7 @@ const STEP_MS = 30;
 const OFF = 0.12;                                     // an unlit neon tube: just the glass
 const STRIKE_ORDER = [0, 5, 2, 9, 3, 6, 1, 8, 4, 7];  // the order the letters catch in phase B
 const STRUGGLING = new Set([2, 6]);                   // these two catch, drop, then hold
-const { relay, attempt, fail, catch: caught, ignite, surge, end } = BEATS;
+const { relay, attempt, almost, fail, catch: caught, ignite, surge, end } = BEATS;
 
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
 const span = (from, to) => ({ delay: from, duration: to - from, fill: 'forwards' });
@@ -44,6 +44,7 @@ export const RESPONSE = {
   lamp: (v) => ({ opacity: clamp((v - 0.03) * 1.7) }),
   room: (v) => ({ opacity: clamp((v - 0.55) * 2.2) }),
   tubes: (v) => ({ opacity: clamp((v - 0.2) * 1.6) }),
+  static: (v) => ({ opacity: v <= 0.5 ? 0.2 * v : 0.1 - 0.05 * clamp((v - 0.5) * 2) }),   // .1 on standby, .05 once running (styles.css)
 };
 
 /* Keyframes that follow the supply through map(v, ms), from the relay on. */
@@ -73,7 +74,7 @@ export function tubeSchedule(count, dead) {
   const live = STRIKE_ORDER.filter((i) => i < count && !dead.has(i));
   const times = new Map();
   live.forEach((i, n) => {
-    const at = caught + 140 + 1160 * Math.pow(n / Math.max(1, live.length - 1), 0.8);
+    const at = caught + 300 + 1500 * Math.pow(n / Math.max(1, live.length - 1), 0.8);   // one, then another, then quicker
     times.set(i, { at: Math.round(at), struggle: STRUGGLING.has(i) });
   });
   [...dead].forEach((i, n) => times.set(i, { at: ignite + 70 * n, struggle: false }));
@@ -86,10 +87,10 @@ export function stageTubes(tubes, dead, at, cue) {
   tubes.forEach((tube, i) => {
     const lit = dead.has(i) ? 0.22 : 1;
     const points = [[relay, lit], [relay + 50, OFF]];
-    if (i === first) {                                 // phase A: one tube tries, stumbles with the supply, dies
-      points.push([attempt + 280, OFF], [attempt + 300, 0.55], [attempt + 380, 0.7], [attempt + 460, 0.3],
-        [attempt + 540, 0.65], [fail, 0.6], [fail + 200, OFF]);
-      at(attempt + 300, () => cue('tube'));
+    if (i === first) {                                 // phase A: one tube weakly catches, nearly holds, and dies with the supply
+      points.push([attempt + 700, OFF], [attempt + 720, 0.34], [attempt + 800, 0.24], [almost - 160, 0.42], [almost, 0.62],
+        [almost + 200, 0.28], [almost + 330, 0.48], [fail, 0.42], [fail + 260, OFF]);
+      at(attempt + 700, () => cue('tube'));
     }
     const { at: strike, struggle } = plan.get(i);
     points.push(...strikeSteps(strike, struggle), [end, 1]);
@@ -104,36 +105,41 @@ export function stageTube(el) {
   // The raster: it falls in to a line when the relay cuts the standby supply,
   // opens out of the line in phase B, rolls, and locks; at the surge it tears.
   const raster = [
-    [relay, 0, 1], [relay + 70, 0, 0.004], [caught + 260, 0, 0.004], [caught + 420, 0, 0.09],
-    [caught + 900, -14, 1], [caught + 1100, 5, 1], [caught + 1260, -2, 1], [ignite, 0, 1], [end, 0, 1],
+    [relay, 0, 1], [relay + 70, 0, 0.004], [caught + 450, 0, 0.004], [caught + 640, 0, 0.09],
+    [caught + 1150, -16, 1], [caught + 1400, 7, 1], [caught + 1620, -3, 1], [caught + 1900, 1, 1], [ignite, 0, 1], [end, 0, 1],
   ];
+  // While it is only a line, the picture itself is not drawn at all (the
+  // .tv-line carries it): a filtered layer squashed to almost nothing is
+  // drawn by the GPU as a hard black box across the dead tube.
   el.picture?.animate(raster.map(([ms, y, sy]) => ({
-    offset: (ms - relay) / (end - relay), transform: `translateY(${y}%) scaleY(${sy})`,
-  })), { ...span(relay, end), easing: 'ease-out' });
+    offset: (ms - relay) / (end - relay), transform: `translateY(${y}%) scaleY(${sy})`, opacity: sy < 0.01 ? 0 : 1, easing: 'ease-out',
+  })), { ...span(relay, end), easing: 'linear' });   // eased step by step: an eased whole would bend every beat out of place
   el.picture?.animate([
     { transform: 'translateX(0) skewX(0deg)' }, { transform: 'translateX(-.8%) skewX(-1.4deg)', offset: 0.3 },
     { transform: 'translateX(.5%) skewX(.9deg)', offset: 0.6 }, { transform: 'translateX(0) skewX(0deg)' },
   ], { delay: surge + 80, duration: 420, composite: 'add', easing: 'ease-in-out' });
   followSupply(el.picture, RESPONSE.picture);
+  followSupply(el.grain, RESPONSE.static);           // a dead tube shows no snow: the static needs the supply too
 
-  // The bright line of the first attempt, riding the supply, shrinking to a
-  // dot as it dies, then widening again as phase B catches.
+  // The bright line of the first attempt: it creeps out from the centre as
+  // the transformer gathers, nearly spans the tube, shrinks to a dot as the
+  // supply dies; in phase B it snaps across and the raster opens out of it.
   const shape = (ms) => {
-    if (ms < attempt + 120 || ms > caught + 900) return { o: 0, w: 0.2 };
-    if (ms < fail) return { o: 1.8, w: clamp((ms - attempt - 120) / 280, 0.25, 1) };
-    if (ms < caught) return { o: 1.8, w: clamp(1 - (ms - fail) / 300, 0.02, 1) };
-    return { o: 1.8 * clamp(1 - (ms - caught - 500) / 400), w: clamp((ms - caught) / 260, 0.4, 1) };
+    if (ms < attempt + 150 || ms > caught + 1100) return { o: 0, w: 0.05 };
+    if (ms < fail) return { o: 2, w: clamp(Math.pow((ms - attempt - 150) / (almost - attempt - 150), 1.6), 0.05, 1) };
+    if (ms < caught) return { o: 2, w: clamp(1 - (ms - fail) / 360, 0.02, 1) };
+    return { o: 2 * clamp(1 - (ms - caught - 650) / 450), w: clamp((ms - caught) / 200, 0.3, 1) };
   };
   followSupply(el.line, (v, ms) => {
     const { o, w } = shape(ms);
     return { opacity: clamp(o * v), transform: `scaleX(${w.toFixed(3)})` };
-  }, attempt, caught + 900);
+  }, attempt, caught + 1100);
 }
 
 /* ---------------- ignition: swept through the cabinet ---------------- */
 export function stageBulbs(bulbs) {
   bulbs.forEach(({ el, rise, standby }) => {
-    const on = ignite + 60 + Math.round(560 * rise);   // from the foot of the arch up to its crown
+    const on = ignite + 60 + Math.round(900 * rise);   // from the foot of the arch up to its crown
     const points = [];
     for (let ms = relay - STEP_MS; ms < on; ms += STEP_MS) points.push([ms, standby ? clamp(supplyAt(ms) * 0.6) : 0]);
     points.push([on, standby ? 0.5 : 0], [on + 90, 1], [end, 1]);
@@ -154,8 +160,9 @@ export function stageIgnition(el, at) {
     { delay: ignite + 100, duration: 700, easing: 'ease-out', composite: 'add' });
   el.doorBloom?.animate([{ opacity: 0 }, { opacity: 1, offset: 0.25 }, { opacity: 0.55 }],
     { ...span(ignite + 200, ignite + 1100), easing: 'ease-out' });
-  el.glint?.animate([{ transform: 'translateX(-120%) skewX(-18deg)' }, { transform: 'translateX(520%) skewX(-18deg)' }],
-    { delay: ignite + 250, duration: 900, easing: 'cubic-bezier(.45,0,.25,1)' });
+  const sweep = [{ transform: 'translateX(-120%) skewX(-18deg)' }, { transform: 'translateX(520%) skewX(-18deg)' }];
+  el.glint?.animate(sweep, { delay: ignite + 250, duration: 900, easing: 'cubic-bezier(.45,0,.25,1)' });
+  el.glint?.animate(sweep, { delay: ignite + 1350, duration: 1500, easing: 'cubic-bezier(.45,0,.25,1)' });   // the hero moment: light lingering on the chrome
   for (const [part, map] of [[el.sign, RESPONSE.sign], [el.door, RESPONSE.door], [el.arch, RESPONSE.chrome],
     [el.lamp, RESPONSE.lamp], [el.halo, RESPONSE.room], [el.floor, RESPONSE.room], [el.glow, RESPONSE.room]]) followSupply(part, map);
   el.pillars.forEach((fill) => followSupply(fill, RESPONSE.tubes));

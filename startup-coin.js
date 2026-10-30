@@ -24,14 +24,18 @@ const { coinIn, align, descend, contact, slip, gone, credit, relay } = BEATS;
 
 /* The coin's edge: thin discs stacked between the two faces. */
 export function buildCoinEdge(spin) {
-  const back = spin?.querySelector('.hero-back');
-  if (!back) return;
-  for (let i = 0; i < EDGE_LAYERS; i++) {
+  const front = spin?.querySelector('.hero-front');
+  if (!front) return;
+  const layers = Array.from({ length: EDGE_LAYERS }, (_, i) => {
     const layer = document.createElement('span');
     layer.className = 'hero-edge';
     layer.style.transform = `translateZ(calc(var(--thick) * ${((i + 0.5) / EDGE_LAYERS - 0.5).toFixed(3)}))`;
-    spin.insertBefore(layer, back);
-  }
+    return layer;
+  });
+  // edges, then the back, then the front: real 3D sorts by depth anyway, and
+  // where an engine flattens the coin the face showing still paints on top
+  spin.prepend(...layers);
+  spin.append(front);
 }
 
 const at = (ms) => ms / gone;
@@ -41,34 +45,38 @@ const pose = (x, y, s, { blur = 0, tilt = 0, seen = 1 } = {}) => ({
 const turn = (x, y, z) => ({ transform: `rotateX(${x}deg) rotateY(${y}deg) rotateZ(${z}deg)` });
 
 /* Where the coin is, from out of shot to through the slit. Its anchor is the
-   middle of its bottom edge, sitting on the slit, so y = 0 is "touching". */
+   middle of its bottom edge, sitting on the slit, so y = 0 is "touching".
+   It is not rushed: it swings in, hangs face-on long enough to be looked at,
+   sinks, meets the slit, is pressed against it and resists - and then the
+   gate gives and gravity has it. */
 function flight() {
   return [
     { offset: 0, ...pose(30, -2, 1.3, { blur: 9, seen: 0 }) },
     { offset: at(coinIn), ...pose(30, -2, 1.3, { blur: 9, seen: 0 }), easing: 'cubic-bezier(.25,.7,.35,1)' },   // into the light, at the lens
-    { offset: at(520), ...pose(11, -8, 0.92, { blur: 4 }), easing: 'cubic-bezier(.4,0,.2,1)' },
+    { offset: at(coinIn + 700), ...pose(10, -8.5, 0.9, { blur: 3.5 }), easing: 'cubic-bezier(.4,0,.2,1)' },
     { offset: at(align), ...pose(0, -11, 0.62), easing: 'ease-in-out' },
-    { offset: at(1030), ...pose(0, -11.6, 0.62), easing: 'ease-in-out' },          // held, not quite still
-    { offset: at(descend), ...pose(0, -11.2, 0.62), easing: 'cubic-bezier(.42,0,.18,1)' },
+    { offset: at(align + 450), ...pose(0, -11.7, 0.62), easing: 'ease-in-out' },     // hanging there: a slow breath
+    { offset: at(descend), ...pose(0, -11.2, 0.62), easing: 'cubic-bezier(.42,0,.2,1)' },
     { offset: at(contact), ...pose(0, 0, AT_SLOT), easing: 'cubic-bezier(.2,.8,.3,1)' },
-    { offset: at(contact + 80), ...pose(0, 0.22, AT_SLOT, { tilt: 2.6 }), easing: 'ease-in-out' },  // it catches
-    { offset: at(contact + 160), ...pose(0, 0.3, AT_SLOT, { tilt: -1.7 }), easing: 'ease-in-out' },
-    { offset: at(contact + 230), ...pose(0, 0.36, AT_SLOT, { tilt: 0.8 }), easing: 'ease-in-out' },
-    { offset: at(slip), ...pose(0, 0.42, AT_SLOT), easing: 'cubic-bezier(.55,0,1,.45)' },        // then gravity
+    { offset: at(contact + 70), ...pose(0, 0.2, AT_SLOT, { tilt: 2.4 }), easing: 'ease-out' },           // it catches on the lip
+    { offset: at(contact + 190), ...pose(0, 0.28, AT_SLOT, { tilt: -1.3 }), easing: 'ease-in-out' },     // pressed: it will not go
+    { offset: at(contact + 320), ...pose(0, 0.31, AT_SLOT, { tilt: 0.7 }), easing: 'ease-in-out' },
+    { offset: at(contact + 420), ...pose(0, 0.34, AT_SLOT, { tilt: -0.3 }), easing: 'ease-in-out' },     // straining at the gate
+    { offset: at(slip), ...pose(0, 0.4, AT_SLOT), easing: 'cubic-bezier(.55,0,1,.45)' },               // then it yields, and gravity
     { offset: 1, ...pose(0, 9, AT_SLOT) },
   ];
 }
 
-/* The tumble: the robot side to the light first, then a quick turn through
-   edge-on round to the 25. */
+/* The tumble: the robot side to the light first, a turn through edge-on
+   round to the 25, and while it hangs the rim turns into the light once. */
 function tumble() {
   return [
     { offset: 0, ...turn(-24, -205, -24) },
     { offset: at(coinIn), ...turn(-24, -205, -24), easing: 'cubic-bezier(.3,.55,.3,1)' },
-    { offset: at(520), ...turn(-10, -128, 8), easing: 'cubic-bezier(.55,0,.45,1)' },
-    { offset: at(700), ...turn(4, -24, -4), easing: 'cubic-bezier(.2,.7,.3,1)' },
+    { offset: at(coinIn + 650), ...turn(-10, -128, 8), easing: 'cubic-bezier(.55,0,.45,1)' },
+    { offset: at(coinIn + 950), ...turn(4, -24, -4), easing: 'cubic-bezier(.2,.7,.3,1)' },
     { offset: at(align), ...turn(3, 6, -2), easing: 'ease-in-out' },
-    { offset: at(1060), ...turn(0, -11, 0), easing: 'ease-in-out' },                 // the rim turns into the light
+    { offset: at(align + 520), ...turn(0, -12, 0), easing: 'ease-in-out' },          // the rim turns into the light
     { offset: at(descend), ...turn(0, 0, 0) },
     { offset: 1, ...turn(0, 0, 0) },
   ];
@@ -81,9 +89,16 @@ export function stageCoin(el) {
   // light catching the face: a flash as it turns through the light, one slow sweep as it hangs
   const band = (x) => ({ transform: `translateX(${x}%)` });           // -100% before the face, 33.3% past it
   el.shine.animate([
-    { offset: 0, ...band(-100) }, { offset: at(560), ...band(-100) }, { offset: at(720), ...band(33.3) },
-    { offset: at(880), ...band(-100) }, { offset: at(1170), ...band(33.3) }, { offset: 1, ...band(33.3) },
+    { offset: 0, ...band(-100) }, { offset: at(coinIn + 820), ...band(-100) }, { offset: at(coinIn + 1020), ...band(33.3) },
+    { offset: at(align + 200), ...band(-100) }, { offset: at(align + 760), ...band(33.3) }, { offset: 1, ...band(33.3) },
   ], { ...total, easing: 'ease-in-out' });
+  // Swap faces at the instant it is edge-on, as well as relying on
+  // backface-visibility: WebKit flattens the coin and would paint the robot
+  // side over the 25. Edge-on, the swap cannot be seen.
+  const edgeOn = coinIn + 700;
+  const faces = (from, to) => [{ opacity: from }, { opacity: from, offset: at(edgeOn - 10) }, { opacity: to, offset: at(edgeOn + 10) }, { opacity: to }];
+  el.spin.querySelector('.hero-front')?.animate(faces(0, 1), total);
+  el.spin.querySelector('.hero-back')?.animate(faces(1, 0), total);
   // the slot lamp warming its lower edge as it comes down to the slit
   el.coinLamp.animate([{ opacity: 0 }, { opacity: 0, offset: at(descend) }, { opacity: 0.9, offset: at(contact) }, { opacity: 1 }], total);
   el.shadow.animate([
@@ -100,8 +115,9 @@ export function stageMechanism(el, at, cue) {
   at(contact, () => cue('contact'));
   at(gone, () => cue('chute'));
   el.gate.animate([
-    { transform: 'translateY(0)' }, { transform: 'translateY(.2em)', offset: 0.12 }, { transform: 'translateY(.12em)', offset: 0.55 },
-    { transform: 'translateY(.26em)', offset: 0.62 }, { transform: 'translateY(-.06em)', offset: 0.9 }, { transform: 'translateY(0)' },
+    { transform: 'translateY(0)' }, { transform: 'translateY(.16em)', offset: 0.08 }, { transform: 'translateY(.09em)', offset: 0.3 },   // pressed, it pushes back
+    { transform: 'translateY(.14em)', offset: 0.5 }, { transform: 'translateY(.3em)', offset: 0.57 },                                 // then gives
+    { transform: 'translateY(-.06em)', offset: 0.86 }, { transform: 'translateY(0)' },
   ], { delay: contact, duration: gone + 120 - contact, easing: 'ease-out', composite: 'add' });
   const lampAt = (ms) => (ms - descend) / (relay - descend);
   el.lamp.animate([

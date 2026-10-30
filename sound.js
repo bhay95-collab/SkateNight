@@ -443,7 +443,8 @@ export const sfx = {
   contact: effect('contact', (voice) => {
     thump(voice, { freq: 3400, dur: 0.008, peak: 0.11 });
     ring(voice, { freq: 2700, peak: 0.035, decay: 0.3 });
-    whoosh(voice, { at: 0.02, dur: 0.28, from: 5200, to: 3600, peak: 0.03, q: 6, amHz: 70 });
+    whoosh(voice, { at: 0.02, dur: SLIP_S * 0.95, from: 5200, to: 3400, peak: 0.03, q: 6, amHz: 70 });   // pressed against the gate
+    tone(voice, { freq: 410, to: 360, type: 'triangle', at: 0.16, dur: SLIP_S - 0.12, peak: 0.008 });     // the spring straining
     whoosh(voice, { at: SLIP_S, dur: 0.24, from: 2600, to: 900, peak: 0.05, q: 2 });
     thump(voice, { freq: 1800, dur: 0.015, peak: 0.1, at: GATE_S - 0.03 });
     thump(voice, { freq: 600, dur: 0.04, peak: 0.08, at: GATE_S - 0.025 });
@@ -480,10 +481,21 @@ export const sfx = {
   // crackle where it struggles, the flyback whine, and the lock.
   power: effect('power', (voice) => {
     supplyHum(voice);
-    tone(voice, { freq: 100, to: 70, type: 'sawtooth', at: fromRelay(BEATS.fail), dur: 0.32, peak: 0.02 });    // it dies
-    thump(voice, { freq: 1100, dur: 0.02, peak: 0.14, at: fromRelay(BEATS.catch) });                          // second relay
-    thump(voice, { freq: 300, dur: 0.06, peak: 0.12, at: fromRelay(BEATS.catch) + 0.004 });
-    const degauss = fromRelay(BEATS.catch + 260);
+    const gather = fromRelay(BEATS.attempt);                                                                  // A: the transformer gathering itself
+    held(voice, { freq: 50, type: 'sawtooth', filterHz: 240, points: [[gather, 0], [fromRelay(BEATS.almost), 0.05],
+      [fromRelay(BEATS.fail), 0.035], [fromRelay(BEATS.fail) + 0.42, 0]] });
+    tone(voice, { freq: 100, to: 34, type: 'sawtooth', at: fromRelay(BEATS.fail), dur: 0.6, peak: 0.04 });     // it dies, winding down
+    whoosh(voice, { at: fromRelay(BEATS.fail), dur: 0.5, from: 1400, to: 160, peak: 0.02, q: 1.4 });
+    const tick = fromRelay(BEATS.tick);                                                                       // the dark: one tick somewhere inside
+    thump(voice, { freq: 2400, dur: 0.006, peak: 0.035, at: tick });
+    ring(voice, { freq: 1320, at: tick, peak: 0.006, decay: 0.25 });
+    const relay2 = fromRelay(BEATS.catch);                                                                    // B: the deeper, heavier relay
+    thump(voice, { freq: 1100, dur: 0.02, peak: 0.15, at: relay2 });
+    thump(voice, { freq: 300, dur: 0.07, peak: 0.16, at: relay2 + 0.004 });
+    thump(voice, { freq: 55, dur: 0.5, peak: 0.28, at: relay2 + 0.01 });
+    tone(voice, { freq: 52, to: 36, dur: 0.5, peak: 0.16, at: relay2 });
+    ring(voice, { freq: 160, at: relay2 + 0.01, peak: 0.028, decay: 1.6 });
+    const degauss = fromRelay(BEATS.catch + 640);
     held(voice, { freq: 88, type: 'sawtooth', filterHz: 360, points: [[degauss, 0], [degauss + 0.06, 0.1], [degauss + 0.2, 0.03],
       [degauss + 0.36, 0.08], [degauss + 0.56, 0.02], [degauss + 0.76, 0.045], [degauss + 1.3, 0]] });
     thump(voice, { freq: 150, dur: 0.35, peak: 0.14, at: degauss + 0.02 });
@@ -497,6 +509,7 @@ export const sfx = {
     ring(voice, { freq: 1975, at: lock + 0.04, peak: 0.022, decay: 0.9 });
     tone(voice, { freq: 988, type: 'triangle', at: lock + 0.04, dur: 0.5, peak: 0.018 });
     tone(voice, { freq: 1480, type: 'triangle', at: lock + 0.1, dur: 0.45, peak: 0.013 });
+    held(voice, { freq: 50, type: 'sawtooth', filterHz: 180, points: [[lock, 0], [lock + 0.6, 0.045], [fromRelay(BEATS.surge), 0.04], [fromRelay(BEATS.end), 0]] });   // the machine standing there, alive
   }),
 
   // One neon letter catching: a short mains buzz and the electrode tick.
