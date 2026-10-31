@@ -326,8 +326,9 @@ export function wakeAttract(attract) {
 /* One clock for the whole film: the document timeline. at() runs a step on
    its beat; until() resolves when the film reaches a time. */
 function clock(root) {
-  const timer = (ms) => root.animate([], { duration: 0, delay: ms }).finished;
   const reel = root.animate([], { duration: 600000 });   // the film's own clock: follows the timeline, and pauses with it
+  // ms is film time, wherever at() is called from (a step scheduled from a later step still lands on its beat)
+  const timer = (ms) => root.animate([], { duration: 0, delay: Math.max(0, ms - (reel.currentTime ?? 0)) }).finished;
   return {
     now: () => reel.currentTime ?? 0,
     at(ms, fn) {

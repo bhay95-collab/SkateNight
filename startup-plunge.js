@@ -231,7 +231,8 @@ layout(location=0) in vec3 p; layout(location=1) in vec3 n; uniform mat4 uM, uVP
 void main(){ vT = p.xy + .5; gl_Position = uVP * uM * vec4(p,1.); }`;
 const TFS = `#version 300 es
 precision highp float; in vec2 vT; uniform sampler2D uTex; uniform vec3 uBack; uniform float uK; out vec4 o;
-void main(){ vec4 r = texture(uTex, vec2(1. - vT.x, vT.y));   // as the cabinet shows it, so the hand-back matches float edge = smoothstep(.0, .06, min(min(vT.x, 1.-vT.x), min(vT.y, 1.-vT.y)));
+// mirrored as the cabinet shows it, so the hand-back matches
+void main(){ vec4 r = texture(uTex, vec2(1. - vT.x, vT.y)); float edge = smoothstep(.0, .06, min(min(vT.x, 1.-vT.x), min(vT.y, 1.-vT.y)));
   o = vec4((uBack * (.55 + .45 * (1. - length(vT - .5) * 1.2)) + r.rgb * r.a * 1.05) * uK * edge, 1.); }`;
 const AVS = `#version 300 es
 layout(location=0) in vec3 p; uniform mat4 uVP; uniform vec3 uEye; uniform float uT, uPx; out float vB;
@@ -325,9 +326,18 @@ export function placePlunge(attract) {
 }
 
 export function buildPlunge(canvas, robotCanvas) {
-  let made;
-  try { made = makeGL(canvas); } catch (err) { console.warn('[plunge]', err); }
-  if (!made) { canvas.remove(); return null; }
+  try {
+    return buildScene(canvas, robotCanvas);
+  } catch (err) {                            // any failure: no 3D, and nothing left over the cabinet
+    console.warn('[plunge]', err);
+    canvas.remove();
+    return null;
+  }
+}
+
+function buildScene(canvas, robotCanvas) {
+  const made = makeGL(canvas);
+  if (!made) throw new Error('no WebGL2');
   const { gl, program, mesh } = made;
   const SOLID = program(VS, FS), PAINT = program(PVS, PFS), TEX = program(TVS, TFS), DUST = program(AVS, AFS);
   const BOX = mesh(...boxData());
