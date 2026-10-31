@@ -1,21 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { BEATS, BEAT_MS, EXTENDED, LOCK_BEATS, STORE_EXTENDED, supplyAt, timeline } from '../startup-timing.js';
+import { BEATS, BEAT_MS, EXTENDED, LOCK_BEATS, STORE_EXTENDED, supplyAt, timeline, wantsExtended } from '../startup-timing.js';
 import { SHAFT, depthAt } from '../startup-inside.js';
 
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const ext = timeline(true);
 const std = timeline(false);
 
-test('the extended cut is a choice: off by default, from TOOLS or ?cut=, never with reduced motion', () => {
-  assert.equal(EXTENDED, false, 'the standard cut unless asked');
+test('the extended cut is the default: TOOLS turns it off, ?cut= compares, never with reduced motion', () => {
+  const page = { browser: true, reduced: false, search: '', stored: null };
+  assert.equal(wantsExtended(page), true, 'a fresh laptop plays the extended cut');
+  assert.equal(wantsExtended({ ...page, stored: '1' }), true);
+  assert.equal(wantsExtended({ ...page, stored: '0' }), false, 'the operator chose the standard cut');
+  assert.equal(wantsExtended({ ...page, search: '?cut=standard' }), false, 'a comparison link wins');
+  assert.equal(wantsExtended({ ...page, stored: '0', search: '?hum&cut=extended' }), true);
+  assert.equal(wantsExtended({ ...page, reduced: true }), false, 'never with reduced motion');
+  assert.equal(wantsExtended({ ...page, reduced: true, search: '?cut=extended' }), false, 'not even when asked');
+  assert.equal(EXTENDED, false, 'outside a page (these tests) the standard cut is timed');
   assert.deepEqual(std.BEATS, BEATS, 'and the standard cut is exactly the film as it was');
   assert.equal(STORE_EXTENDED, 'sn-extended-cut');
-  const timing = read('startup-timing.js');
-  assert.match(timing, /prefers-reduced-motion: reduce\)'\)\.matches\) return false;/, 'never with reduced motion');
-  assert.match(timing, /get\('cut'\)/, '?cut=extended or ?cut=standard for a comparison');
-  assert.match(read('index.html'), /<input type="checkbox" id="extended-cut"> Extended cut \(Bigger on the Inside\)/);
+  assert.match(read('index.html'), /<input type="checkbox" id="extended-cut" checked> Extended cut \(Bigger on the Inside\)/);
   assert.match(read('app.js'), /localStorage\.setItem\(STORE_EXTENDED, extendedSetting\.checked \? '1' : '0'\)/);
   assert.match(read('startup.js'), /if \(EXTENDED\) stageInside\(buildInside\(/);
   assert.match(read('sw.js'), /'startup-inside\.js'/, 'cached for offline');

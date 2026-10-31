@@ -30,16 +30,25 @@ const DARK_MS = 1800;                           // the real dark between the tri
    follows the coin through the slit and falls with it through an interior
    far bigger than the cabinet; the first try fails in there, the second
    rises up through the machine on the heartbeat and out through the back of
-   the screen, onto the lit cabinet for the lock. A TOOLS setting, read when
-   the page loads (so it takes effect the next time the Awakening plays), or
-   ?cut=extended / ?cut=standard for a comparison. Never with reduced motion. */
+   the screen, onto the lit cabinet for the lock. It is the default; the
+   TOOLS setting turns it off (stored '0'), read when the page loads (so it
+   takes effect the next time the Awakening plays), and ?cut=extended /
+   ?cut=standard compares the two. Never with reduced motion, and not outside
+   a page (the unit tests time the standard cut; they test this one through
+   timeline(true)). */
 export const STORE_EXTENDED = 'sn-extended-cut';
-function wantsExtended() {
+export function wantsExtended(env = {}) {
   try {
-    if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
-    const asked = new URLSearchParams(globalThis.location?.search ?? '').get('cut');
+    const {
+      browser = Boolean(globalThis.document),
+      reduced = Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+      search = globalThis.location?.search ?? '',
+      stored = globalThis.localStorage?.getItem(STORE_EXTENDED) ?? null,
+    } = env;
+    if (!browser || reduced) return false;
+    const asked = new URLSearchParams(search).get('cut');
     if (asked) return asked === 'extended';
-    return globalThis.localStorage?.getItem(STORE_EXTENDED) === '1';
+    return stored !== '0';
   } catch {
     return false;
   }

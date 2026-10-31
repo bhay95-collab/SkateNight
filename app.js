@@ -700,7 +700,7 @@ async function main() {
   });
   // The extended cut: read when the page loads, so it plays from the next Awakening (startup-timing.js).
   const extendedSetting = $('extended-cut');
-  try { extendedSetting.checked = localStorage.getItem(STORE_EXTENDED) === '1'; } catch { extendedSetting.checked = EXTENDED; }
+  try { extendedSetting.checked = localStorage.getItem(STORE_EXTENDED) !== '0'; } catch { extendedSetting.checked = EXTENDED; }   // on unless the operator chose the standard cut
   extendedSetting.addEventListener('change', () => {
     try { localStorage.setItem(STORE_EXTENDED, extendedSetting.checked ? '1' : '0'); } catch { /* not remembered */ }
     ui.setMessage?.(extendedSetting.checked ? 'Extended cut: plays from the next start' : 'Standard cut: plays from the next start');
