@@ -1,5 +1,7 @@
 # UI review and responsive album artwork
 
+> Note (31 October 2026): the crowd screen this review describes has since been removed - the jukebox is now one window, installed as an app and mirrored to the projector (see DESIGN.md, "One window: the installed app").
+
 Reviewed 19 October 2026, using the current 61-song catalogue, Chromium, source
 inspection, manual interaction checks and automated accessibility checks.
 

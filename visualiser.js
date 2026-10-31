@@ -69,10 +69,9 @@ function sizeCanvas(canvas) {
   return { ctx: canvas.getContext('2d'), w, h, dpr };
 }
 
-/* source: the crowd screen has no sound of its own, so it draws from levels
-   sent by the control window (a function returning { levels, vuL, vuR }).
-   tap: the control window hands each frame's levels to the crowd screen. */
-export function createVisualiser({ source = null, tap = null } = {}) {
+/* source: draw from given levels instead of the audio engine (a function
+   returning { levels, vuL, vuR }) - how the tests run it without sound. */
+export function createVisualiser({ source = null } = {}) {
   const $ = (id) => document.getElementById(id);
   const engine = source ? null : getEngine();
   const freq = engine ? new Uint8Array(engine.analyser.frequencyBinCount) : new Uint8Array(0);
@@ -304,7 +303,6 @@ export function createVisualiser({ source = null, tap = null } = {}) {
       rmsR = vuLevel(rmsFromFloat(timeR), gain);
       engine.beatAnalyser.getFloatTimeDomainData(timeBass);
       bassLevel = rmsFromFloat(timeBass) / Math.max(gain, 0.05);          // the MUSIC slider divided back out
-      if (tap) safely('tap', () => tap({ levels: Array.from(levels, (v) => Math.round(v * 1000) / 1000), vuL: rmsL, vuR: rmsR, bass: Math.round(bassLevel * 10000) / 10000 }));
     } else if (source) {
       const d = source();
       if (d && Array.isArray(d.levels)) { levels = d.levels; rmsL = d.vuL || 0; rmsR = d.vuR || 0; bassLevel = d.bass || 0; }

@@ -76,7 +76,7 @@ export function fitRackArtwork({ panel, heading, controls, strips }) {
       rows = [...strips.children];
       rows.forEach((row) => observer?.observe(row));
       // An album with more tracks must release cover space before its first
-      // paint, including when the operator tab is behind the crowd window.
+      // paint, including when the window is in the background.
       if (frame) cancelAnimationFrame(frame);
       measure();
     },

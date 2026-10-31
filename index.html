@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skate by Faith - Not by Sight</title>
 <meta name="description" content="Skate by Faith, Not by Sight - an 80s rollerskate night. RFAI arcade jukebox for the rink.">
-<meta name="theme-color" content="#140722">
+<meta name="theme-color" content="#05030B">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="rfai-logo.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" as="font" type="font/woff2" href="fonts/bungee-400.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="fonts/barlow-500.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="fonts/jetbrains-mono.woff2" crossorigin>
@@ -155,7 +157,7 @@
 
     <!-- Album browser: a compact sleeve above the complete album track list -->
     <section class="panel choose" aria-label="Choose a song">
-      <h2 class="panel-title tab-tilt-a" id="crowd-tab">Pick a Song</h2>
+      <h2 class="panel-title tab-tilt-a" id="pick-tab">Pick a Song</h2>
       <div class="rack-panel" role="region" aria-label="Record rack">
         <h3 class="sr-only">The Rack</h3>
         <div class="rack-heading">
@@ -268,8 +270,6 @@
 
     <div class="deck-group deck-tools">
       <button type="button" class="btn btn-deck" id="btn-shuffle" aria-pressed="true" title="Shuffle: every song plays once before any repeats (S). Off = play in the order of tracks.js">SHUFFLE: ON</button>
-      <button type="button" class="btn btn-deck" id="btn-crowd" title="Open another window for the projector" aria-label="Open crowd screen in another window" aria-describedby="crowd-link-state">CROWD SCREEN</button>
-      <span id="crowd-link-state" class="sr-only" role="status">Crowd screen closed</span>
       <details class="utility-drawer" id="cabinet-tools">
         <summary>TOOLS</summary>
         <div class="utility-panel" role="group" aria-label="Cabinet tools">
@@ -290,11 +290,6 @@
     </div>
   </footer>
 
-</div>
-
-<div id="crowd-hint" class="crowd-hint" hidden role="status">
-  <span id="crowd-status">Waiting for the operator window.</span>
-  <button id="crowd-hint-dismiss" type="button" aria-label="Dismiss projector hint">×</button>
 </div>
 
 <!-- keyboard legend: shows for a few seconds, press ? to bring it back -->

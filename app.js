@@ -29,11 +29,9 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { createLink, isCrowdView } from './link.js';
-import { runCrowd } from './crowd.js';
 import { createUI, createTicker } from './ui.js';
 import {
-  keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker,
+  keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker, isInstalledApp, shouldTryHum,
 } from './rink.js';
 import { listCrateFiles, crateStatus, loadCrates } from './crates.js';
 import { clamp } from './format.js';
@@ -71,11 +69,6 @@ async function loadLibrary() {
 }
 
 async function main() {
-  if (isCrowdView()) {                               // the projector window: no sound, no controls
-    const { library } = await loadLibrary();
-    runCrowd(library);
-    return;
-  }
   preloadSfxFiles();                                 // original effects and optional MP3 overrides
   safely('screen-flicker', () => startScreenFlicker($('crt-flicker'), { onBurst: (plan) => sfx.flicker(plan.dipStartsMs) }));
 
@@ -83,6 +76,13 @@ async function main() {
   const attractScreen = $('attract');
   attractScreen.hidden = false;
   const cabinetStart = safely('attract', () => wakeAttract(attractScreen));
+  // The offline shell registers once the first picture is up, while the
+  // cabinet waits, so Chrome can offer to install the app from the dark screen.
+  const swRegistration = new Promise((resolve) => {
+    const register = () => resolve(registerServiceWorker());
+    if (document.readyState === 'complete') setTimeout(register, 0);
+    else addEventListener('load', register, { once: true });
+  });
 
   const { library, loadError } = await loadLibrary();
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
@@ -143,47 +143,7 @@ async function main() {
       },
     },
   });
-  /* ---------------- the crowd screen link ----------------
-     Everything the room should see is also sent to the crowd screen. */
-  const link = createLink();
-  let crowdOpen = false;                           // only stream meter levels once a crowd screen has said hello
-  let crowdLastSeen = 0;
-  const crowdStatus = (connected) => {
-    const message = connected ? 'Crowd screen connected' : 'Crowd screen not connected';
-    if ($('crowd-link-state').textContent !== message) $('crowd-link-state').textContent = message;
-    $('btn-crowd').dataset.connected = String(connected);
-  };
-  const mech = mirrorMech(createMechanism({ sfx, tracks: library.tracks, volumeById }));
-  function mirrorMech(m) {
-    const tx = Object.create(m);
-    tx.load = (v, o = {}) => { link.send('mech', { op: 'load', volumeId: v?.id, ...o }); return m.load(v, o); };
-    tx.swap = (v, o = {}) => { link.send('mech', { op: 'swap', volumeId: v?.id, ...o }); return m.swap(v, o); };
-    tx.eject = (o = {}) => { link.send('mech', { op: 'eject', ...o }); return m.eject(o); };
-    tx.setPaused = (p) => { link.send('mech', { op: 'paused', paused: p }); m.setPaused(p); };
-    tx.showIdleCover = (v) => { link.send('mech', { op: 'idle', volumeId: v?.id }); m.showIdleCover(v); };
-    tx.clearIdleCover = () => { link.send('mech', { op: 'clearIdle' }); m.clearIdleCover(); };
-    return tx;
-  }
-  const crowdState = () => ({
-    phase, nowId, queue: queue.slice(), houseLine: houseLine.slice(), shuffle,
-    shownVolumeId: ui.shownVolumeId, missing: library.tracks.filter((t) => getStatus(t.id).state === 'missing').map((t) => t.id),
-  });
-  link.listen(({ type }) => {
-    if (type !== 'hello' && type !== 'crowd-heartbeat') return;
-    crowdLastSeen = performance.now();
-    crowdStatus(true);
-    crowdOpen = true;
-    if (type !== 'hello') return;
-    link.send('snapshot', { state: crowdState() });
-  });
-  link.send('operator');                           // a crowd screen already open (say, after a reload) says hello back
-  setInterval(() => {
-    link.send('heartbeat');
-    if (crowdOpen && performance.now() - crowdLastSeen > 30000) {
-      crowdOpen = false;
-      crowdStatus(false);
-    }
-  }, 2000);
+  const mech = createMechanism({ sfx, tracks: library.tracks, volumeById });
   mech.setRackLookup((volumeId) => ui.rackSleeve(volumeId));
 
   ui.renderRack();
@@ -212,7 +172,6 @@ async function main() {
       ui.updateStrips({ nowId, queue });
       planHouse();
       ui.renderQueue(queue, houseLine, shuffle ? 'HOUSE SHUFFLE' : 'HOUSE IN ORDER');
-      link.send('state', crowdState());
       const playText = phase === 'playing' ? 'PAUSE' : phase === 'paused' ? 'RESUME' : phase === 'changing' ? 'PAUSE' : 'START';
       $('btn-play-text').textContent = playText;
       $('btn-play').classList.toggle('is-playing', phase === 'playing');
@@ -475,7 +434,6 @@ async function main() {
   function onTime(current, duration, id) {
     if (id !== nowId || phase !== 'playing') return;
     ui.setProgress(current, duration);
-    link.send('time', { current, duration, nowId });
     if (!Number.isFinite(duration) || duration <= 0) return;
     mech.setProgress(current / duration);
     const remaining = duration - current;
@@ -583,7 +541,6 @@ async function main() {
     queue = result.queue;
     sfx.confirm();
     safely('sign-flash', () => ui.flashSelection(track));
-    link.send('select', { trackId: track.id });
     useCredit();
     say(phase === 'idle'
       ? `STARTING ${track.code} - ${track.title}`
@@ -660,12 +617,6 @@ async function main() {
   $('btn-skip').addEventListener('click', () => { noteInput(); skip(); });
   $('btn-back').addEventListener('click', () => { noteInput(); back(); });
   $('btn-shuffle').addEventListener('click', () => { noteInput(); sfx.key(); setShuffle(!shuffle); });
-  $('btn-crowd').addEventListener('click', () => {
-    noteInput();
-    sfx.key();
-    const crowd = window.open(`${location.pathname}?view=crowd`, 'skate-crowd', 'popup,width=1280,height=720');
-    if (!crowd) ui.toast('THE BROWSER BLOCKED THE CROWD SCREEN - ALLOW POP-UPS FOR THIS SITE');
-  });
   paintShuffle();
 
   const savedVol = (() => {
@@ -934,7 +885,7 @@ async function main() {
     if (engineReady) {
       // A quick keyboard selection must have a player even while effects decode.
       player = createPlayer({ onEnded, onTime, onError, onDuration });
-      visualiser = createVisualiser({ tap: (d) => { if (crowdOpen) link.send('levels', d); } });
+      visualiser = createVisualiser();
       safely('visualiser', () => visualiser.start());
       setupMediaSession({
         onPlay: () => { if (phase === 'paused') togglePlay(); else if (phase === 'idle') playFromIdle(); },
@@ -954,7 +905,7 @@ async function main() {
     if (matchMedia('(pointer:fine)').matches && innerWidth >= 1000) showLegend();
     scheduleRender();
     lastInput = performance.now();
-    const reg = await registerServiceWorker();
+    const reg = await swRegistration;
     if (reg) {
       try { await navigator.serviceWorker.ready; swOk = true; } catch { swOk = false; }
     }
@@ -972,8 +923,12 @@ async function main() {
      one wakes the machine as usual. Remembered: a browser that already
      allows this site sound starts it on load, and one that does not (an
      iPhone, a fresh tab) treats the first press as ?hum does, so the armed
-     hum is never lost to the coin. Unarmed, the dormant cabinet is silent
-     and the visitor's touch wakes it quietly under the coin. */
+     hum is never lost to the coin. The installed app (manifest.webmanifest)
+     tries it on launch without being armed - Chrome allows an installed
+     app sound - unless Alt+Shift+D switched it off; if the sound is still
+     held back, the room stays silent and the coin wakes it as usual. In a
+     browser tab, unarmed, the dormant cabinet is silent and the visitor's
+     touch wakes it quietly under the coin. */
   let drone = null;
   const newDrone = (engine) => createDrone(engine, cabinetStart?.breath);
   function armDrone() {
@@ -998,9 +953,11 @@ async function main() {
     if (drone?.state !== 'dormant') drone = newDrone(engine);
     drone.awaken();
   }
-  let rememberedDrone = false;
-  try { rememberedDrone = localStorage.getItem(STORE_DRONE) === 'on'; } catch { /* not armed */ }
-  if (rememberedDrone) safely('drone', () => {
+  let savedHum = null;
+  try { savedHum = localStorage.getItem(STORE_DRONE); } catch { /* no choice saved */ }
+  const rememberedDrone = savedHum === 'on';
+  // The installed app tries the hum on launch unless the operator switched it off.
+  if (shouldTryHum(savedHum, isInstalledApp())) safely('drone', () => {
     const engine = unlockAudio();                    // stays suspended (and silent) unless this browser allows sound here
     if (!engine) return;
     drone = newDrone(engine);

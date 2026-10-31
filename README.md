@@ -193,44 +193,57 @@ place; follow these steps only if you want to swap it for a new one.
 
 **The day before, at home or the venue, on the venue laptop:**
 
-- [ ] Open the site in **Google Chrome** (best supported).
+- [ ] Open the site in **Google Chrome** on the laptop:
+      `https://bhay95-collab.github.io/SkateNight/` (the https address - the
+      install below needs it).
+- [ ] **Install it as an app (once per laptop):** Chrome's menu (the three
+      dots, top right) -> **Cast, save and share** -> **Install page as app**
+      (older Chrome: **Install Skate by Faith** or *Save and share* ->
+      *Install*, or the small install icon at the right of the address bar).
+      You get a **Skate by Faith** icon on the desktop / in the dock or Start
+      menu, and the jukebox opens in its own window with no tabs or address bar.
+- [ ] Open it from the new **Skate by Faith** icon. The dark cabinet appears;
+      in the installed app Chrome normally allows the low hum to start by
+      itself (no click needed). If the room stays silent, that is fine - the
+      first click wakes it as usual.
 - [ ] Click the dark cabinet (or press any key) - there is no button on purpose.
 - [ ] Open **TOOLS** (bottom right), then press **LOAD THE CRATES**. The thin strip along the bottom of that button fills and the little
       light at the top right changes to **OFFLINE READY**. This saves every
       song on the laptop so the night runs even if the venue wifi dies. Press it
-      again after you add songs.
+      again after you add songs. Then **test it offline**: turn the laptop's
+      wifi off, close the app, open it from its icon again, and play a song.
 - [ ] Press **START** and listen to a few songs.
 
 **On the night:**
 
 - [ ] Plug the laptop into **power** (important - it will run for hours).
-- [ ] **Plug in the projector** and set the laptop to **Extend** displays, so
-      the projector is a second screen (Windows: press the Windows key + **P**,
-      choose *Extend*. Mac: System Settings -> Displays -> use as *Extended
-      display*, not Mirror).
-- [ ] Open the jukebox site in Chrome on the laptop screen and click the dark
-      cabinet (or press any key) to put the coin in.
-- [ ] Press **CROWD SCREEN ↗** (bottom right). A second window opens: that is the
-      **crowd screen** - the jukebox as the room sees it, with no buttons,
-      sliders or keypad. **Drag it onto the projector**, then **click it once**
-      to make it fullscreen. Its temporary hint explains this and can be dismissed.
-      The laptop announces when the crowd screen connects. (If Chrome blocks it, click the blocked pop-up
-      icon in the address bar and choose *Always allow*.)
-- [ ] Back on the laptop, press **START**. You run everything from the laptop
-      window; the crowd screen follows along by itself. Keep the laptop window
-      open (not minimised), or the projector's meters stop moving.
-- [ ] No second screen? Use *Duplicate* instead and press **F** for fullscreen
-      in the one window (press **Esc** to leave) - everything still works, the
-      room just sees the controls too.
+- [ ] **Plug in the projector** and set the displays to **Duplicate / Mirror**
+      (Windows: Windows key + **P** -> *Duplicate*. Mac: System Settings ->
+      Displays -> *Mirror*). The one app window is both your controls and
+      the room's picture.
+- [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
+- [ ] Open **Skate by Faith** from its icon. If the window still has a title
+      bar, press **F** (or TOOLS -> **FULLSCREEN**) **before the audience
+      arrives** - press **Esc** to leave. (On a dedicated event laptop a
+      kiosk shortcut can launch it borderless: see *Fullscreen* below.)
+- [ ] Click the dark cabinet (or press any key) to put the coin in, then
+      press **START** when you are ready.
 - [ ] **Test volume:** move the **MUSIC** slider (or tap the up/down arrow keys
       with the cabinet background focused)
       while someone stands at the back of the rink. The laptop's own volume
       should be about three-quarters up; use the jukebox slider to fine-tune.
-- [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
 
-**If the page is closed or reloaded by accident:** open the site again, click the dark
-cabinet (or press any key), then START (and press CROWD SCREEN again if the crowd screen was closed - an
-open crowd screen picks the jukebox back up on its own). The queue starts empty (the house rotation fills the gap).
+**If the app is closed or reloaded by accident:** open it again from its icon,
+click the dark cabinet (or press any key), then START. The queue starts empty
+(the house rotation fills the gap).
+
+**Fullscreen:** the app asks Chrome for fullscreen, but desktop Chrome usually
+opens installed apps in an ordinary app window with a title bar. Use **F** or
+TOOLS -> FULLSCREEN before the audience arrives (it is not switched on by
+itself mid-film, so the coin sequence never jumps). For a truly borderless
+start on a dedicated machine, make a shortcut that runs Chrome with
+`--kiosk https://bhay95-collab.github.io/SkateNight/` (close every other
+Chrome window first; Alt+F4 / Cmd+Q to leave).
 
 ## How it behaves
 
@@ -249,7 +262,7 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
 - **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
   trim and an optional click-to-fill setting. Click it
   or use Enter/Space; Escape or a click outside closes it. Music, effects,
-  shuffle, crowd and lights stay directly available on the deck.
+  shuffle and lights stay directly available on the deck.
 - **START** begins with the house rotation. It does **not** start automatically,
   so you can test volume first.
 - **Pick a song by its code**, like a real jukebox. The left column is
@@ -303,9 +316,6 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   when the decorative credits run out.
 - The **offline status** at the top is a button: press it to open TOOLS with
   **LOAD THE CRATES** focused. Saving starts only when you press LOAD THE CRATES.
-- The crowd screen shows a connection warning if it stops hearing from the
-  laptop for 30 seconds, then clears it when the laptop reconnects. Keep both
-  windows open on the same site and browser profile.
 - After **60 seconds** with nobody touching anything, the machine runs a light
   show. Touch any key to stop it.
 - Switching songs fades out and in. You hear no hard cuts. The precision changer
@@ -324,7 +334,14 @@ open crowd screen picks the jukebox back up on its own). The queue starts empty 
   cabinet sounds. Music, Effects and Vinyl texture show their current
   percentages. Resuming a paused song does not replay the needle drop.
 
-### The machine's hum while it waits (optional)
+### The machine's hum while it waits
+
+In the **installed app** the hum starts by itself when the app opens, if
+Chrome allows it (it normally does for installed apps). To keep the room
+silent, press **Alt+Shift+D** (Option+Shift+D on a Mac) while the hum plays:
+it stops, and stays off on later launches until you press it again.
+
+In an ordinary browser tab it is optional:
 
 Before the night, open the site with **?hum** on the end of the address
 (for example `.../SkateNight/?hum`). The first tap, click or key press then
@@ -388,7 +405,8 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 | New song does not appear | GitHub can take a minute or two to publish. Reload, then press LOAD THE CRATES again. |
 | Light says **NOT OFFLINE YET** | Press the status, then **LOAD THE CRATES** while you have internet. |
 | Light says **SAVED - NEEDS HTTPS** | The page was opened from a plain `http://` address. Use the GitHub Pages `https://` address. |
-| Crowd screen says the operator is disconnected | Return to the laptop window and keep it open. The warning clears when its heartbeat returns; reopen CROWD SCREEN if needed. |
+| No hum when the app opens | Chrome is holding sound back. It is fine: the first click wakes the machine with sound. To hear the hum before the night, see *The machine's hum while it waits*. |
+| No **Install** option in Chrome's menu | Use the `https://` GitHub Pages address (not a saved file), and wait for the page to finish loading once. |
 
 ---
 

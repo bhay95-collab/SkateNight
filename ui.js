@@ -98,7 +98,6 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
   const $ = (id) => document.getElementById(id);
   const trackById = new Map(library.tracks.map((t) => [t.id, t]));
   const volumeById = new Map(library.volumes.map((v) => [v.id, v]));
-  const crowd = document.body.classList.contains('is-crowd');
 
   const stripsEl = $('strips');
   const rackPage = document.querySelector('.rack-page');
@@ -197,9 +196,9 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
         const row = el('div', {
           class: 'strip', role: 'listitem', title: t.title,
           dataset: { track: t.id },
-          onclick: () => { if (!crowd && getQuickPick()) handlers.prefillTrack?.(t); },
+          onclick: () => { if (getQuickPick()) handlers.prefillTrack?.(t); },
           onkeydown: (event) => {
-            if (crowd || !getQuickPick() || !['Enter', ' '].includes(event.key)) return;
+            if (!getQuickPick() || !['Enter', ' '].includes(event.key)) return;
             event.preventDefault();
             event.stopPropagation();
             if (!event.repeat) handlers.prefillTrack?.(t);
@@ -220,7 +219,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
   }
 
   function refreshQuickPick() {
-    const quick = !crowd && getQuickPick();
+    const quick = getQuickPick();
     stripsEl.setAttribute('role', quick ? 'group' : 'list');
     stripsEl.classList.toggle('has-quick-pick', quick);
     for (const row of stripRows.values()) {
@@ -253,7 +252,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
       if (aside.textContent !== label) aside.textContent = label;
       const t = trackById.get(id);
       const state = st.state === 'missing' ? ', out of order' : id === nowId ? ', now playing' : queuePos >= 0 ? `, queue position ${queuePos + 1}` : '';
-      row.setAttribute('aria-label', `${t.code} ${t.title}${state}${!crowd && getQuickPick() ? ', preview this selection' : ''}`);
+      row.setAttribute('aria-label', `${t.code} ${t.title}${state}${getQuickPick() ? ', preview this selection' : ''}`);
       if (id === nowId) row.setAttribute('aria-current', 'true');
       else row.removeAttribute('aria-current');
     }
@@ -312,7 +311,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
       row.classList.toggle('is-typed', isTyped);
       // Only a newly entered code reveals its row. Moving this list's scroll
       // position directly keeps the cabinet and surrounding page in place.
-      if (isTyped && !wasTyped && !document.body.classList.contains('is-crowd')) {
+      if (isTyped && !wasTyped) {
         const viewport = stripsEl.getBoundingClientRect();
         const strip = row.getBoundingClientRect();
         const top = viewport.top + stripsEl.clientTop;
@@ -434,8 +433,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
     const scrollTop = box.scrollTop;
     currentQueue = queue.slice();
     queueNodes = queue.length ? [requestDivider] : [];
-    const visibleQueue = crowd ? queue.slice(0, QUEUE_ROWS) : queue;
-    visibleQueue.forEach((id, i) => {
+    queue.forEach((id, i) => {
       const t = trackById.get(id);
       if (!t) return;
       let row = requestRows.get(id);
@@ -446,8 +444,8 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
         };
         row = el('li', { class: 'q-row', dataset: { track: id } },
           el('span', { class: 'q-pos led' }), queueText(t),
-          !crowd && el('button', { class: 'q-btn', type: 'button', dataset: { track: id, queueAction: 'up' }, 'aria-label': `Move ${t.title} up`, onclick: () => activate('moveUp') }, '▲'),
-          !crowd && el('button', { class: 'q-btn q-x', type: 'button', dataset: { track: id, queueAction: 'cancel' }, 'aria-label': `Cancel ${t.title}`, onclick: () => activate('cancel') }, '✕'));
+          el('button', { class: 'q-btn', type: 'button', dataset: { track: id, queueAction: 'up' }, 'aria-label': `Move ${t.title} up`, onclick: () => activate('moveUp') }, '▲'),
+          el('button', { class: 'q-btn q-x', type: 'button', dataset: { track: id, queueAction: 'cancel' }, 'aria-label': `Cancel ${t.title}`, onclick: () => activate('cancel') }, '✕'));
         requestRows.set(id, row);
       }
       row.querySelector('.q-pos').textContent = String(i + 1);
@@ -508,7 +506,7 @@ export function createUI({ library, getStatus, handlers, getQuickPick = () => fa
 
   function updateQueueContinuation() {
     const cue = $('queue-continuation');
-    if (!cue || crowd) return;
+    if (!cue) return;
     const box = $('queue-screen');
     const overflowing = box.scrollHeight > box.clientHeight + 2;
     const below = box.scrollTop + box.clientHeight < box.scrollHeight - 2;

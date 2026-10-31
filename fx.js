@@ -155,8 +155,8 @@ export function bootLine(overlay) {
 }
 
 /* Input belongs to the cabinet only after arrival. Inert keeps focus out of
-   the hidden controls; capture guards also cover the window's shortcuts and
-   the crowd screen's fullscreen gesture. Preserve existing inert states.
+   the hidden controls; capture guards also cover the window's shortcuts.
+   Preserve existing inert states.
    The INSERT COIN film holds input the same way while it plays. */
 export function holdArrivalInput(overlay) {
   const background = Array.from(document.body.children)

@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Skate by Faith — Arcade Jukebox",
+  "short_name": "Skate by Faith",
+  "description": "Skate by Faith, Not by Sight - an 80s rollerskate night. The RFAI arcade jukebox for the rink.",
+  "lang": "en-AU",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "background_color": "#05030B",
+  "theme_color": "#05030B",
+  "categories": ["music", "entertainment"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

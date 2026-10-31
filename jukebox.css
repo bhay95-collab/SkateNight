@@ -677,26 +677,6 @@ input[type="range"]::-moz-range-thumb{ width:.95rem; height:1.4rem; border:0; bo
 .crate-meter{ position:absolute; left:.6rem; right:.6rem; bottom:.22rem; height:.18rem; border-radius:.1rem; background:var(--glass); overflow:hidden; pointer-events:none; box-shadow:inset 0 .05rem 0 rgba(0,0,0,.6); }
 .crate-meter i{ display:block; height:100%; transform:scaleX(0); transform-origin:left; background:var(--cyan); box-shadow:0 0 .5rem var(--cyan); transition:transform .3s linear; }
 
-/* ================= CROWD SCREEN (index.html?view=crowd, crowd.js) =================
-   The cabinet as the room sees it: no deck, no selector, no queue buttons.
-   The rack fills its column - a big sleeve over larger, readable strips. */
-body.is-crowd .deck, body.is-crowd .keypad-panel, body.is-crowd .legend, body.is-crowd .marquee-status,
-body.is-crowd .rack-nav, body.is-crowd .q-btn, body.is-crowd .toast{ display:none !important; }
-body.is-crowd .rig{ grid-template-rows:auto auto minmax(0,1fr); padding-bottom:1.1rem; }
-body.is-crowd .rig::before{ bottom:.45rem; }
-body.is-crowd .cabinet{ grid-template-columns:1.8rem minmax(0,1fr) minmax(0,1.38fr) minmax(0,.62fr) 1.8rem; }
-body.is-crowd .rack-bar{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto; grid-template-areas:"label"; }
-body.is-crowd .rack-page{ flex:0 1 auto; min-height:0; }
-body.is-crowd .strips-wrap{ width:100%; flex:1; }
-body.is-crowd .strips{ overflow:hidden; }
-body.is-crowd .strip-title{ font-size:.92rem; }
-body.is-crowd .strip-code{ font-size:.85rem; }
-body.is-crowd .strip{ grid-template-columns:2.2rem minmax(0,1fr); }
-body.is-crowd .q-row{ grid-template-areas:"pos text text" "pos text text"; min-height:3rem; }
-body.is-crowd .np-meters{ flex-basis:5rem; }
-body.is-crowd #selection-preview, body.is-crowd #queue-continuation, body.is-crowd #free-play{ display:none; }
-html:fullscreen body.is-crowd{ cursor:none; }
-
 /* ================= LEGEND, TOAST, MODAL ================= */
 .legend{
   position:fixed; z-index:30; left:50%; bottom:.45rem; transform:translate(-50%,.6rem);
@@ -720,10 +700,6 @@ html:fullscreen body.is-crowd{ cursor:none; }
 .modal-lead{ margin:.3rem 0 .8rem; color:var(--label); font-size:.95rem; }
 .modal-list{ margin:0 0 1rem; padding-left:1.2rem; display:grid; gap:.5rem; font-size:.9rem; color:var(--phosphor); max-height:46vh; overflow:auto; }
 .modal-card .btn{ margin-top:.2rem; }
-#crowd-hint{ position:fixed; z-index:55; right:1.5rem; bottom:1.5rem; max-width:calc(100vw - 3rem); margin:0; padding:.6rem .85rem; display:flex; align-items:center; gap:.75rem;
-  border:1px solid var(--trim); border-radius:.5rem; background:rgba(8,5,12,.95); color:var(--phosphor); font:700 .8rem/1.3 var(--font-body); box-shadow:0 .3rem .8rem rgba(0,0,0,.7); }
-#crowd-hint[data-connection="lost"]{ border-color:var(--amber); color:var(--amber); }
-#crowd-hint-dismiss{ flex:none; width:30px; height:30px; border:1px solid var(--trim); border-radius:.3rem; background:var(--steel-2); color:var(--phosphor); cursor:pointer; font-size:1.25rem; }
 
 /* ================= shared sizing ================= */
 button, summary{ min-height:24px; }
@@ -799,22 +775,15 @@ body.is-attract .mech.is-idle-cover .mech-slot{ transition:opacity .6s ease; }
   .arch{ display:none; }
   .crt-bezel{ --bezel:.4rem; }
   .utility-panel{ bottom:6.6rem; right:1rem; max-height:calc(100dvh - 7.6rem); }
-  body.is-crowd .rig{ grid-template-rows:auto auto auto; }
-  body.is-crowd .cabinet{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-template-areas:"now now" "choose queue"; }
-  body.is-crowd .choose, body.is-crowd .queue-panel{ height:clamp(34rem,70dvh,44rem); }
-  body.is-crowd .now-panel{ min-height:36rem; }
-  body.is-crowd .strip-title{ font-size:1rem; }
 }
 
 @media (max-width:600px){
   .rig{ padding:.8rem .65rem 1.5rem; }
   .rig::before{ inset:.2rem .2rem .8rem; border-radius:1.6rem 1.6rem .8rem .8rem; }
-  .cabinet, body.is-crowd .cabinet{ grid-template-columns:minmax(0,1fr); grid-template-areas:"choose" "queue" "now"; gap:1.4rem; }
-  body.is-crowd .cabinet{ grid-template-areas:"now" "choose" "queue"; }
-  .choose, body.is-crowd .choose{ height:39rem; }
+  .cabinet{ grid-template-columns:minmax(0,1fr); grid-template-areas:"choose" "queue" "now"; gap:1.4rem; }
+  .choose{ height:39rem; }
   .queue-panel{ height:35rem; }
-  body.is-crowd .queue-panel{ height:26rem; }
-  .now-panel, body.is-crowd .now-panel{ min-height:28rem; }
+  .now-panel{ min-height:28rem; }
   .now-panel .mech{ flex-basis:12rem; min-height:10rem; }
   .now-panel .mech-slot, .now-panel .mech-sleeve-well{ font-size:min(1.25rem,11cqh,4.8cqw); }
   .np-meters{ grid-template-columns:4.5rem minmax(0,1fr) 4.5rem; }
@@ -854,7 +823,7 @@ body.is-attract .mech.is-idle-cover .mech-slot{ transition:opacity .6s ease; }
 
 /* Numeric buttons keep the compact ten-key row on precise pointers. */
 @media (pointer:fine){
-  body:not(.is-crowd) .q-row:not(.is-house){ grid-template-columns:1.2rem minmax(0,1fr) 32px 32px; grid-template-areas:"pos text up x"; grid-template-rows:auto; column-gap:.25rem; row-gap:0; min-height:52px; padding:.1rem 0; }
+  .q-row:not(.is-house){ grid-template-columns:1.2rem minmax(0,1fr) 32px 32px; grid-template-areas:"pos text up x"; grid-template-rows:auto; column-gap:.25rem; row-gap:0; min-height:52px; padding:.1rem 0; }
   @container (min-width:calc(240px + 1.35rem)){
     .key-digits{ grid-template-columns:repeat(10,minmax(24px,1fr)); gap:.15rem; }
   }

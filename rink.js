@@ -3,9 +3,30 @@
      - Screen Wake Lock: the laptop never dims or sleeps while this is open.
      - Media Session: the laptop's media keys (play/pause/next) work, and
        the song shows in the operating system's now-playing widget.
-     - Service worker registration: lets the site run offline (sw.js).
+     - Service worker registration: lets the site run offline (sw.js) and
+       be installed as an app (manifest.webmanifest).
+     - Installed app: whether this is the app's own window, and so whether
+       the dormant hum should try to start by itself.
    Each one fails soft: if the browser lacks it, the night goes on anyway.
    ============================================================ */
+
+/* The installed app (its own window, no tabs or address bar), not a browser
+   tab. A tab made fullscreen before the page loads reads the same - it only
+   ever means the hum is tried, which the browser may still refuse. */
+export function isInstalledApp(win = globalThis) {
+  const mode = (m) => Boolean(win.matchMedia?.(`(display-mode: ${m})`).matches);
+  return mode('fullscreen') || mode('standalone') || mode('minimal-ui') || mode('window-controls-overlay') || win.navigator?.standalone === true;
+}
+
+/* Should the dormant hum try to start on launch? The operator's choice
+   (sn-drone: 'off' or 'on', from Alt+Shift+D) always wins; with no choice
+   made, the installed app tries and a browser tab stays silent. Trying is
+   not playing: the browser decides whether sound is allowed. */
+export function shouldTryHum(saved, installed) {
+  if (saved === 'off') return false;
+  if (saved === 'on') return true;
+  return Boolean(installed);
+}
 
 let wakeLock = null;
 let wakeWanted = false;
@@ -28,7 +49,7 @@ export function keepAwake() {
   acquireWakeLock();
 }
 
-document.addEventListener('visibilitychange', () => {
+globalThis.document?.addEventListener('visibilitychange', () => {   // guarded: the tests import this module without a page
   if (!document.hidden && wakeWanted && !wakeLock) acquireWakeLock();
 });
 

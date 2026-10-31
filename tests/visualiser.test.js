@@ -4,7 +4,7 @@ import { createVisualiser } from '../visualiser.js';
 import { followLights } from '../fx.js';
 
 test('monitor glow follows bass beats, settles in silence, and resets across CALM and hidden tabs', (t) => {
-  // Exercise the real source-driven visualiser (also used by the crowd window)
+  // Exercise the real source-driven visualiser
   // without an AudioContext or optional meter canvases. Advance its actual RAF.
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const frames = new Map();

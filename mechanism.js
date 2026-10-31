@@ -295,7 +295,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     },
     setPaused(paused) { root.classList.toggle('is-paused', paused); },
 
-    /* The finished picture straight away (a crowd screen opened mid-song). */
+    /* The finished picture straight away, without the changer's move. */
     showPlaying(volume, { trackId = null, paused = false } = {}) {
       hardReset();
       setCover(volume);

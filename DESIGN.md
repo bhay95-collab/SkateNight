@@ -170,8 +170,7 @@ worker.
   remains fixed at the supported laptop/projector sizes.
 - Rows: marquee, LED ticker, cabinet, operator deck, key legend.
 - Operator columns: tube | **PICK A SONG** | **NOW PLAYING** | **UP NEXT** and
-  selector | tube, with content proportions 1.04 : 1.28 : 0.88. The crowd view
-  keeps its separate 1 : 1.38 : 0.62 balance and hides the operator controls.
+  selector | tube, with content proportions 1.04 : 1.28 : 0.88.
 - The marquee sign is centred on the page (wordmark 2.45 rem, subtitle .72 rem,
   both centred inside the sign) with the bulb rows hugging the sign's edges so
   the lettering never sits on a bulb. Its enclosure has a narrow bevel, flush
@@ -180,8 +179,7 @@ worker.
 - The RFAI logo (3.45 rem) has a soft cyan/pink halo behind it. Silent, the halo
   breathes over 4.8 s (opacity and scale only). With music it follows the beat:
   it brightens from 34% to at most 86% and swells, and the logo itself swells
-  up to 4.5%, on each kick (`logoGlow` in `dsp.js`, driven from `visualiser.js`;
-  the crowd screen does the same from the bass level the control window sends).
+  up to 4.5%, on each kick (`logoGlow` in `dsp.js`, driven from `visualiser.js`).
   It follows the beat only, never loudness ripples, so it cannot move faster than
   the beat gate allows, and it hands back to the breathing about 2.5 s after the
   music stops. Off in CALM. The logo and the CREDITS / OFFLINE chips
@@ -202,8 +200,7 @@ worker.
   that fits beside or above the album controls. It measures the actual font
   and title wrapping, updates on album changes, resize and font readiness,
   and rounds down with a two-pixel safety allowance. Artwork shrinks or hides
-  before an oversized future album needs contained scrolling. The same rule
-  applies to the crowd screen, with its hidden controls excluded from sizing.
+  before an oversized future album needs contained scrolling.
 - **The panel is tuned for seven songs per album** (the catalogue is complete:
   70 songs, exactly seven on each of the ten albums, so the cover is the same
   size on every album at a given window size and never jumps when albums flip). The track list hugs its rows exactly - no
@@ -217,8 +214,7 @@ worker.
   (taller windows such as 1024 x 768) the controls drop back to one compact row
   (`stackedControlsHeight` in `planRackLayout`). The layout measures the controls'
   minimum size, not their stretched size, so it cannot feed back on itself, and
-  the album label keeps its natural height (`align-self:center`) so the crowd
-  screen, which hides the arrow keys, still gets its cover. Checked: all ten
+  the album label keeps its natural height (`align-self:center`). Checked: all ten
   albums at ten window sizes, none scrolls, no row cut off, no overflow.
 - Pressing a letter key (or typing it) flips the rack to that album, so the
   operator sees its songs while finishing the code.
@@ -240,9 +236,8 @@ worker.
   Ordinary contained scrolling accommodates future albums larger than the rack.
   A newly typed complete code reveals its row within this list and outlines it
   in cyan, without scrolling the surrounding cabinet. The current ten albums
-  need no scrolling at the supported laptop sizes. The crowd screen keeps a
-  complete list and uses the queue's full column because its selector is hidden.
-- Transport, music/effects faders, SHUFFLE, CROWD SCREEN and LIGHTS remain on the
+  need no scrolling at the supported laptop sizes.
+- Transport, music/effects faders, SHUFFLE and LIGHTS remain on the
   deck. TOOLS groups FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, the Vinyl
   texture trim and optional click-to-fill. Faders display their percentages. The native
   disclosure supports mouse, Enter and Space, closes on Escape or an outside
@@ -475,32 +470,25 @@ record changer and the readouts carry the show; the world around it stays dim.
 
 Before adding anything new, ask what it replaces.
 
-## Crowd screen (two windows)
+## One window: the installed app
 
-The **CROWD SCREEN ↗** button opens `index.html?view=crowd` (`crowd.js`) for the
-projector, with the laptop showing the full control window. The crowd screen:
-- plays **no sound** and hides operator controls (deck, selector, queue buttons,
-  status chips and key legend); its tab reads THE RACK, and the rack fills the
-  column, with flexible artwork and larger strips following the control window's
-  album. The seven tracks in the largest current album remain visible at the
-  tested sizes; the artwork uses the remaining space. This is a passive display,
-  so its composition must be rechecked if future albums gain many more tracks;
-- mirrors everything the room should see over a `BroadcastChannel` (`link.js`):
-  state (playing, UP NEXT and the house plan, rack page), every record-changer
-  move, SELECTION ACCEPTED, the song clock (about 4 times a second) and the
-  meter levels (30 a second, only once a crowd screen has said hello);
-- catches up when opened mid-song (a `snapshot` reply to its `hello`: the
-  record is shown already playing);
-- follows the LIGHTS setting (shared `localStorage`, `storage` event);
-- runs its own ticker jokes, bubble tubes, arch and (silent) screen flicker;
-- gives a dismissible setup hint to move it to the projector and click for
-  fullscreen; it goes fullscreen on a click or F and hides the pointer when
-  fullscreen;
-- tracks the operator heartbeat. After 30 seconds without contact it shows a
-  connection warning, then clears it automatically when contact resumes. The
-  operator window announces the crowd connection state beside its button.
-If the control window is minimised the browser pauses its drawing, so the
-crowd screen's meters freeze until it is shown again.
+There is one window: the full jukebox, controls and all, on the laptop, with
+the projector mirroring it (the room may see the controls; that is the
+trade). The old second crowd-screen window (`?view=crowd`, BroadcastChannel,
+heartbeat) is gone. The site is an installable Chrome app
+(`manifest.webmanifest`: relative `./` start and scope, so it works under
+`/SkateNight/` or at a root; dark `#05030B`; icons drawn from `rfai-logo.png`,
+192 and 512, plus a maskable 512 with the logo inside the safe circle). It
+asks for `display: fullscreen`; desktop Chrome resolves that to a standalone
+app window (checked on Linux Chromium 153), so F / TOOLS -> FULLSCREEN stays
+the way to go edge to edge - never switched on by itself mid-film. No splash,
+install button or welcome: the first screen is the dormant cabinet. The
+service worker registers once the first picture is up, so Chrome can offer
+the install from the dark screen. In the installed app the dormant hum is
+tried on launch (`shouldTryHum` in `rink.js`: Alt+Shift+D's saved 'off' wins,
+saved 'on' always tries, otherwise only the installed app); it plays only if
+Chrome lets the one audio engine run, and otherwise waits silently for the
+coin.
 
 ## Motion
 
@@ -853,7 +841,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `cabinet.js` | Native TOOLS disclosure, keyboard activation, dismissal and shortcut help |
 | `keyboard.js` | Cabinet shortcuts that respect native controls, scroll areas and modal dialogs |
 | `styles.css` | Fonts, shared tokens and base rules, the INSERT COIN film and the boot screen |
-| `jukebox.css` | The running machine: lacquer, chrome and glass tokens, every bay, the deck, crowd screen and small-screen layouts |
+| `jukebox.css` | The running machine: lacquer, chrome and glass tokens, every bay, the deck and small-screen layouts |
 | `changer.css` | The record changer's chamber, platter, vinyl and tonearm (loaded before `jukebox.css`) |
 | `app.js` | The conductor: state, queue flow, keypad, keyboard, attract, crates |
 | `tracks.js` | **The one file Ben edits** |
@@ -871,8 +859,6 @@ from 10 metres). Everything about reading and validating that file lives in
 | `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
 | `carousel.js` | The record carousel: turn maths (pure) and its drawing |
 | `arch.js` | The arched cabinet crown |
-| `crowd.js` | The crowd screen (projector window): mirrors the control window |
-| `link.js` | BroadcastChannel between the control window and the crowd screen |
 | `player.js` | Two audio decks, fades, gapless-feel, probing |
 | `rack-layout.js` | Fits the largest album artwork after reserving every track |
 | `mechanism.js` | The record changer animation |
