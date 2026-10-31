@@ -49,8 +49,8 @@ test('wired in: cued at the press, started in the dark, revealed by the song\'s 
   assert.match(land, /startAudio\(id, token, \{ leadInMs: 0, fadeInMs: 0, needle: false \}\)/, 'no crackle, no needle drop on the opener');
   assert.match(land, /mech\.showPlaying\(/, 'the record is already playing when the light lands');
   assert.match(land, /player\.currentTrackId === id && player\.currentTime >= at - frame \/ 2000/, 'the picture follows the sound, on the nearest frame');
-  assert.match(land, /OPENER\.revealAt \+ \(getEngine\(\)\?\.ctx\.outputLatency \|\| 0\) \+ REVEAL_OFFSET_MS \/ 1000/, 'allowing for output latency and a venue calibration');
-  assert.match(land, /setTimeout\(finish, \(OPENER\.revealAt \+ 2\.5\) \* 1000\)/, 'a fail-safe if the song cannot start');
+  assert.match(land, /REVEAL\.at \+ \(getEngine\(\)\?\.ctx\.outputLatency \|\| 0\) \+ REVEAL_OFFSET_MS \/ 1000/, 'allowing for output latency and a venue calibration');
+  assert.match(land, /setTimeout\(finish, \(REVEAL\.at \+ 2\.5\) \* 1000\)/, 'a fail-safe if the song cannot start');
   const power = app.slice(app.indexOf('async function powerOn'), app.indexOf('async function startNight'));
   assert.match(power, /player\.cue\(trackById\.get\(OPENER\.id\)\)/, 'cued at the press, ready long before it plays');
   assert.match(power, /if \(!toDark\) releaseInput\(\);/, 'input held through the dark');
@@ -72,5 +72,6 @@ test('the film hands over on the grid: it ends on the cut, the song\'s bar 1 fiv
   assert.ok(lead > 0, 'the song starts after the cut, in the dark');
   assert.ok(Math.abs(BEATS.cut + lead + OPENER.bar1 * 1000 - (BEATS.cut + 5 * BEAT_MS)) < 1e-6, 'bar 1 is the fifth beat after the cut');
   const power = app.slice(app.indexOf('async function powerOn'), app.indexOf('async function startNight'));
-  assert.match(power, /await delay\(OPENER_LEAD_MS\);/, 'the opener waits out the lead in the dark');
+  assert.match(power, /await delay\(REVEAL\.leadMs\);/, 'the opener waits out the lead in the dark');
+  assert.match(app, /long: \{ leadMs: OPENER_LEAD_MS, at: OPENER\.revealAt \}/, 'the long reveal is still there to compare');
 });

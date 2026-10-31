@@ -142,6 +142,9 @@ button{ font:inherit; color:inherit; }
    lock's last beat a cut to black; on the opener's bar 2 the jukebox is there. */
 .attract.is-dark .attract-world{ opacity:0; }   /* a cut, on the beat */
 .attract.is-revealed{ opacity:0; pointer-events:none; transition:opacity 60ms linear; }
+/* reveal c (app.js): the picture's last light, kept as an ember through the dark */
+.attract-ember{ position:absolute; width:1.1vmin; height:1.1vmin; border-radius:50%; pointer-events:none; z-index:5; transform:translate(-50%, -50%);
+  background:radial-gradient(circle, #fff 0 30%, rgba(160,255,250,.9) 45%, rgba(37,232,226,.35) 70%, transparent); box-shadow:0 0 1.6vmin .4vmin rgba(37,232,226,.5); }
 /* Handing over: the film's last line lies over the boot screen and fades as the boot's own line strikes. */
 .attract.is-handing{ z-index:101; background:transparent; opacity:0; pointer-events:none; transition:opacity .2s linear; }
 /* The whole screen is the one button and it is focused on load, so a ring
