@@ -35,17 +35,21 @@
                   still hero angle
      the cut      on the last beat insert resolves; the caller cuts to black
                   and the song begins in the dark (app.js)
+   The extended cut (EXTENDED, startup-inside.js) dives through the slit after
+   the coin and tells the fall, the first try, the dark and the rise inside
+   the machine, coming out through the back of the screen for the lock.
    With prefers-reduced-motion the story is told without travel, shake or
    flicker: the coin is taken at the slit and the cabinet fades up.
    sound is { lift, contact, chute, relay, power, tube }.
    ============================================================ */
 import { BREATH, planBreath } from './lights.js';
-import { BEATS, PULSE, STANDBY } from './startup-timing.js';
+import { BEATS, EXTENDED, PULSE, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
 import { gatherFault, stageFaults, startDormantFaults } from './startup-fault.js';
 import { addEyes, stageRobot } from './startup-robot.js';
 import { ORNAMENT } from './ornament.js';
+import { buildInside, stageInside } from './startup-inside.js';
 
 const MOTES = 16;
 const DEAD_TUBES = 2;
@@ -421,6 +425,7 @@ function stageFilm(el, at, cue) {
   stageBulbs(el.bulbs);
   stageIgnition(el, at);
   stageFaults(el.fault);
+  if (EXTENDED) stageInside(buildInside(el.attract, el.robot.core?.tagName === 'CANVAS' ? el.robot.core : null));   // Bigger on the Inside
 }
 
 /* The camera is almost still. It does not move at the press (the stillness
@@ -460,8 +465,15 @@ function stageCamera(el) {
     { offset: t(coinIn + 650), ...aim(slit, push * 1.025, onSlot), easing: 'cubic-bezier(.3,0,.3,1)' },
     { offset: t(coinIn + 1050), ...aim(slit, push, onSlot) },                                     // settling, a little past and back
     { offset: t(gone + 250), ...aim(slit, push, onSlot), easing: 'cubic-bezier(.45,0,.4,1)' },    // the empty slot, held
-    { offset: t(relay - 150), ...aim(tube, 1.2, tubeLow) },                                       // tilting up the face of the machine as the coin falls
-    { offset: t(caught), ...aim(tube, 1.21, tubeLow), easing: 'cubic-bezier(.45,0,.35,1)' },     // waiting, through the first try and the dark
+    ...(EXTENDED ? [
+      // the extended cut dives through the slit after the coin (startup-inside.js has the camera from there),
+      // and is waiting at the low angle, unseen, when it comes back out through the screen
+      { offset: t(BEATS.inside), ...aim(slit, push * 4, onSlot), easing: 'step-end' },
+      { offset: t(BEATS.inside + 30), ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },
+    ] : [
+      { offset: t(relay - 150), ...aim(tube, 1.2, tubeLow) },                                       // tilting up the face of the machine as the coin falls
+      { offset: t(caught), ...aim(tube, 1.21, tubeLow), easing: 'cubic-bezier(.45,0,.35,1)' },     // waiting, through the first try and the dark
+    ]),
     { offset: t(ignite - 150), ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },   // the heartbeat: sinking to the low angle
     { offset: 1, ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },       // and still, for two bars
   ];

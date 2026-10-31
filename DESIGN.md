@@ -538,6 +538,40 @@ comparison from the address - `?ornament=all`, or a list such as
 stays out. The heartbeat's one letter a beat stays, and phase A's one weak
 letter, which is part of the failure.
 
+## The extended cut: Bigger on the Inside
+
+An optional director's cut on top of the standard film (TOOLS -> *Extended
+cut (Bigger on the Inside)*, off by default; or `?cut=extended` /
+`?cut=standard` for a comparison; never with reduced motion). Read when the
+page loads, so it plays from the next Awakening. `timeline(true)` in
+`startup-timing.js` gives its times; everything else follows them.
+Up to the coin being swallowed it is the standard film. Then the camera
+dives through the slit after it (`BEATS.inside`, 0.5 s), into an interior far
+bigger than the cabinet (`startup-inside.js`, drawn in code: a transformer
+the size of a building, gears turning slowly, girders, cable runs, the
+chute's rails, valves, the coin box) at three depths moving past at their own
+speeds. It is black silhouette against a dim fog, lit only by what is
+powered: the slot lamp receding above, the small falling coin, amber valves,
+blue-white arcs and, at the very top, the cyan back of the screen.
+- the fall: three seconds down the shaft with the coin, seven clinks further
+  and wetter, the coin box far below (`credit`, 6.6 s); the camera lands hard;
+- the relay jolts the whole interior (7.2 s, 1.75 s later than standard);
+- A: a valve beside the box gathers amber on the supply, nearly holds, arcs,
+  dies; its afterglow is the only light in the 1.8 s of dark; one tick;
+- B: far above, the robot lights first - its cyan reaches down the shaft -
+  and the machine follows it: light races up a cable, and on each beat of the
+  heartbeat (five, over a 3.6 s rise) another pulse runs up it and a valve
+  wakes as the camera rises past; the heartbeat's echo shortens as we near
+  the surface;
+- the surface (ignite - 0.7 s): the back of the screen fills the frame, the
+  robot enormous and reversed in it; through (ignite - 0.25 s): we push
+  through it, with a hush of glass, onto the lit cabinet at the low hero
+  angle for the lock - then the cut and the song exactly as standard.
+About 18.2 s in all. Measured against the opener (equal faders): coin and
+fall -22 dB, first try -15, rise -12, lock -8. The dive into black and the
+push out are one fade each; the inside's lights are small; its gears turn
+over 40-55 s (`tests/inside.test.js`).
+
 ## One window: the installed app
 
 There is one window: the full jukebox, controls and all, on the laptop, with
@@ -936,6 +970,8 @@ from 10 metres). Everything about reading and validating that file lives in
 | `startup-coin.js` | The coin going in: flight, tumble, catch, slip, chute, credit counter |
 | `startup-power.js` | The one supply and every part's response to it; tubes on the pulse, raster, bulbs on the lock |
 | `startup-robot.js` | The robot's part in the film: the look, the faint flicker, lighting first, the robot in the lit tube |
+| `startup-inside.js` | The extended cut's interior: the silhouettes, the fall, the valves, the rise, the back of the screen |
+| `ornament.js` | The retired ornament, switchable back for an A/B comparison |
 | `startup-timing.js` | The film's score: `BEATS`, `CHUTE_CLINKS_MS`, `SUPPLY` (pure, shared with sound.js) |
 | `neon.js` | Desynced neon flicker |
 | `rink.js` | Wake lock, media session, service worker registration |

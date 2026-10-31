@@ -25,36 +25,26 @@ export const STANDBY = 0.2;
 export const BEAT_MS = OPENER.beat * 1000;      // 446.5 ms: 134.4 BPM, the opener's measured tempo
 export const LOCK_BEATS = 8;                    // two bars of the song's heartbeat without the song
 const DARK_MS = 1800;                           // the real dark between the tries
-const QUICKEN_MS = 2800;                        // the second try, from the heavier relay to the lock
-const DEAD = 7550 + 380;                        // the first try's supply reaches nothing
 
-export const BEATS = {
-  look: 700,        // the press: the machine holds its breath; then the robot looks toward the slot
-  coinIn: 1100,     // the camera follows its look down to the door; a small coin rises into the lamp's light
-  align: 1700,      // face-on over the slit, small in frame; the rim catches the light
-  descend: 2050,    // it sinks toward the door
-  contact: 2550,    // its edge meets the slit and catches
-  slip: 2850,       // it is pressed, it resists - then the gate gives and it drops through
-  gone: 3100,       // swallowed; the camera holds on the empty slot, then tilts up the machine
-  credit: 5150,     // after a long fall, far below: the coin box, a clunk, and 1 CREDIT
-  relay: 5450,      // the main relay pulls in - THUNK - and standby cuts out
-  attempt: 5950,    // A: the transformer gathers; a line creeps across the tube, one tube catches...
-  almost: 7100,     //    ...it nearly holds...
-  fail: 7550,       //    ...falters, and dies: line, tube, hum, all of it
-  tick: DEAD + 900,                       // the dark: nothing but one small tick somewhere inside
-  catch: DEAD + DARK_MS,                  // B: a heavier relay; the robot lights first, the heartbeat starts
-  ignite: DEAD + DARK_MS + QUICKEN_MS,    // the lock: the heartbeat reaches the song's tempo, the machine is lit
-  cut: DEAD + DARK_MS + QUICKEN_MS + (LOCK_BEATS - 1) * BEAT_MS,   // the last beat: cut to black
-};
-BEATS.end = BEATS.cut;                    // the film ends on the cut; the song begins in the dark (app.js)
-
-/* Phase B: how long the robot is alone in the black tube before the line
-   and the raster follow it (startup-robot.js, startup-power.js, sound.js). */
-export const ROBOT_FIRST_MS = 450;
-
-/* Down the chute after it is swallowed: a long fall, each bounce further
-   down, quieter and wetter, the gaps opening as it drops away from us. */
-export const CHUTE_CLINKS_MS = [70, 300, 560, 850, 1170, 1510, 1870];
+/* The extended cut ("Bigger on the Inside", startup-inside.js): the camera
+   follows the coin through the slit and falls with it through an interior
+   far bigger than the cabinet; the first try fails in there, the second
+   rises up through the machine on the heartbeat and out through the back of
+   the screen, onto the lit cabinet for the lock. A TOOLS setting, read when
+   the page loads (so it takes effect the next time the Awakening plays), or
+   ?cut=extended / ?cut=standard for a comparison. Never with reduced motion. */
+export const STORE_EXTENDED = 'sn-extended-cut';
+function wantsExtended() {
+  try {
+    if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return false;
+    const asked = new URLSearchParams(globalThis.location?.search ?? '').get('cut');
+    if (asked) return asked === 'extended';
+    return globalThis.localStorage?.getItem(STORE_EXTENDED) === '1';
+  } catch {
+    return false;
+  }
+}
+export const EXTENDED = wantsExtended();
 
 /* The pulse: the second try's heartbeat, quickening from about 60 BPM to the
    song's tempo so that its next beat would be the lock, then the lock's
@@ -71,21 +61,67 @@ function quicken(from, to, bpm0 = 60, curve = 1.6) {
   }
   return beats.reverse().map((ms) => Math.round(ms * 10) / 10);
 }
-export const PULSE = Object.freeze({
-  heartbeat: Object.freeze(quicken(BEATS.catch + 250, BEATS.ignite)),
-  lock: Object.freeze(Array.from({ length: LOCK_BEATS }, (_, k) => Math.round((BEATS.ignite + k * BEAT_MS) * 10) / 10)),
-});
 
-/* [ms, volts]. Dips are a few hundred ms wide and at most two to a second. */
-const { relay, attempt, almost, fail, catch: caught, ignite, cut } = BEATS;
-export const SUPPLY = [
-  [0, STANDBY], [relay, STANDBY], [relay + 50, 0.03],                                 // relay throws: standby drops out
-  [attempt, 0.03], [attempt + 500, 0.2], [attempt + 850, 0.38], [almost, 0.55],       // A: the transformer gathers, slowly
-  [almost + 200, 0.34], [almost + 330, 0.47], [fail, 0.42], [fail + 380, 0],           //    nearly; a stumble; then it dies away
-  [caught, 0], [caught + 120, 0.3], [caught + 900, 0.5], [caught + 1800, 0.7],        // B: catches hard and climbs, steadily now
-  [ignite - 80, 0.86], [ignite, 1.14], [ignite + 420, 1],                             // the lock: overshoots, settles
-  [cut, 1],                                                                           //    held, in tempo, to the last beat
-];
+/* The whole film's timing, standard or extended. Every time is in ms from the press. */
+export function timeline(extended = false) {
+  const fall = extended ? 1750 : 0;               // the extended cut's longer fall pushes everything from the relay on
+  const quickenMs = extended ? 3600 : 2800;       // the second try: from the heavier relay to the lock (a longer rise inside)
+  const dead = 7550 + 380 + fall;                 // the first try's supply reaches nothing
+  const beats = {
+    look: 700,        // the press: the machine holds its breath; then the robot looks toward the slot
+    coinIn: 1100,     // the camera follows its look down to the door; a small coin rises into the lamp's light
+    align: 1700,      // face-on over the slit, small in frame; the rim catches the light
+    descend: 2050,    // it sinks toward the door
+    contact: 2550,    // its edge meets the slit and catches
+    slip: 2850,       // it is pressed, it resists - then the gate gives and it drops through
+    gone: 3100,       // swallowed; the camera holds on the empty slot, then tilts up the machine
+    credit: extended ? 6600 : 5150,   // after a long fall, far below: the coin box, a clunk, and 1 CREDIT
+    relay: 5450 + fall,               // the main relay pulls in - THUNK - and standby cuts out
+    attempt: 5950 + fall,             // A: the transformer gathers; a line creeps across the tube, one tube catches...
+    almost: 7100 + fall,              //    ...it nearly holds...
+    fail: 7550 + fall,                //    ...falters, and dies: line, tube, hum, all of it
+    tick: dead + 900,                 // the dark: nothing but one small tick somewhere inside
+    catch: dead + DARK_MS,            // B: a heavier relay; the robot lights first, the heartbeat starts
+    ignite: dead + DARK_MS + quickenMs,                                  // the lock: the heartbeat reaches the song's tempo, the machine is lit
+    cut: dead + DARK_MS + quickenMs + (LOCK_BEATS - 1) * BEAT_MS,        // the last beat: cut to black
+  };
+  if (extended) {
+    Object.assign(beats, {
+      inside: beats.gone + 500,       // through the slit: the camera is inside, falling with the coin
+      surface: beats.ignite - 700,    // the rise reaches the back of the screen: the robot, enormous, reversed
+      through: beats.ignite - 250,    // and pushes through it, out onto the lit cabinet for the lock
+    });
+  }
+  beats.end = beats.cut;              // the film ends on the cut; the song begins in the dark (app.js)
+
+  /* Down the chute after it is swallowed: a long fall, each bounce further
+     down, quieter and wetter, the gaps opening as it drops away from us
+     (and further still in the extended cut, where we fall with it). */
+  const clinks = extended ? [150, 520, 930, 1380, 1860, 2370, 2900] : [70, 300, 560, 850, 1170, 1510, 1870];
+
+  const pulse = Object.freeze({
+    heartbeat: Object.freeze(quicken(beats.catch + 250, beats.ignite)),
+    lock: Object.freeze(Array.from({ length: LOCK_BEATS }, (_, k) => Math.round((beats.ignite + k * BEAT_MS) * 10) / 10)),
+  });
+
+  /* [ms, volts]. Dips are a few hundred ms wide and at most two to a second. */
+  const { relay, attempt, almost, fail, catch: caught, ignite, cut } = beats;
+  const supply = [
+    [0, STANDBY], [relay, STANDBY], [relay + 50, 0.03],                                 // relay throws: standby drops out
+    [attempt, 0.03], [attempt + 500, 0.2], [attempt + 850, 0.38], [almost, 0.55],       // A: the transformer gathers, slowly
+    [almost + 200, 0.34], [almost + 330, 0.47], [fail, 0.42], [fail + 380, 0],           //    nearly; a stumble; then it dies away
+    [caught, 0], [caught + 120, 0.3], [caught + 900, 0.5], [caught + 1800, 0.7],        // B: catches hard and climbs, steadily now
+    [ignite - 80, 0.86], [ignite, 1.14], [ignite + 420, 1],                             // the lock: overshoots, settles
+    [cut, 1],                                                                           //    held, in tempo, to the last beat
+  ];
+  return { BEATS: beats, CHUTE_CLINKS_MS: clinks, PULSE: pulse, SUPPLY: supply };
+}
+
+export const { BEATS, CHUTE_CLINKS_MS, PULSE, SUPPLY } = timeline(EXTENDED);
+
+/* Phase B: how long the robot is alone in the black tube before the line
+   and the raster follow it (startup-robot.js, startup-power.js, sound.js). */
+export const ROBOT_FIRST_MS = 450;
 
 /* The supply at any moment (straight lines between the points). */
 export function supplyAt(ms, points = SUPPLY) {

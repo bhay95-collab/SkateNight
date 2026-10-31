@@ -20,7 +20,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v35';
+const SHELL_CACHE = 'skatenight-shell-v36';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -31,7 +31,7 @@ const SHELL_FILES = [
   'styles.css', 'jukebox.css', 'changer.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
   'fx.js', 'keyboard.js', 'lights.js', 'mechanism.js', 'neon.js', 'player.js', 'queue.js', 'rack-layout.js',
-  'arch.js', 'carousel.js', 'drone.js', 'rink.js', 'ornament.js', 'rotation.js', 'sound.js', 'startup.js', 'startup-coin.js', 'startup-fault.js', 'startup-power.js', 'startup-robot.js', 'startup-timing.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
+  'arch.js', 'carousel.js', 'drone.js', 'rink.js', 'ornament.js', 'rotation.js', 'sound.js', 'startup.js', 'startup-coin.js', 'startup-fault.js', 'startup-inside.js', 'startup-power.js', 'startup-robot.js', 'startup-timing.js', 'tracks.js', 'ui.js', 'vinyl.js', 'visualiser.js',
   'rfai-logo.png', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
   'fonts/bungee-400.woff2', 'fonts/barlow-400.woff2', 'fonts/barlow-500.woff2',
   'fonts/barlow-700.woff2', 'fonts/jetbrains-mono.woff2',

@@ -379,6 +379,13 @@ waiting screen is silent, as browsers require. Either way, when someone
 touches the machine the hum stops dead - it holds its breath - and the
 film's own power-up takes over. It follows the EFFECTS volume.
 
+For a longer, more cinematic opening, tick TOOLS -> **Extended cut (Bigger
+on the Inside)**: the camera follows the coin into a huge dark interior,
+the first try fails inside, and the machine rises back out through its own
+screen (about 18 seconds instead of 15.7). It plays from the next time the
+Awakening runs (reload the page). To compare without changing the setting,
+add `?cut=extended` or `?cut=standard` to the address.
+
 To compare the opening with and without its old decoration (the coin's
 spin and shine, falling dust, chrome glints, flickering dead neon letters),
 open the site with **?ornament=all** on the end of the address; without it

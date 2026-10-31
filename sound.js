@@ -32,7 +32,7 @@
    Every effect is wrapped so a sound failure can never stop the music.
    ============================================================ */
 import { getEngine } from './audio.js';
-import { BEATS, CHUTE_CLINKS_MS, PULSE, ROBOT_FIRST_MS, supplyAt } from './startup-timing.js';
+import { BEATS, CHUTE_CLINKS_MS, EXTENDED, PULSE, ROBOT_FIRST_MS, supplyAt } from './startup-timing.js';
 
 /* The film's beats in seconds, from the moment each sound is cued. */
 const secs = (ms) => ms / 1000;
@@ -542,6 +542,7 @@ export const sfx = {
   // if deeper into the machine than it could possibly be; far below, the
   // coin box; then, close by on the door, the counter ticking over.
   chute: effect('chute', (voice) => {
+    if (EXTENDED) whoosh(voice.via({ dry: 1, wet: 0.5 }), { at: 0.05, dur: 0.45, from: 2400, to: 500, peak: 0.03, q: 2.4 });   // the extended cut: through the slit after it
     CLINKS_S.forEach((at, i) => {
       const deep = i / (CLINKS_S.length - 1);
       const v = voice.via({ dry: 1 - 0.85 * deep, wet: 0.25 + 0.75 * deep });
@@ -601,11 +602,15 @@ export const sfx = {
     const beats = [...PULSE.heartbeat, ...PULSE.lock];
     beats.forEach((ms, n) => {
       const at = fromRelay(ms);
-      const k = n < PULSE.heartbeat.length ? 0.3 + 0.4 * (n / PULSE.heartbeat.length) : 1;   // the heartbeat swells into the lock
-      tone(voice, { freq: EB2 * 1.55, to: EB2, at, dur: 0.16, peak: 0.09 * k });
-      tone(voice, { freq: EB1, to: EB1 * 0.92, at, dur: 0.32, peak: 0.11 * k });
-      thump(voice, { freq: 2200, dur: 0.006, peak: 0.035 * k, at });
+      const rising = n < PULSE.heartbeat.length;
+      const k = rising ? 0.3 + 0.4 * (n / PULSE.heartbeat.length) : 1;   // the heartbeat swells into the lock
+      // the extended cut rises through the machine on the heartbeat: the space shortens as we near the surface
+      const v = EXTENDED && rising ? voice.via({ dry: 1, wet: 0.7 * (1 - n / PULSE.heartbeat.length) }) : voice;
+      tone(v, { freq: EB2 * 1.55, to: EB2, at, dur: 0.16, peak: 0.09 * k });
+      tone(v, { freq: EB1, to: EB1 * 0.92, at, dur: 0.32, peak: 0.11 * k });
+      thump(v, { freq: 2200, dur: 0.006, peak: 0.035 * k, at });
     });
+    if (EXTENDED) whoosh(voice, { at: fromRelay(BEATS.through), dur: 0.4, from: 6500, to: 2200, peak: 0.012, q: 0.8 });   // a hush of glass as we push through the screen
     const lock = fromRelay(BEATS.ignite);                                                                    // it locks: the first beat of the lock
     thump(voice, { freq: 60, dur: 0.45, peak: 0.26, at: lock });
     thump(voice, { freq: 900, dur: 0.03, peak: 0.12, at: lock });

@@ -155,6 +155,35 @@ button{ font:inherit; color:inherit; }
 .attract-world{ position:absolute; inset:0; overflow:hidden; transform-origin:50% 50%; will-change:transform; }   /* clipped, so the collapse squeezes only what is on screen */
 .attract-camera{ position:absolute; inset:0; transform-origin:0 0; will-change:transform; }
 
+/* The extended cut's interior (startup-inside.js): black silhouette at three
+   depths, lit only by what is powered. Built at the press, only for that cut. */
+.inside{ position:absolute; inset:0; overflow:hidden; opacity:0; pointer-events:none; background:#010002; }
+.in-haze{ position:absolute; inset:0;   /* the slot lamp's glow from above, receding as we fall */
+  background:
+    radial-gradient(70% 55% at 50% -5%, rgba(255,186,110,.18), rgba(70,50,90,.1) 45%, transparent 75%),
+    radial-gradient(30% 70% at 22% 55%, rgba(90,80,120,.22), transparent 70%),   /* fog the far shapes stand against */
+    radial-gradient(28% 60% at 78% 40%, rgba(80,70,110,.2), transparent 70%),
+    linear-gradient(180deg, #1b1526, #0d0a14 60%, #07050b); }
+.in-layer{ position:absolute; inset:0; will-change:transform; }
+.in-piece{ position:absolute; transform:translateX(-50%); }
+.in-piece svg{ display:block; width:100%; height:100%; overflow:visible; }
+.in-piece.is-hazed{ opacity:.6; }                     /* distance: the fog shows through */
+.in-piece.is-near{ filter:blur(.7vh); }               /* close to the lens, out of focus */
+.in-piece.is-turning svg{ animation:in-turn 40s linear infinite; }
+.in-piece.is-turning.is-back svg{ animation-direction:reverse; animation-duration:55s; }
+@keyframes in-turn{ to{ transform:rotate(360deg); } }
+.in-light{ position:absolute; transform:translate(-50%, -50%); border-radius:50%; opacity:0; mix-blend-mode:screen; pointer-events:none; }
+.in-light.is-amber{ background:radial-gradient(closest-side, rgba(255,196,110,.8), rgba(255,140,40,.26) 40%, transparent); }
+.in-light.is-arc{ background:radial-gradient(closest-side, #fff, rgba(170,220,255,.8) 30%, rgba(90,160,255,.25) 60%, transparent); }
+.in-light.is-pulse{ background:radial-gradient(closest-side, #fff, rgba(37,232,226,.8) 35%, transparent); }
+.in-screen{ position:absolute; left:50%; width:118vh; height:66vh; border-radius:6vh / 5vh; opacity:0; display:grid; place-items:center;
+  background:radial-gradient(60% 60% at 50% 50%, rgba(120,255,248,.5), rgba(37,232,226,.22) 55%, rgba(10,40,48,.6)); box-shadow:0 0 8vh rgba(37,232,226,.3); }
+.in-screen canvas{ width:50vh; height:50vh; opacity:.85; }
+.in-coin{ position:absolute; left:50%; top:42%; width:3.2vh; height:3.2vh; border-radius:50%; opacity:0;
+  background:radial-gradient(circle at 35% 30%, #fff4cf, #e2b14a 45%, #8a5a10); box-shadow:0 0 1.2vh rgba(255,200,110,.45); }
+.in-above{ position:absolute; left:0; right:0; top:0; height:60%; opacity:0; mix-blend-mode:screen; pointer-events:none;   /* the robot's light, from far above */
+  background:radial-gradient(60% 80% at 50% 0%, rgba(37,232,226,.32), rgba(37,232,226,.08) 50%, transparent 80%); }
+
 /* the room: a dark wall, a shaft of light from a basement window, dust in it */
 .attract-room{
   position:absolute; inset:0; pointer-events:none; overflow:hidden;
