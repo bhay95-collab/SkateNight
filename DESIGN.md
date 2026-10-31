@@ -328,20 +328,23 @@ record changer and the readouts carry the show; the world around it stays dim.
     light): brighter robot, more harmonics through the filter, less hiss;
     a falter sags its pitch and ticks a contact; a rolling band sweeps the
     hiss. Measured dormant: about -29 LUFS, 15 dB under the lit machine.
-    The operator arms it before the night (Alt+Shift+D, remembered); unarmed
+    The operator arms it before the night (Alt+Shift+D, or open the site
+    with ?hum and the first press arms it instead of the coin; remembered); unarmed
     the dormant screen is silent and the touch wakes it quietly. At the
     press it stirs and steps back for the coin, drops out with standby at
     the relay, its ghost rides the first attempt and dies with it by fail +
     350 ms: the dark and the second attempt are the film's alone
     (`AFTER_PRESS`, `tests/drone.test.js`).
     The fault in the machine (`startup-fault.js`): one bad contact behind
-    the left side panel, low on the seam (about y 90 em - the reference
-    frames end at 100 em). A tiny crooked filament (three hand-drawn
-    shapes, `.fault-arc`) is clipped at the cabinet's silhouette, so only
-    what escapes the housing shows; a little cool light (`.fault-light`)
-    catches the lacquer rim and the chrome beside it. Dark at rest, opacity
-    only, no fill. Dormant: one contact every 20-45 s (sometimes up to
-    65 s, never at load) on the robot's falters or recoveries, one timer at
+    the coin door - the service compartment - on its left edge (about y
+    88 em; a first try on the cabinet's outer seam was a few pixels from the
+    edge of a phone screen and was never seen). A small crooked filament
+    (three hand-drawn shapes, `.fault-arc`) is clipped at the door's edge,
+    so only what escapes from behind the door shows; cool light
+    (`.fault-light`) catches the lacquer beside it and the door's edge.
+    Dark at rest, opacity only, no fill. Dormant: one contact every 12-28 s
+    (sometimes up to 45 s, never at load) on the robot's falters or
+    recoveries, one timer at
     a time, quiet in a hidden tab and stopped at the press. The film: four,
     on the beats and gated by `supplyAt` - attempt + 440, almost + 210,
     catch + 130, catch + 1460 - none in the coin, the dead interval, the

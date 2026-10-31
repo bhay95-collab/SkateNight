@@ -1,14 +1,14 @@
 /* ============================================================
    STARTUP FAULT - one bad contact inside the cabinet.
 
-   Somewhere behind the left side panel, low down at the seam, an old
-   relay contact does not quite make. Now and then a tiny discharge
-   bridges it: a short crooked filament, mostly hidden by the housing
-   (only what escapes past the silhouette is seen, .fault-arc clipped at
-   the cabinet's edge), and a little cool light catching the lacquer rim
-   and the chrome beside it (.fault-light). One place, always the same.
+   Behind the coin door, in the service compartment, an old relay contact
+   does not quite make. Now and then a tiny discharge bridges it: a short
+   crooked filament, mostly hidden by the door (only what escapes past its
+   left edge is seen, .fault-arc clipped there), and a little cool light
+   on the lacquer beside the door and the door's own edge (.fault-light).
+   One place, always the same.
 
-   Dormant: rare - 20 to 45 s apart, sometimes longer, never at load - and
+   Dormant: now and then - 12 to 28 s apart, sometimes longer, never at load - and
    placed on the robot's falters or its recoveries (planBreath), so the
    contact and the struggling picture belong to one tired supply. One
    timer, re-armed after each event; nothing runs between them.
@@ -22,11 +22,11 @@ import { BEATS, supplyAt } from './startup-timing.js';
 import { breathTroubles } from './lights.js';
 
 export const FAULT = {
-  minGapMs: 20000, maxGapMs: 45000, longGapMs: 65000,   // dormant: rare, irregular
+  minGapMs: 12000, maxGapMs: 28000, longGapMs: 45000,   // dormant: now and then, irregular
   skip: 0.3,                                            // chance an opportunity passes
   coreMs: [25, 60], decayMs: [50, 110],                 // filament, then the light it leaves
   variants: 3,                                          // hand-drawn filaments in index.html
-  maxStrength: 0.7,                                     // never a lamp: a contact
+  maxStrength: 0.95,                                    // never a lamp: a contact
   minSupply: 0.15,                                      // a dead supply cannot arc
 };
 
@@ -37,7 +37,7 @@ export const faultsAllowed = (doc = globalThis.document, media = globalThis.matc
   Boolean(doc && media) && !media('(prefers-reduced-motion: reduce)').matches && doc.documentElement.dataset.lights !== 'calm';
 
 /* How hard a contact can arc on this much supply. */
-const strengthAt = (ms, k) => clamp(k * (0.45 + 0.4 * supplyAt(ms)), 0, FAULT.maxStrength);
+const strengthAt = (ms, k) => clamp(k * (0.6 + 0.45 * supplyAt(ms)), 0, FAULT.maxStrength);
 
 /* The film's contacts: [at, coreMs, decayMs, variant, push] on the beats. */
 const AUTHORED = [
@@ -82,7 +82,7 @@ export function nextDormantFault(plan, phase, rng = Math.random) {
     coreMs: Math.round(between(...FAULT.coreMs)),
     decayMs: Math.round(between(...FAULT.decayMs)),
     variant: Math.floor(rng() * FAULT.variants),
-    strength: Number(between(0.4, 0.55).toFixed(3)),
+    strength: Number(between(0.6, 0.8).toFixed(3)),
   };
 }
 

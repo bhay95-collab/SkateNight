@@ -152,5 +152,10 @@ test('the operator arms it; the public screen shows nothing new', () => {
   assert.match(app, /lift: \(\) => \{ play\('lift'\); safely\('drone', wakeDrone\); \}/, 'the coin hands the drone to the film');
   assert.match(app, /visibilitychange', \(\) => drone\?\.setVisible/);
   assert.doesNotMatch(html, /drone|Alt\+Shift/i, 'no control or hint on the page');
+  assert.match(app, /new URLSearchParams\(location\.search\)\.has\('hum'\)/, '?hum lets a tap arm it, for phones and tablets');
+  const click = app.slice(app.indexOf("attractScreen.addEventListener('click'"));
+  assert.ok(click.indexOf('armByPress()') < click.indexOf('startNight()'), 'with ?hum the first press arms the hum, not the coin');
+  assert.match(click, /performance\.now\(\) - armedAt < 700/, 'and the click that follows Space or Enter is the same press');
+  assert.match(keys, /if \(armByPress\(\)\) return;\n    startNight\(\);/);
   assert.match(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), /'drone\.js'/, 'it works offline too');
 });

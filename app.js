@@ -966,7 +966,10 @@ async function main() {
      The machine humming in the dark while it waits. Browsers allow sound
      only after someone presses something, so it is the operator's: before
      the night, Alt+Shift+D arms it (that key press is the permission) and
-     pressing it again disarms it. Remembered, so a browser that already
+     pressing it again disarms it. On a phone or tablet, or to avoid the
+     keyboard, open the site with ?hum on the address: the first tap, click
+     or key then arms the hum instead of putting the coin in, and the next
+     one wakes the machine as usual. Remembered, so a browser that already
      allows this site sound starts it on load. Unarmed, the dormant cabinet
      is silent and the visitor's touch wakes it quietly under the coin. */
   let drone = null;
@@ -1000,9 +1003,22 @@ async function main() {
     begin();
   });
   document.addEventListener('visibilitychange', () => drone?.setVisible(!document.hidden));
+  let humFirst = new URLSearchParams(location.search).has('hum');   // ?hum: the first press arms the hum, not the coin
+  const armByPress = () => {
+    if (!humFirst || drone?.state === 'dormant') { humFirst = false; return false; }
+    humFirst = false;
+    safely('drone', toggleDrone);
+    armedAt = performance.now();
+    return true;
+  };
+  let armedAt = -Infinity;                         // Space/Enter on the button also clicks: that is the same press
 
   /* Anything pressed on the attract screen starts the night. */
-  attractScreen.addEventListener('click', () => startNight());
+  attractScreen.addEventListener('click', () => {
+    if (started) return;
+    if (armByPress() || performance.now() - armedAt < 700) return;
+    startNight();
+  });
   window.addEventListener('keydown', (e) => {
     if (started || attractScreen.hidden) return;
     if (e.code === 'KeyD' && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey) {   // the operator arming the drone, not the coin
@@ -1012,6 +1028,7 @@ async function main() {
     }
     if (['Shift', 'Control', 'Alt', 'Meta', 'Tab', 'CapsLock'].includes(e.key)) return;
     e.preventDefault();
+    if (armByPress()) return;
     startNight();
   });
 

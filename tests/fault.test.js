@@ -14,10 +14,14 @@ test('at rest the contact is dark: no glow, nothing lit until an animation lifts
   for (const sel of ['.fault-arc', '.fault-light']) {
     assert.match(css, new RegExp(`\\n${sel.replace('.', '\\.')}\\{[^}]*opacity:0;`), `${sel} rests at 0`);
   }
-  assert.match(css, /\.cab-fault\{[^}]*clip-path:inset\(-1em 0\.8em -1em -1em\)/, 'the filament is clipped at the silhouette');
+  const box = css.match(/\n\.cab-fault\{[^}]*\}/)[0];
+  const num = (k) => Number(box.match(new RegExp(`${k}:([\\d.]+)em`))[1]);
+  const clipRight = Number(box.match(/clip-path:inset\(-1em ([\d.]+)em/)[1]);
+  const door = css.match(/\n\.cab-door\{[^}]*?left:([\d.]+)em/)[1];
+  assert.ok(Math.abs(num('left') + num('width') - clipRight - (Number(door) - 0.3)) < 1e-9, 'the filament is clipped at the coin door\'s outer edge');
 });
 
-test('dormant contacts are rare, irregular, never at load, and repeatable from a seed', () => {
+test('dormant contacts come now and then, irregular, never at load, and repeatable from a seed', () => {
   for (let s = 1; s <= 200; s++) {
     const plan = planBreath(seeded(s));
     const rng = seeded(s * 7);
@@ -27,7 +31,7 @@ test('dormant contacts are rare, irregular, never at load, and repeatable from a
       const ev = nextDormantFault(plan, phase, rng);
       assert.ok(ev.inMs >= FAULT.minGapMs && ev.inMs <= FAULT.longGapMs, `gap ${ev.inMs}`);
       assert.ok(ev.coreMs >= 25 && ev.coreMs <= 60 && ev.decayMs >= 50 && ev.decayMs <= 110);
-      assert.ok(ev.strength <= 0.55 && ev.variant >= 0 && ev.variant < FAULT.variants);
+      assert.ok(ev.strength >= 0.6 && ev.strength <= 0.8 && ev.strength <= FAULT.maxStrength && ev.variant >= 0 && ev.variant < FAULT.variants);
       gaps.push(ev.inMs);
       phase = (phase + ev.inMs) % plan.duration;
     }
@@ -107,7 +111,8 @@ test('dormant runtime: one timer, a contact at a time, and stop() leaves it dark
   t.mock.timers.tick(FAULT.minGapMs - 1);
   assert.equal(anims.length, 0, 'nothing at load');
   t.mock.timers.tick(FAULT.longGapMs);
-  assert.ok(anims.length >= 2 && anims.length <= 4, 'one contact (filament and its light), maybe two');
+  const contacts = anims.length / 2;
+  assert.ok(contacts >= 1 && contacts <= Math.ceil(FAULT.longGapMs / FAULT.minGapMs), `a contact or two, filament and its light each (${contacts})`);
   for (const a of anims) assert.equal(a.frames.at(-1).opacity, 0, 'every contact ends dark');
   listeners.get('visibilitychange')();                          // still visible: re-arms, no stale flash
   document.hidden = true;
