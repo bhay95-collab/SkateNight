@@ -331,8 +331,10 @@ Before the night, open the site with **?hum** on the end of the address
 switches the hum on instead of putting the coin in: nothing appears on
 screen, and within a few seconds a low electrical drone rises out of the
 speakers and breathes with the little robot on the tube. The next press
-wakes the machine as usual. This works on a phone or tablet too (an iPhone's
-silent switch mutes it). On a laptop you can instead press **Alt+Shift+D**
+wakes the machine as usual. This works on a phone or tablet too. Once
+armed, the device remembers: next time, if the browser has not yet allowed
+sound, the first press switches the hum on again rather than putting the
+coin in. On a laptop you can instead press **Alt+Shift+D**
 (on a Mac: Option+Shift+D) at any time before the coin; press it again to
 switch it off. The laptop remembers, so after a reload (or next time, if
 the browser allows this site sound) it hums by itself. Without it the

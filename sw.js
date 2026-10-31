@@ -20,7 +20,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v28';
+const SHELL_CACHE = 'skatenight-shell-v29';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 

@@ -969,22 +969,28 @@ async function main() {
      pressing it again disarms it. On a phone or tablet, or to avoid the
      keyboard, open the site with ?hum on the address: the first tap, click
      or key then arms the hum instead of putting the coin in, and the next
-     one wakes the machine as usual. Remembered, so a browser that already
-     allows this site sound starts it on load. Unarmed, the dormant cabinet
-     is silent and the visitor's touch wakes it quietly under the coin. */
+     one wakes the machine as usual. Remembered: a browser that already
+     allows this site sound starts it on load, and one that does not (an
+     iPhone, a fresh tab) treats the first press as ?hum does, so the armed
+     hum is never lost to the coin. Unarmed, the dormant cabinet is silent
+     and the visitor's touch wakes it quietly under the coin. */
   let drone = null;
   const newDrone = (engine) => createDrone(engine, cabinetStart?.breath);
+  function armDrone() {
+    const engine = unlockAudio();                    // this press is the browser's gesture
+    if (!engine) return;
+    if (drone?.state !== 'dormant') drone = newDrone(engine);
+    drone.start();                                   // a remembered drone waiting for sound, or a new one
+    try { localStorage.setItem(STORE_DRONE, 'on'); } catch { /* armed for this visit only */ }
+  }
   function toggleDrone() {
-    if (drone?.state === 'dormant') {
+    if (drone?.sounding) {
       drone.stop();
       drone = null;
       try { localStorage.setItem(STORE_DRONE, 'off'); } catch { /* fine */ }
       return;
     }
-    const engine = unlockAudio();                    // this key press is the browser's gesture
-    if (!engine) return;
-    drone = newDrone(engine).start();
-    try { localStorage.setItem(STORE_DRONE, 'on'); } catch { /* armed for this visit only */ }
+    armDrone();
   }
   function wakeDrone() {                             // the coin: the film takes the drone over
     const engine = getEngine();
@@ -998,16 +1004,17 @@ async function main() {
     const engine = unlockAudio();                    // stays suspended (and silent) unless this browser allows sound here
     if (!engine) return;
     drone = newDrone(engine);
-    const begin = () => { if (engine.ctx.state === 'running' && !started && drone?.state === 'dormant') drone.start(); };
+    const begin = () => { if (engine.ctx.state === 'running' && !started && drone?.state === 'dormant' && !drone.sounding) drone.start(); };
     engine.ctx.addEventListener('statechange', begin);
     begin();
   });
   document.addEventListener('visibilitychange', () => drone?.setVisible(!document.hidden));
-  let humFirst = new URLSearchParams(location.search).has('hum');   // ?hum: the first press arms the hum, not the coin
+  // ?hum, or a remembered hum the browser has not let play yet: the first press arms the hum, not the coin
+  let humFirst = new URLSearchParams(location.search).has('hum') || rememberedDrone;
   const armByPress = () => {
-    if (!humFirst || drone?.state === 'dormant') { humFirst = false; return false; }
+    if (!humFirst || drone?.sounding) { humFirst = false; return false; }
     humFirst = false;
-    safely('drone', toggleDrone);
+    safely('drone', armDrone);
     armedAt = performance.now();
     return true;
   };

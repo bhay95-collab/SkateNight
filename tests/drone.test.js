@@ -128,7 +128,9 @@ test('unarmed, the touch wakes it quietly under the coin', (t) => {
 
 test('a hidden tab falls silent and picks the breath up again; disarming fades and lets go', (t) => {
   const { ctx, drone, out } = setup(t, { plan: planBreath(seeded(2)), phase: () => 500 });
+  assert.equal(drone.sounding, false, 'built is not sounding');
   drone.start();
+  assert.equal(drone.sounding, true);
   ctx.currentTime = 20;
   drone.setVisible(false);
   assert.deepEqual(out.gain.last().slice(0, 2), ['lin', 0]);
@@ -157,5 +159,10 @@ test('the operator arms it; the public screen shows nothing new', () => {
   assert.ok(click.indexOf('armByPress()') < click.indexOf('startNight()'), 'with ?hum the first press arms the hum, not the coin');
   assert.match(click, /performance\.now\(\) - armedAt < 700/, 'and the click that follows Space or Enter is the same press');
   assert.match(keys, /if \(armByPress\(\)\) return;\n    startNight\(\);/);
+  assert.match(app, /let humFirst = new URLSearchParams\(location\.search\)\.has\('hum'\) \|\| rememberedDrone;/,
+    'a remembered hum the browser has not let play yet is armed by the first press, not lost to the coin');
+  assert.match(app, /if \(!humFirst \|\| drone\?\.sounding\)/, 'only a hum already sounding lets the first press be the coin');
+  assert.match(app, /safely\('drone', armDrone\)/, 'the first press arms; it never toggles a silent hum off');
+  assert.match(readFileSync(new URL('../audio.js', import.meta.url), 'utf8'), /navigator\.audioSession\.type = 'playback'/, 'iPhone: plays through the silent switch');
   assert.match(readFileSync(new URL('../sw.js', import.meta.url), 'utf8'), /'drone\.js'/, 'it works offline too');
 });

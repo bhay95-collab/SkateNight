@@ -22,6 +22,8 @@ import { perceptualVolume } from './format.js';
 let engine = null;
 
 export function unlockAudio() {
+  // iPhone and iPad: the ring/silent switch mutes Web Audio unless the page says it is playback, like a music app (Safari 16.4+).
+  try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch { /* older Safari: the switch still mutes */ }
   if (!engine) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;

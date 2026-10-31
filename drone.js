@@ -281,6 +281,7 @@ export function createDrone(engine, breath = {}) {
   const drone = {
     get playing() { return state !== 'gone'; },
     get state() { return state; },
+    get sounding() { return state === 'dormant' && level > 0; },   // started, not just built and waiting for sound
 
     /* Begin: it rises out of nothing over a few seconds. */
     start({ fadeS = DRONE.fadeInS, share = 1 } = {}) {
