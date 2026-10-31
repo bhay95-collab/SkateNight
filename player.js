@@ -156,10 +156,11 @@ export function createPlayer(handlers = {}) {
 
     /* Begin playing `track` now, fading in. Anything still playing is
        stopped. With leadInMs, the needle drops and the record crackles that
-       long before the music (skipped when vinyl is muted). Resolves true if
+       long before the music (skipped when vinyl is muted); needle: false starts
+       the music with no needle drop (the night's opener, in the dark). Resolves true if
        audio started (or was paused during the lead-in), false if replaced or
        if the browser or the file refused (onError is also called). */
-    async start(track, { fadeInMs = 350, leadInMs = 0 } = {}) {
+    async start(track, { fadeInMs = 350, leadInMs = 0, needle = true } = {}) {
       const old = activeDeck();
       endLeadIn(old, 'cancelled');
       if (!old.audio.paused) {
@@ -171,7 +172,7 @@ export function createPlayer(handlers = {}) {
       if (deck.killTimer) { clearTimeout(deck.killTimer); deck.killTimer = null; }
       const loading = load(deck, track);
       deck.tailArmed = false;
-      deck.needlePending = true;
+      deck.needlePending = needle;
       deck.fadeInMs = fadeInMs;
       const { g, now } = holdGain(deck);
       g.setValueAtTime(0.0001, now);

@@ -32,8 +32,9 @@ def start(page, base_url):
     page.wait_for_function("window.__skateNight !== undefined")
     page.locator("#attract").click()
     page.wait_for_function("window.__skateNight.state().started && window.__skateNight.player !== null")
-    page.wait_for_function("!document.body.classList.contains('on-attract')")
-    page.wait_for_function("document.getElementById('attract').hidden")  # coin drop and power-up finished
+    # coin drop, power-up and (by default) the opener's bar in the dark before the jukebox appears
+    page.wait_for_function("!document.body.classList.contains('on-attract')", timeout=30000)
+    page.wait_for_function("document.getElementById('attract').hidden", timeout=30000)
 
 
 def type_code(page, code, submit=True):

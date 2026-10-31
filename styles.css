@@ -138,6 +138,10 @@ button{ font:inherit; color:inherit; }
   transition:opacity .5s ease, transform .5s var(--ease-out);
 }
 .attract.is-leaving{ opacity:0; transform:scale(1.04); pointer-events:none; }
+/* Handing over to the music (app.js, "The Awakening starts the music"): the
+   collapsed line goes out to black; on the opener's bar 2 the jukebox is there. */
+.attract.is-dark .attract-world{ opacity:0; transition:opacity .12s linear; }
+.attract.is-revealed{ opacity:0; pointer-events:none; transition:opacity 60ms linear; }
 /* Handing over: the film's last line lies over the boot screen and fades as the boot's own line strikes. */
 .attract.is-handing{ z-index:101; background:transparent; opacity:0; pointer-events:none; transition:opacity .2s linear; }
 /* The whole screen is the one button and it is focused on load, so a ring

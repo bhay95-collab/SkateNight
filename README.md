@@ -226,16 +226,29 @@ place; follow these steps only if you want to swap it for a new one.
       bar, press **F** (or TOOLS -> **FULLSCREEN**) **before the audience
       arrives** - press **Esc** to leave. (On a dedicated event laptop a
       kiosk shortcut can launch it borderless: see *Fullscreen* below.)
-- [ ] Click the dark cabinet (or press any key) to put the coin in, then
-      press **START** when you are ready.
-- [ ] **Test volume:** move the **MUSIC** slider (or tap the up/down arrow keys
+- [ ] Click the dark cabinet (or press any key) to put the coin in. The
+      machine wakes, goes dark, and the night's first song (**Praise Lifted On
+      High**) starts in the dark; the jukebox appears on its second bar. Nobody
+      presses START. Make sure that song is saved (**OFFLINE READY**) first.
+- [ ] **Test volume beforehand**, not on the night (the music starts by itself): move the **MUSIC** slider (or tap the up/down arrow keys
       with the cabinet background focused)
       while someone stands at the back of the rink. The laptop's own volume
       should be about three-quarters up; use the jukebox slider to fine-tune.
 
-**If the app is closed or reloaded by accident:** open it again from its icon,
-click the dark cabinet (or press any key), then START. The queue starts empty
-(the house rotation fills the gap).
+**If the app is closed or reloaded by accident:** open it again from its icon
+and click the dark cabinet (or press any key). The machine wakes again and the
+next song starts by itself (the opening song isn't repeated in the same
+window). The queue starts empty (the house rotation fills the gap).
+
+**To hold the music** (for example to test the volume first, or for a rehearsal):
+untick TOOLS -> **The Awakening starts the music**. The next time the page is
+opened, the Awakening hands over to the old power-on screen and the jukebox
+waits for **START**, exactly as before. Tick it again for the night.
+
+**Picture and sound at the venue:** the jukebox appears when the song itself
+reaches its second bar, allowing for the delay Chrome reports. Projectors and
+sound desks add their own delays. If the picture lands visibly before or after
+the beat in the room, the fix is one number (`REVEAL_OFFSET_MS` in app.js).
 
 **Fullscreen:** the app asks Chrome for fullscreen, but desktop Chrome usually
 opens installed apps in an ordinary app window with a title bar. Use **F** or
@@ -255,16 +268,18 @@ Chrome window first; Alt+F4 / Cmd+Q to leave).
   up and drops through the slot; you hear it fall deep inside, a relay thumps,
   the machine tries to start, nearly makes it, dies, sits dark, catches on a
   second try, and comes alive bulb by bulb - then dives into its own screen
-  (about fourteen and a half seconds in all). The power-on screen
-  then runs for its full 6.5 seconds before the jukebox appears. It cannot be skipped. Once completed, it does not replay when
-  refreshing the same browser tab (the coin still goes in, then straight to the
-  jukebox).
+  (about fourteen and a half seconds in all). Black, a held breath, and the
+  night's first song begins in the dark; one bar later, on the home chord,
+  the jukebox is there, already playing. (With TOOLS -> *The Awakening starts
+  the music* unticked, the old 6.5-second power-on screen plays instead and
+  the jukebox waits for START.)
 - **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
-  trim and an optional click-to-fill setting. Click it
+  trim, an optional click-to-fill setting and *The Awakening starts the music*. Click it
   or use Enter/Space; Escape or a click outside closes it. Music, effects,
   shuffle and lights stay directly available on the deck.
-- **START** begins with the house rotation. It does **not** start automatically,
-  so you can test volume first.
+- The music starts by itself after the Awakening (see above). **START** /
+  **PAUSE** works as always; with the TOOLS setting unticked, START begins the
+  house rotation by hand.
 - **Pick a song by its code**, like a real jukebox. The left column is
   **PICK A SONG**: one album at a time, with a flexible sleeve above its complete
   track list. The selector sits beneath **UP NEXT** in the right column.
@@ -363,7 +378,7 @@ into the film's own power-up. It follows the EFFECTS volume.
 
 | Key | Does |
 |---|---|
-| **Space** | Play / pause (and START the first time) |
+| **Space** | Play / pause |
 | **N** or **Right arrow** | Next song |
 | **P** or **Left arrow** | Back: restart this song, or press again for the previous one |
 | **S** | Shuffle on / off |

@@ -470,6 +470,27 @@ record changer and the readouts carry the show; the world around it stays dim.
 
 Before adding anything new, ask what it replaces.
 
+## The arrival: the song inside
+
+The approved director's cut (sound previs: Sketch A). After the film's
+collapse the screen goes black and silent for a held breath (about 1.5
+beats); the night's opener - `OPENER` in rotation.js, *Praise Lifted On High*
+- begins in the dark with no needle drop, the record already shown playing;
+and the jukebox is revealed on its bar 2 downbeat (3.584 s into the file,
+the home chord, one complete bar after the steady groove begins). Measured
+from the file: a free first hit at 0.207 s, 134.4 BPM from bar 1 at 1.798 s
+(B-flat), bar 2 E-flat; the band speeds up later, so only the opening may be
+timed from it. The reveal follows the song's own clock
+(`player.currentTime`, plus Chrome's output latency and a venue calibration,
+`REVEAL_OFFSET_MS`), on the frame nearest the downbeat, with a fail-safe if
+the song cannot start. Measured in Chromium (11 fps headless): +5 to +53 ms;
+at 60 Hz the same logic lands within about half a frame. The diagnostics
+screen is out of the show path but kept whole: unticking TOOLS -> *The
+Awakening starts the music* restores it and START exactly (`arrivalPlan`).
+A reload in the same window doesn't repeat the opener: the next song starts
+the normal way. Next stages (not built): the heartbeat and tempo lock, the
+drone in E-flat, the match cut.
+
 ## One window: the installed app
 
 There is one window: the full jukebox, controls and all, on the laptop, with

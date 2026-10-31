@@ -12,7 +12,7 @@
    ============================================================ */
 import { buildLibrary, parseCode, findTrackByCode } from './codes.js';
 import { enqueue, enqueueFront, takeNext, cancelAt, moveUp, dropIds } from './queue.js';
-import { pickShuffle, pickInOrder, pushRecent, shuffled, nextOpening, OPENING_IDS } from './rotation.js';
+import { pickShuffle, pickInOrder, pushRecent, shuffled, nextOpening, OPENING_IDS, OPENER, arrivalPlan, openingOrder } from './rotation.js';
 import {
   SKATE_JOKES, IDLE_JOKES, OUT_OF_ORDER_LINES,
   createRotator,
@@ -47,7 +47,11 @@ const IDLE_ATTRACT_MS = 60000;    // no input for this long -> attract light sho
 const ATTRACT_PAGE_MS = 9000;    // attract mode turns the rack to the next album this often
 const STORE_VOL = 'sn-volumes';
 const STORE_QUICK_PICK = 'sn-quick-pick';
-const STORE_DRONE = 'sn-drone';            // the operator armed the dormant drone (Alt+Shift+D)
+const STORE_DRONE = 'sn-drone';
+const STORE_AUTO_MUSIC = 'sn-awakening-music';   // 'off' = the Awakening hands over to diagnostics and START, as before
+const OPENER_FLAG = 'sn_opened';                 // sessionStorage: the opener has landed in this tab (a reload starts the next song instead)
+const OPENER_HOLD_MS = 650;                      // the held breath in the dark between the collapse and the song's first hit (about 1.5 beats)
+const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venue: calibrate on the real projector and PA (README)            // the operator armed the dormant drone (Alt+Shift+D)
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
 const HANDOFF_MS = 200;        // the INSERT COIN line fading into the boot screen's first strike (styles.css .is-handing)
@@ -102,7 +106,12 @@ async function main() {
   let quickPick = false;
   try { quickPick = localStorage.getItem(STORE_QUICK_PICK) === 'on'; } catch { /* keep code-only default */ }
   let bag = [];                    // songs already played in the current shuffled deck
-  let opening = shuffled(OPENING_IDS);   // the night's opening songs not yet played (house plays these first)
+  let autoMusic = true;
+  try { autoMusic = localStorage.getItem(STORE_AUTO_MUSIC) !== 'off'; } catch { /* on by default */ }
+  let openerPlayed = false;
+  try { openerPlayed = sessionStorage.getItem(OPENER_FLAG) === '1'; } catch { /* storage blocked: it may play again */ }
+  // the night's opening songs not yet played (house plays these first); the opener leads when it will land the reveal
+  let opening = openingOrder(OPENING_IDS, { lead: autoMusic && !openerPlayed ? OPENER.id : null });
   let history = [];                // songs started, oldest first (for BACK)
   let nowId = null;
   let phase = 'idle';              // idle | playing | paused | changing
@@ -294,7 +303,7 @@ async function main() {
     scheduleRender();
   }
 
-  async function startAudio(id, token) {
+  async function startAudio(id, token, { leadInMs = VINYL_LEAD_IN_MS, fadeInMs = 300, needle = true } = {}) {
     if (token !== changeToken) return;
     const track = trackById.get(id);
     if (!track) return;
@@ -311,7 +320,7 @@ async function main() {
     ui.setNow(track);
     ui.rollDuration(getStatus(id).duration);
     scheduleRender();
-    const ok = await player.start(track, { fadeInMs: 300, leadInMs: VINYL_LEAD_IN_MS });
+    const ok = await player.start(track, { fadeInMs, leadInMs, needle });
     if (token !== changeToken) return;
     if (ok) {
       failures = 0;
@@ -337,6 +346,43 @@ async function main() {
     showNow(id);
     mech.load(volume, { speed: 1, trackId: id }).catch(() => {});
     setTimeout(() => startAudio(id, token), mech.loadMs(1));
+  }
+
+  /* The night's opener lands the reveal (OPENER, rotation.js). It starts in the
+     dark with no needle drop and the record already shown playing, and the
+     jukebox appears when the song's own clock reaches bar 2: the picture
+     follows the sound, never a timer. Resolves at that moment, or after a
+     fail-safe if the song cannot get going. */
+  async function landOpener() {
+    const id = dequeueNext();
+    if (!id) return;
+    const token = ++changeToken;
+    phase = 'changing';
+    ticker.restart();
+    const track = trackById.get(id);
+    showNow(id);
+    mech.showPlaying(volumeById.get(track.volume), { trackId: id });
+    openerPlayed = true;
+    try { sessionStorage.setItem(OPENER_FLAG, '1'); } catch { /* a reload may play it again */ }
+    startAudio(id, token, { leadInMs: 0, fadeInMs: 0, needle: false });
+    // output latency: the clock reads what is sent, the room hears it this much later
+    const at = OPENER.revealAt + (getEngine()?.ctx.outputLatency || 0) + REVEAL_OFFSET_MS / 1000;
+    await new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; clearTimeout(failSafe); resolve(); } };
+      const failSafe = setTimeout(finish, (OPENER.revealAt + 2.5) * 1000);
+      // Reveal on the frame nearest the downbeat, not the first one after it:
+      // within half a frame of the target is close enough (8 ms at 60 Hz).
+      let last = 0;
+      const watch = (now) => {
+        if (done) return;
+        const frame = last ? now - last : 1000 / 60;
+        last = now;
+        if (player.currentTrackId === id && player.currentTime >= at - frame / 2000) finish();
+        else requestAnimationFrame(watch);
+      };
+      requestAnimationFrame(watch);
+    });
   }
 
   /* Change to a chosen song right now: fade out, swap discs quickly, drop the needle. */
@@ -643,6 +689,12 @@ async function main() {
   vinylSlider.addEventListener('input', applySliders);
   sfxSlider.addEventListener('change', () => sfx.key());
   applySliders();
+  const autoMusicSetting = $('auto-music');
+  autoMusicSetting.checked = autoMusic;
+  autoMusicSetting.addEventListener('change', () => {           // for the next Awakening (the next load of the page)
+    autoMusic = autoMusicSetting.checked;
+    try { localStorage.setItem(STORE_AUTO_MUSIC, autoMusic ? 'on' : 'off'); } catch { /* applies to this visit only */ }
+  });
   const quickPickSetting = $('quick-pick');
   quickPickSetting.checked = quickPick;
   quickPickSetting.addEventListener('change', () => {
@@ -845,6 +897,10 @@ async function main() {
   async function powerOn() {
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
     const firstBoot = !hasBooted();
+    const plan = arrivalPlan({ autoMusic: autoMusic && Boolean(player), firstBoot, nextId: queue[0] || houseLine[0] || null, openerPlayed });
+    const toDark = autoMusic && !plan.diagnostics;                     // the new cut: black, the song, the reveal
+    if (plan.music === 'opener') safely('opener', () => player.cue(trackById.get(OPENER.id)));   // fifteen seconds to be ready
+    const centre = { y: innerHeight / 2, width: innerWidth / 2 };
     const play = (name) => safely(name, () => sfx[name]());
     // The lift answers the press at once; later cues give a custom MP3 the chance to decode first.
     const later = (name) => () => sfxReady.then(() => play(name));
@@ -853,17 +909,36 @@ async function main() {
       await cabinetStart?.insert({
         lift: () => { play('lift'); safely('drone', wakeDrone); }, contact: later('contact'), chute: later('chute'), relay: later('relay'),
         power: later('power'), tube: later('tube'), collapse: later('collapse'),
-      }, { collapseTo: firstBoot ? bootLine($('boot')) || { y: innerHeight / 2, width: innerWidth / 2 } : null });
+      }, { collapseTo: plan.diagnostics ? bootLine($('boot')) || centre : toDark ? centre : null });
     } catch (err) {
       console.warn('[startup]', err);
     } finally {
-      releaseInput();
+      if (!toDark) releaseInput();
     }
-    document.body.classList.remove('on-attract');
     const retire = () => {
       attractScreen.hidden = true;
       attractScreen.getAnimations({ subtree: true }).forEach((anim) => anim.cancel());   // the film is over: let it go
     };
+    if (toDark) {
+      // The collapsed line goes out: black and silence, a held breath. Then the
+      // opener begins in the dark and the jukebox is there on its bar 2.
+      attractScreen.classList.add('is-dark');
+      try {
+        if (plan.music === 'opener') {
+          await delay(Math.max(0, OPENER_HOLD_MS - OPENER.firstHit * 1000));
+          await landOpener();
+        } else await delay(OPENER_HOLD_MS);
+      } catch (err) {
+        console.warn('[opener]', err);
+      }
+      document.body.classList.remove('on-attract');
+      attractScreen.classList.add('is-revealed');
+      releaseInput();
+      setTimeout(retire, 120);
+      if (plan.music === 'house') safely('house', playFromIdle);
+      return;
+    }
+    document.body.classList.remove('on-attract');
     const boot = startBoot($('boot'));
     if (boot.played) {
       // The boot screen strikes from the collapsed picture: our line fades as its line comes up.

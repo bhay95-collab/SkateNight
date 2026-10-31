@@ -26,6 +26,34 @@ export const OPENING_IDS = [
   'bread-of-heaven', 'there-is-a-way',
 ];
 
+/* The night's first song when the Awakening starts the music (app.js). It
+   begins in the dark once the machine has collapsed into its screen, and the
+   jukebox is revealed on its bar 2 downbeat - the home chord - one complete
+   bar after the steady groove begins. Measured from the file and confirmed by
+   ear: a free first hit at 0.207 s, then 134.4 BPM (0.4465 s a beat) from bar 1
+   at 1.798 s on B-flat, bar 2 at 3.584 s on E-flat. The band speeds up later
+   in the song, so only these opening seconds may be timed from it. */
+export const OPENER = Object.freeze({ id: 'praise-lifted-on-high', firstHit: 0.207, bar1: 1.798, beat: 0.4465, revealAt: 1.798 + 4 * 0.4465 });
+
+/* How the Awakening hands over to the jukebox.
+   autoMusic off (TOOLS): exactly as before - the diagnostics screen on the
+   first arrival in a tab, then the jukebox waits for START.
+   autoMusic on: no diagnostics; the opener plays and lands the reveal, or, if it
+   cannot (already played in this tab, missing, or a request is first in line),
+   the jukebox is revealed and the next song starts the normal way. */
+export function arrivalPlan({ autoMusic, firstBoot, nextId, openerPlayed }) {
+  if (!autoMusic) return { diagnostics: firstBoot, music: 'none' };
+  if (!nextId) return { diagnostics: false, music: 'none' };
+  return { diagnostics: false, music: nextId === OPENER.id && !openerPlayed ? 'opener' : 'house' };
+}
+
+/* The night's opening order: the opener first when it is going to land the
+   reveal, then the rest shuffled. */
+export function openingOrder(ids, { lead = null, rng = Math.random } = {}) {
+  if (!lead || !ids.includes(lead)) return shuffled(ids, rng);
+  return [lead, ...shuffled(ids.filter((id) => id !== lead), rng)];
+}
+
 /* A shuffled copy (Fisher-Yates). */
 export function shuffled(ids, rng = Math.random) {
   const out = ids.slice();

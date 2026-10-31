@@ -115,8 +115,8 @@ await page.goto(BASE, { waitUntil: 'load' });
 await page.waitForFunction(() => !document.getElementById('attract').hidden, null, { timeout: 15000 });
 await page.click('#attract');
 await page.waitForFunction(() => window.__skateNight?.state().started === true, null, { timeout: 15000 });
-// The coin drops and the cabinet powers up before the jukebox is handed over.
-await page.waitForFunction(() => document.getElementById('attract').hidden, null, { timeout: 15000 });
+// The coin drops, the cabinet powers up, and (by default) the opener plays a bar in the dark before the jukebox appears.
+await page.waitForFunction(() => document.getElementById('attract').hidden, null, { timeout: 30000 });
 await page.waitForTimeout(300);
 
 /* How long a turn lasts is read from the page, not hardcoded, so tuning
