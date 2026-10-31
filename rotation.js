@@ -33,7 +33,14 @@ export const OPENING_IDS = [
    ear: a free first hit at 0.207 s, then 134.4 BPM (0.4465 s a beat) from bar 1
    at 1.798 s on B-flat, bar 2 at 3.584 s on E-flat. The band speeds up later
    in the song, so only these opening seconds may be timed from it. */
-export const OPENER = Object.freeze({ id: 'praise-lifted-on-high', firstHit: 0.207, bar1: 1.798, beat: 0.4465, revealAt: 1.798 + 4 * 0.4465 });
+/* Re-measured (onset fit over the first 11 s, every band agrees): the beat
+   itself falls at 0.21 s + n beats - the first hit, 0.66, 1.10, 1.55, and the
+   drop at 1.99 where the bass comes in (it drops out again 3.1-5.4 s). The
+   B-flat chord at 1.798 is pushed an eighth ahead of that beat, so bar1 and
+   revealAt are off the percussive grid by about 0.2 s; they are kept only for
+   the 'long' reveal being compared (app.js REVEALS). */
+export const OPENER = Object.freeze({ id: 'praise-lifted-on-high', firstHit: 0.207, bar1: 1.798, beat: 0.4465, revealAt: 1.798 + 4 * 0.4465,
+  grid: 0.21, drop: 0.21 + 4 * 0.4465 });
 
 /* How the Awakening hands over to the jukebox.
    autoMusic off (TOOLS): exactly as before - the diagnostics screen on the

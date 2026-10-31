@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plunge prototype</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #hud { position: fixed; left: 12px; bottom: 10px; font: 12px/1.4 ui-monospace, monospace; color: #8a8; opacity: .8; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"></div>
+<script type="module">
+/* ============================================================
+   PLUNGE PROTOTYPE - Treatment A of the extended cut, for review only.
+   Not wired into the show. Raw WebGL2, no library: real perspective, real
+   occlusion, light falling on surfaces, fog for distance.
+
+   The space: the coin entry is a steel plate with a slit. Behind the slit
+   a short steel throat, then an impossible hall - 60 m tall - with ONE
+   monumental mechanism: a flywheel 32 m across on a giant axle, driven
+   by a motor through a pinion on its toothed rim; a contactor (the relay)
+   on the wall; a coin box at the bottom. The only light: the slot lamp
+   pouring through the slit above, the coin, the motor's arcs, a valve.
+
+   The camera: pushes into the slit (the lips pass the lens), through the
+   throat, out into the hall and falls with the coin - real free fall,
+   g = 9.8 - passing within metres of the flywheel's rim; brakes and lands
+   hard on the coin box. Then stillness while the machine tries: the relay
+   slams, the motor arcs, the flywheel strains a few degrees against its
+   own mass, nearly goes, and falls back. The supply dies.
+
+   ?t=ms renders one frame at that time (for frame capture); otherwise it
+   plays in real time and reports frame times.
+   ============================================================ */
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance' });
+const hud = document.getElementById('hud');
+
+/* ---------------- tiny math ---------------- */
+const V = {
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  norm: (a) => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  lerp: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t],
+};
+const M = {
+  ident: () => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+  mul(a, b) { const o = new Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; },
+  trans: (x, y, z) => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1],
+  scale: (x, y, z) => [x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0, 0, 0, 0, 1],
+  rotX: (a) => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1]; },
+  rotY: (a) => { const c = Math.cos(a), s = Math.sin(a); return [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1]; },
+  rotZ: (a) => { const c = Math.cos(a), s = Math.sin(a); return [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]; },
+  persp(fov, asp, n, f) { const t = 1 / Math.tan(fov / 2); return [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, (2 * f * n) / (n - f), 0]; },
+  look(eye, at, up = [0, 1, 0]) {
+    const z = V.norm(V.sub(eye, at)); const x = V.norm(V.cross(up, z)); const y = V.cross(z, x);
+    return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -V.dot(x, eye), -V.dot(y, eye), -V.dot(z, eye), 1];
+  },
+};
+const chain = (...ms) => ms.reduce((a, b) => M.mul(a, b));
+const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
+const smooth = (t) => { t = clamp(t); return t * t * (3 - 2 * t); };
+
+/* ---------------- geometry ---------------- */
+function mesh(pos, nor, idx) {
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const buf = (data, loc) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0); };
+  buf(pos, 0); buf(nor, 1);
+  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array(idx), gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao, count: idx.length };
+}
+function boxData() {
+  const P = [], N = [], I = [];
+  const faces = [[[1, 0, 0], [0, 1, 0], [0, 0, 1]], [[-1, 0, 0], [0, 1, 0], [0, 0, -1]], [[0, 1, 0], [0, 0, 1], [1, 0, 0]], [[0, -1, 0], [0, 0, -1], [1, 0, 0]], [[0, 0, 1], [1, 0, 0], [0, 1, 0]], [[0, 0, -1], [-1, 0, 0], [0, 1, 0]]];
+  for (const [n, u, v] of faces) {
+    const b = P.length / 3;
+    for (const [su, sv] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { P.push(0.5 * (n[0] + su * u[0] + sv * v[0]), 0.5 * (n[1] + su * u[1] + sv * v[1]), 0.5 * (n[2] + su * u[2] + sv * v[2])); N.push(...n); }
+    I.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  }
+  return [P, N, I];
+}
+/* A ring (annulus extruded along z) from radius r0 to r1, depth d, centred. r0 = 0 gives a solid disc / cylinder. */
+function ringData(r0, r1, d, seg = 64) {
+  const P = [], N = [], I = [];
+  const quad = (a, b, c, e, n0, n1, n2, n3) => { const k = P.length / 3; P.push(...a, ...b, ...c, ...e); N.push(...n0, ...n1, ...n2, ...n3); I.push(k, k + 1, k + 2, k, k + 2, k + 3); };
+  for (let i = 0; i < seg; i++) {
+    const a0 = (i / seg) * Math.PI * 2, a1 = ((i + 1) / seg) * Math.PI * 2;
+    const c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+    const h = d / 2;
+    quad([r1 * c0, r1 * s0, -h], [r1 * c1, r1 * s1, -h], [r1 * c1, r1 * s1, h], [r1 * c0, r1 * s0, h], [c0, s0, 0], [c1, s1, 0], [c1, s1, 0], [c0, s0, 0]);
+    if (r0 > 0) quad([r0 * c0, r0 * s0, h], [r0 * c1, r0 * s1, h], [r0 * c1, r0 * s1, -h], [r0 * c0, r0 * s0, -h], [-c0, -s0, 0], [-c1, -s1, 0], [-c1, -s1, 0], [-c0, -s0, 0]);
+    quad([r0 * c0, r0 * s0, h], [r1 * c0, r1 * s0, h], [r1 * c1, r1 * s1, h], [r0 * c1, r0 * s1, h], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]);
+    quad([r0 * c1, r0 * s1, -h], [r1 * c1, r1 * s1, -h], [r1 * c0, r1 * s0, -h], [r0 * c0, r0 * s0, -h], [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
+  }
+  return [P, N, I];
+}
+const MESH = { box: mesh(...boxData()), ring: null };
+const ringCache = new Map();
+const ring = (r0, r1, d, seg) => { const k = [r0, r1, d, seg].join(); if (!ringCache.has(k)) ringCache.set(k, mesh(...ringData(r0, r1, d, seg))); return ringCache.get(k); };
+
+/* ---------------- shaders ---------------- */
+const VS = `#version 300 es
+layout(location=0) in vec3 p; layout(location=1) in vec3 n;
+uniform mat4 uM, uVP; out vec3 vW; out vec3 vN;
+void main(){ vec4 w = uM * vec4(p,1.); vW = w.xyz; vN = mat3(uM) * n; gl_Position = uVP * w; }`;
+const FS = `#version 300 es
+precision highp float;
+in vec3 vW; in vec3 vN; out vec4 o;
+uniform vec3 uCol, uEmit, uEye, uFog; uniform float uFogD, uRough;
+uniform vec3 uLP[6]; uniform vec3 uLC[6]; uniform float uLR[6];
+void main(){
+  vec3 N = normalize(vN); vec3 Vd = normalize(uEye - vW);
+  if (dot(N, Vd) < 0.) N = -N;
+  vec3 c = uCol * 0.012;                                    // almost no ambient: only what is powered lights the space
+  for (int i = 0; i < 6; i++) {
+    vec3 L = uLP[i] - vW; float d = length(L); L /= d;
+    float att = clamp(1. - d / uLR[i], 0., 1.); att *= att;
+    float diff = max(dot(N, L), 0.);
+    vec3 H = normalize(L + Vd); float spec = pow(max(dot(N, H), 0.), mix(80., 8., uRough)) * (1. - uRough);
+    c += uLC[i] * att * (uCol * diff + spec * 0.6);
+  }
+  float rim = pow(1. - max(dot(N, Vd), 0.), 4.) * 0.05;     // the fog's faint light on edges: shapes read against it
+  c += uFog * rim * 6.;
+  c += uEmit;
+  float dist = length(uEye - vW);
+  float f = 1. - exp(-uFogD * dist);
+  o = vec4(mix(c, uFog, f), 1.);
+}`;
+const AVS = `#version 300 es
+layout(location=0) in vec3 p; layout(location=1) in vec3 n;
+uniform mat4 uM, uVP; uniform vec3 uEye; out float vA;
+void main(){ vec4 w = uM * vec4(p,1.); vec3 N = normalize(mat3(uM) * n); vA = pow(abs(dot(N, normalize(uEye - w.xyz))), 1.5); gl_Position = uVP * w; }`;
+const AFS = `#version 300 es
+precision highp float; in float vA; uniform vec3 uCol; out vec4 o; void main(){ o = vec4(uCol * vA, 1.); }`;
+const PVS = `#version 300 es
+layout(location=0) in vec3 p; uniform mat4 uVP; uniform vec3 uEye; uniform float uT, uPx; out float vB;
+void main(){ vec3 q = p + vec3(sin(uT*0.0004 + p.y)*0.6, -mod(uT*0.0006 + p.x*3., 4.), cos(uT*0.0003 + p.z)*0.6);
+  vec4 c = uVP * vec4(q,1.); gl_Position = c; float d = length(uEye - q); gl_PointSize = clamp(uPx / d, 1., 6.);
+  float inCone = clamp(1. - length(q.xz - vec2(0.,-0.4)) / (2. + -q.y * 0.32), 0., 1.); vB = inCone * clamp(1. - d/60., 0., 1.); }`;
+const PFS = `#version 300 es
+precision highp float; in float vB; uniform vec3 uCol; out vec4 o; void main(){ vec2 c = gl_PointCoord - .5; float a = smoothstep(.5, .1, length(c)); o = vec4(uCol * vB * a, 1.); }`;
+function program(vs, fs) {
+  const p = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    gl.attachShader(p, s);
+  }
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = new Proxy({}, { get: (c, k) => (k in c ? c[k] : (c[k] = gl.getUniformLocation(p, k))) });
+  return { p, u };
+}
+const SOLID = program(VS, FS), ADD = program(AVS, AFS), DUST = program(PVS, PFS);
+
+/* ---------------- the space ---------------- */
+const STEEL = [0.30, 0.29, 0.33], IRON = [0.16, 0.15, 0.17], BRASS = [0.55, 0.40, 0.18], COPPER = [0.5, 0.25, 0.12];
+const FLY = { c: [-15.5, -27, -16], r: 16 };      // the flywheel: centre, outer radius. Its axle runs along z.
+const MOTOR = [4.5, -45.5, -16];                  // the motor that drives it, through a pinion on its rim
+const BOX_Y = -47;                                // the coin box's top
+const LAMP = [0, -0.25, -0.42];                   // where the slot lamp's light pours into the hall
+
+/* static parts: [mesh, model matrix, colour, roughness, emissive?] */
+const parts = [];
+const add = (m, model, col, rough = 0.6, emit = [0, 0, 0]) => parts.push({ m, model, col, rough, emit });
+const box = (x, y, z, w, h, d, col = IRON, rough = 0.7, rot = M.ident()) => add(MESH.box, chain(M.trans(x, y, z), rot, M.scale(w, h, d)), col, rough);
+
+// the coin entry: a steel plate with a slit, the slit's lips, the throat behind it
+const SLIT = { w: 0.034, h: 0.0065 };
+box(0, 0.06 + SLIT.h / 2, 0.003, 0.3, 0.12, 0.006, STEEL, 0.35);
+box(0, -0.06 - SLIT.h / 2, 0.003, 0.3, 0.12, 0.006, STEEL, 0.35);
+box(-0.075 - SLIT.w / 2, 0, 0.003, 0.15, SLIT.h + 0.001, 0.006, STEEL, 0.35);
+box(0.075 + SLIT.w / 2, 0, 0.003, 0.15, SLIT.h + 0.001, 0.006, STEEL, 0.35);
+box(0, SLIT.h / 2 + 0.0015, 0.0075, SLIT.w + 0.01, 0.003, 0.004, BRASS, 0.3);    // the lips the coin rides over
+box(0, -SLIT.h / 2 - 0.0015, 0.0075, SLIT.w + 0.01, 0.003, 0.004, BRASS, 0.3);
+for (const s of [-1, 1]) box(0, s * (SLIT.h / 2 + 0.004), -0.2, SLIT.w + 0.012, 0.008, 0.4, IRON, 0.8);   // the throat's roof and floor
+for (const s of [-1, 1]) box(s * (SLIT.w / 2 + 0.004), 0, -0.2, 0.008, SLIT.h + 0.016, 0.4, IRON, 0.8);   // its walls
+// the hall's ceiling around the throat's mouth, and its far walls of girders
+box(0, 0.4, -40, 120, 0.8, 80, IRON, 0.9);
+for (let x = -48; x <= 48; x += 8) box(x, -30, -66, 0.9, 62, 0.9, IRON);
+for (let y = -58; y <= 0; y += 7) box(0, y, -66, 100, 0.6, 0.6, IRON);
+for (let y = -58; y < 0; y += 7) for (let x = -48; x < 48; x += 8) box(x + 4, y + 3.5, -66, 0.4, 9.9, 0.4, IRON, 0.8, M.rotZ(((x + y) / 8) % 2 ? 0.85 : -0.85));
+for (let z = -62; z <= -4; z += 9) box(36, -30, z, 0.9, 62, 0.9, IRON);
+// the flywheel's axle and its two great bearings
+add(ring(0, 2.2, 22, 40), chain(M.trans(FLY.c[0], FLY.c[1], FLY.c[2] - 4)), STEEL, 0.25);
+for (const dz of [-12, 4.5]) { box(FLY.c[0], FLY.c[1] - 14, FLY.c[2] + dz, 6, 28, 3.2); add(ring(2.2, 4.2, 3.6, 40), M.trans(FLY.c[0], FLY.c[1], FLY.c[2] + dz), IRON, 0.6); }
+// the motor, its pinion, the contactor (the relay) on the wall, the valve, the coin box
+add(ring(0, 3.2, 7, 40), chain(M.trans(MOTOR[0] + 3, MOTOR[1] + 0.5, MOTOR[2] + 0.5), M.rotY(Math.PI / 2)), IRON, 0.7);
+box(MOTOR[0] + 3, MOTOR[1] - 3, MOTOR[2], 8, 2, 7);
+box(9, -38, -24, 5, 8, 1.6, IRON);                                       // the contactor's frame
+box(0, BOX_Y - 1.5, -2, 7, 3, 7, IRON, 0.8);                             // the coin box
+box(0, BOX_Y + 0.05, -2, 1.6, 0.1, 0.4, [0.02, 0.02, 0.02], 0.9);        // its mouth
+box(-2.2, BOX_Y - 6, -2, 0.5, 12, 0.5); box(2.2, BOX_Y - 6, -2, 0.5, 12, 0.5);
+box(0, BOX_Y - 30, -30, 200, 1, 200, IRON, 0.95);                        // the floor, far below the box
+// the chute rails the coin falls between
+for (const s of [-1, 1]) box(s * 0.9, -24, -2.2, 0.08, 46, 0.08, IRON, 0.6);   // the chute's guide rails, behind the coin's path
+
+/* ---------------- the film ---------------- */
+// Times in ms from the moment the coin is swallowed (BEATS.gone in the show).
+const T = { slit: 0, throat: 420, hall: 800, land: 3800, relay: 4400, attempt: 4900, almost: 6050, fail: 6500, dead: 6880, end: 8800 };
+const G = 9.8;
+// the coin: through the slit, then free fall from the throat's mouth to the box (3.0 s ~ 44 m)
+function coinPos(t) {
+  if (t < T.throat) return [0, -0.001, -0.06 - (t / T.throat) * 0.21];   // already through the slit, sliding down the throat ahead of us
+  if (t < T.hall) return [0, -((t - T.throat) / (T.hall - T.throat)) * 0.3, -0.27 - ((t - T.throat) / (T.hall - T.throat)) * 0.13];
+  const s = (t - T.hall) / 1000;
+  const y = -0.3 - 0.5 * G * s * s;
+  return [0.05 * Math.sin(s * 3), Math.max(y, BOX_Y + 0.02), -0.4 - s * 0.55];
+}
+/* The camera: pushed into the slit (the lips pass the lens), through the
+   throat, out over the drop - it falls after the coin, trailing it, looking
+   down at it with the flywheel's rim sweeping past - brakes near the bottom,
+   lands hard on the box. Then it is still: the machine does the moving. */
+function camera(t) {
+  if (t < T.throat) {                                         // into the slit
+    const k = smooth(t / T.throat) ** 1.6;
+    return { eye: V.lerp([0.004, 0.012, 0.16], [0, 0, -0.05], k), at: V.lerp([0, 0, 0], [0, -0.004, -0.5], k), near: 0.002, fov: 52 };
+  }
+  if (t < T.hall) {                                           // down the throat and out over the drop
+    const k = smooth((t - T.throat) / (T.hall - T.throat));
+    return { eye: V.lerp([0, 0, -0.05], [0, -0.35, -0.42], k), at: V.lerp([0, -0.004, -0.5], [0.3, -6, -3], k), near: 0.002 + k * 0.05, fov: 52 + k * 8 };
+  }
+  const c = coinPos(t);
+  if (t < T.land) {                                           // falling with it
+    const k = (t - T.hall) / (T.land - T.hall);
+    const trail = 0.45 + 1.6 * Math.sin(k * Math.PI);        // it gets ahead of us, then we catch it as we brake
+    const eye = [c[0] + 0.9 * Math.sin(k * Math.PI), c[1] + trail, c[2] + 1.1 + 2.4 * k];
+    const at = V.lerp(V.add(c, [0, -1.4, -1.1]), V.add(c, [-6, -1.5, -7]), smooth((k - 0.6) / 0.4));   // eyes on the coin; late in the fall, it turns to the flywheel
+    return { eye, at, near: 0.05, fov: 60 };
+  }
+  const settle = t < T.land + 450 ? Math.sin(((t - T.land) / 450) * Math.PI * 2) * Math.exp(-(t - T.land) / 160) * 0.35 : 0;
+  const rest = [3.2, BOX_Y + 1.7 - settle, 2.2];
+  return { eye: rest, at: [-7, BOX_Y + 10, -16], near: 0.05, fov: 62 };   // low, by the box, looking up at the wheel and the motor that must turn it
+}
+
+/* The supply, as in the show (startup-timing.js), shifted to this clock. */
+const SUPPLY = [[0, 0.2], [T.relay, 0.2], [T.relay + 50, 0.03], [T.attempt, 0.03], [T.attempt + 500, 0.2], [T.attempt + 850, 0.38], [T.almost, 0.55],
+  [T.almost + 200, 0.34], [T.almost + 330, 0.47], [T.fail, 0.42], [T.dead, 0], [T.end, 0]];
+const supply = (t) => { for (let i = 1; i < SUPPLY.length; i++) if (t <= SUPPLY[i][0]) { const [t0, v0] = SUPPLY[i - 1], [t1, v1] = SUPPLY[i]; return t1 === t0 ? v1 : v0 + ((v1 - v0) * (t - t0)) / (t1 - t0); } return 0; };
+/* The flywheel: the motor pulls against its whole mass. It moves a few
+   degrees, gathering, nearly gets away - then the supply sags and it is
+   dragged back, rocking to a stop. */
+function flyAngle(t) {
+  if (t < T.attempt) return 0;
+  if (t < T.fail) return -0.075 * smooth((t - T.attempt) / (T.almost - T.attempt)) ** 1.4 + (t > T.almost ? 0.012 * Math.sin((t - T.almost) / 60) : 0);
+  const k = (t - T.fail) / 900;
+  return -0.075 * Math.exp(-k * 2.2) * Math.cos(k * 7);
+}
+
+/* ---------------- draw ---------------- */
+const dust = (() => {
+  const pts = []; let s = 7;
+  const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let i = 0; i < 900; i++) { const y = -r() * 50; const rad = (2 + -y * 0.32) * Math.sqrt(r()); const a = r() * 6.283; pts.push(rad * Math.cos(a), y, -0.4 + rad * Math.sin(a)); }
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0); gl.bindVertexArray(null);
+  return { vao, n: pts.length / 3 };
+})();
+const cone = mesh(...(() => { // the slot lamp's light pouring down through the slit: an open cone
+  const P = [], N = [], I = []; const seg = 48;
+  for (let i = 0; i <= seg; i++) { const a = (i / seg) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    P.push(0.02 * c, 0, 0.02 * s, 18 * c, -50, 18 * s); N.push(c, 0.3, s, c, 0.3, s); }
+  for (let i = 0; i < seg; i++) I.push(2 * i, 2 * i + 1, 2 * i + 3, 2 * i, 2 * i + 3, 2 * i + 2);
+  return [P, N, I];
+})());
+
+function draw(t) {
+  const w = canvas.clientWidth * devicePixelRatio, h = canvas.clientHeight * devicePixelRatio;
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+  const cam = camera(t);
+  const VP = M.mul(M.persp((cam.fov * Math.PI) / 180, w / h, cam.near, 400), M.look(cam.eye, cam.at));
+  const fog = [0.05, 0.04, 0.068];
+  gl.clearColor(...fog, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.enable(gl.CULL_FACE);
+
+  // the lights: only what is powered
+  const v = supply(t);
+  const lamp = t < T.relay ? 1 : 0.15;                                          // the relay cuts the slot lamp
+  const arc = t > T.attempt + 300 && t < T.fail + 60 ? (Math.sin(t * 0.13) * Math.sin(t * 0.071) > 0.35 ? 1 : 0.15) * v : 0;
+  const slam = t > T.relay && t < T.relay + 140 ? 1 - (t - T.relay) / 140 : 0;
+  const valve = t < T.dead ? v : 0.6 * Math.exp(-(t - T.dead) / 900);         // its afterglow, the only light in the dark
+  const c = coinPos(t);
+  const lights = [
+    [LAMP, [3.4 * lamp, 2.5 * lamp, 1.6 * lamp], 85],                            // the slot lamp, through the slit
+    [V.add(c, [0.15, 0.2, 0.3]), t < T.land ? [0.9, 0.75, 0.45] : [0, 0, 0], 3],   // the coin catching it
+    [[MOTOR[0] - 1, MOTOR[1] + 3.6, MOTOR[2] + 3.4], [2.2 * arc, 2.9 * arc, 4 * arc], 26],   // the motor's brushes arcing
+    [[9, -36, -21], [4 * slam, 4.6 * slam, 5 * slam], 30],                       // the contactor slamming in
+    [[MOTOR[0] + 7, MOTOR[1] + 6, MOTOR[2] + 4], [3.2 * valve, 1.7 * valve, 0.5 * valve], 28],   // the valve on the motor's cabinet
+    [[0, BOX_Y + 1, -2], [0.15, 0.1, 0.06], 6],                                  // the box's own dim lamp
+  ];
+  gl.useProgram(SOLID.p);
+  gl.uniformMatrix4fv(SOLID.u.uVP, false, VP);
+  gl.uniform3fv(SOLID.u.uEye, cam.eye); gl.uniform3fv(SOLID.u.uFog, fog); gl.uniform1f(SOLID.u.uFogD, 0.016);
+  gl.uniform3fv(SOLID.u['uLP[0]'], lights.flatMap((l) => l[0])); gl.uniform3fv(SOLID.u['uLC[0]'], lights.flatMap((l) => l[1])); gl.uniform1fv(SOLID.u['uLR[0]'], lights.map((l) => l[2]));
+  const put = (m, model, col, rough, emit = [0, 0, 0]) => {
+    gl.uniformMatrix4fv(SOLID.u.uM, false, model); gl.uniform3fv(SOLID.u.uCol, col); gl.uniform1f(SOLID.u.uRough, rough); gl.uniform3fv(SOLID.u.uEmit, emit);
+    gl.bindVertexArray(m.vao); gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_INT, 0);
+  };
+  gl.disable(gl.CULL_FACE);
+  for (const p of parts) put(p.m, p.model, p.col, p.rough, p.emit);
+  // the flywheel: rim (with teeth), spokes, hub - all turning together
+  const a = flyAngle(t);
+  const F = chain(M.trans(...FLY.c), M.rotZ(a));
+  put(ring(FLY.r - 2.4, FLY.r, 3.4, 96), F, STEEL, 0.35);
+  put(ring(FLY.r - 3.4, FLY.r - 2.4, 1.6, 96), F, IRON, 0.6);
+  for (let i = 0; i < 120; i++) { const q = (i / 120) * Math.PI * 2; put(MESH.box, chain(F, M.rotZ(q), M.trans(FLY.r + 0.35, 0, 0), M.scale(0.7, 0.42, 3.4)), STEEL, 0.4); }
+  for (let i = 0; i < 6; i++) put(MESH.box, chain(F, M.rotZ((i / 6) * Math.PI * 2), M.trans((FLY.r - 2.6) / 2, 0, 0), M.scale(FLY.r - 3.4, 1.3, 1.1)), IRON, 0.5);
+  put(ring(2.2, 4.8, 4.6, 48), F, IRON, 0.5);
+  // the pinion that turns it, and the contactor's armature (it slams in at the relay)
+  const pin = chain(M.trans(MOTOR[0] - 1.6, MOTOR[1] + 3.6, FLY.c[2]), M.rotZ(-a * (FLY.r / 1.6)));
+  put(ring(0.4, 1.6, 3, 24), pin, STEEL, 0.35);
+  for (let i = 0; i < 12; i++) put(MESH.box, chain(pin, M.rotZ((i / 12) * Math.PI * 2), M.trans(1.75, 0, 0), M.scale(0.5, 0.35, 3)), STEEL, 0.35);
+  const arm = t < T.relay ? 0 : Math.min(1, (t - T.relay) / 60);
+  put(MESH.box, chain(M.trans(9, -38 + 2.6 - arm * 1.9, -22.6), M.scale(4.2, 1.2, 1.2)), BRASS, 0.3);
+  // the coin, and the motor's sparks
+  if (t < T.land + 60) put(ring(0, 0.012, 0.002, 24), chain(M.trans(...c), M.rotX(t * 0.011), M.rotY(t * 0.007)), [0.9, 0.7, 0.3], 0.2, [0.7, 0.5, 0.18]);
+  if (arc > 0.5) for (let i = 0; i < 14; i++) { const k = (t * 0.001 + i * 0.37) % 1; put(MESH.box, chain(M.trans(MOTOR[0] - 1 + Math.sin(i * 7.1) * k * 3, MOTOR[1] + 3.6 + k * 2 - k * k * 4, MOTOR[2] + 3.4 + Math.cos(i * 3.3) * k * 2), M.scale(0.08, 0.08, 0.08)), [1, 1, 1], 1, [3, 3.4, 4]); }
+  // valve glass, glowing with the supply
+  put(ring(0, 0.5, 1.6, 20), chain(M.trans(MOTOR[0] + 7, MOTOR[1] + 5.2, MOTOR[2] + 4), M.rotX(Math.PI / 2)), [0.2, 0.15, 0.1], 0.2, [1.4 * valve, 0.7 * valve, 0.2 * valve]);
+
+  // the lamp's light pouring through the slit, and the dust in it (additive)
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false);
+  gl.useProgram(ADD.p); gl.uniformMatrix4fv(ADD.u.uVP, false, VP); gl.uniform3fv(ADD.u.uEye, cam.eye);
+  gl.uniformMatrix4fv(ADD.u.uM, false, M.trans(...LAMP)); gl.uniform3fv(ADD.u.uCol, [0.075 * lamp, 0.055 * lamp, 0.034 * lamp]);
+  gl.bindVertexArray(cone.vao); gl.drawElements(gl.TRIANGLES, cone.count, gl.UNSIGNED_INT, 0);
+  gl.useProgram(DUST.p); gl.uniformMatrix4fv(DUST.u.uVP, false, VP); gl.uniform3fv(DUST.u.uEye, cam.eye); gl.uniform1f(DUST.u.uT, t); gl.uniform1f(DUST.u.uPx, h * 0.02);
+  gl.uniform3fv(DUST.u.uCol, [0.55 * lamp + 0.1, 0.42 * lamp + 0.08, 0.28 * lamp + 0.06]);
+  gl.bindVertexArray(dust.vao); gl.drawArrays(gl.POINTS, 0, dust.n);
+  gl.depthMask(true); gl.disable(gl.BLEND);
+}
+
+/* ---------------- run ---------------- */
+const fixed = new URLSearchParams(location.search).get('t');
+if (fixed != null) { draw(Number(fixed)); document.title = 'ready'; window.__ready = true; } else {
+  const t0 = performance.now(); const gaps = []; let last = 0;
+  const frame = (now) => {
+    const t = (now - t0) % (T.end + 600);
+    if (last) gaps.push(now - last); last = now;
+    draw(t);
+    if (gaps.length % 30 === 0 && gaps.length) { const s = [...gaps].sort((a, b) => a - b); hud.textContent = `frame median ${s[s.length >> 1].toFixed(1)} ms  p95 ${s[Math.floor(s.length * 0.95)].toFixed(1)} ms  over 20 ms: ${gaps.filter((g) => g > 20).length}/${gaps.length}`; window.__gaps = gaps; }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+window.__draw = draw;
+</script>
+</body>
+</html>

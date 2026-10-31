@@ -53,6 +53,23 @@ const OPENER_FLAG = 'sn_opened';                 // sessionStorage: the opener h
 // The song file starts this long after the cut, so its bar 1 lands five beats after the last thump - on the lock's grid -
 // and its free first hit after about 1.5 beats of held breath in the dark.
 const OPENER_LEAD_MS = (5 * OPENER.beat - OPENER.bar1) * 1000;
+/* The reveal after the cut - a prototype for review, chosen with ?reveal=:
+     long  today: the song's bar 1 five beats after the cut, the light on its bar 2 (about 4 s of black)
+     a     the song's first hit one beat after the cut, and the light with it (one beat of black)
+     b     the first hit in the dark, the light on the next beat (two beats)
+     c     the picture's last light survives as an ember that beats with the song
+           and opens into the jukebox on the drop, where the bass comes in (five beats, never black)
+   Every one is timed from the song's own clock (landOpener). */
+const GRID_LEAD_MS = (OPENER.beat - OPENER.grid) * 1000;   // the first hit lands one beat after the cut, on the machine's grid
+const REVEALS = {
+  long: { leadMs: OPENER_LEAD_MS, at: OPENER.revealAt },
+  a: { leadMs: GRID_LEAD_MS, at: OPENER.grid },
+  b: { leadMs: GRID_LEAD_MS, at: OPENER.grid + OPENER.beat },
+  c: { leadMs: GRID_LEAD_MS, at: OPENER.drop, ember: true },
+};
+const REVEAL = (() => {
+  try { return REVEALS[new URLSearchParams(location.search).get('reveal')] || REVEALS.long; } catch { return REVEALS.long; }
+})();
 const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venue: calibrate on the real projector and PA (README)            // the operator armed the dormant drone (Alt+Shift+D)
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
@@ -368,11 +385,11 @@ async function main() {
     try { sessionStorage.setItem(OPENER_FLAG, '1'); } catch { /* a reload may play it again */ }
     startAudio(id, token, { leadInMs: 0, fadeInMs: 0, needle: false });
     // output latency: the clock reads what is sent, the room hears it this much later
-    const at = OPENER.revealAt + (getEngine()?.ctx.outputLatency || 0) + REVEAL_OFFSET_MS / 1000;
+    const at = REVEAL.at + (getEngine()?.ctx.outputLatency || 0) + REVEAL_OFFSET_MS / 1000;
     await new Promise((resolve) => {
       let done = false;
       const finish = () => { if (!done) { done = true; clearTimeout(failSafe); resolve(); } };
-      const failSafe = setTimeout(finish, (OPENER.revealAt + 2.5) * 1000);
+      const failSafe = setTimeout(finish, (REVEAL.at + 2.5) * 1000);
       // Reveal on the frame nearest the downbeat, not the first one after it:
       // within half a frame of the target is close enough (8 ms at 60 Hz).
       let last = 0;
@@ -380,6 +397,7 @@ async function main() {
         if (done) return;
         const frame = last ? now - last : 1000 / 60;
         last = now;
+        if (ember && !ember.beating && player.currentTrackId === id && player.currentTime > 0) ember.beat(now - player.currentTime * 1000);
         if (player.currentTrackId === id && player.currentTime >= at - frame / 2000) finish();
         else requestAnimationFrame(watch);
       };
@@ -897,6 +915,38 @@ async function main() {
      film ends. Then, by default, a cut to black and the opener in the dark;
      with the TOOLS setting off, the boot screen (first time in this tab) or
      a fade straight to the jukebox, as before. Input is held throughout. */
+  /* Reveal c: the picture's last light, collapsing to a dot at the cut as a
+     tube does when it is switched off - and surviving. It beats with the song
+     in the dark, a little bigger each beat, and the jukebox opens out of it. */
+  let ember = null;
+  function lightEmber() {
+    const tv = attractScreen.querySelector('.tv')?.getBoundingClientRect();
+    const x = tv ? tv.left + tv.width / 2 : innerWidth / 2;
+    const y = tv ? tv.top + tv.height / 2 : innerHeight / 2;
+    const dot = document.createElement('i');
+    dot.className = 'attract-ember';
+    Object.assign(dot.style, { left: `${x}px`, top: `${y}px` });
+    attractScreen.append(dot);
+    dot.animate([{ transform: 'translate(-50%, -50%) scale(9, .25)' }, { transform: 'translate(-50%, -50%) scale(1)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' });
+    return {
+      beating: false,
+      beat(songZero) {               // songZero: performance time of the song's 0 s
+        this.beating = true;
+        for (let k = 0; k < 4; k++) {
+          const at = songZero + (OPENER.grid + k * OPENER.beat) * 1000 - performance.now();
+          const s = 1.5 + 0.6 * k;
+          dot.animate([{ transform: 'translate(-50%, -50%) scale(1)' }, { transform: `translate(-50%, -50%) scale(${s})`, offset: 0.12 }, { transform: `translate(-50%, -50%) scale(${1 + 0.25 * (k + 1)})` }],
+            { delay: Math.max(0, at), duration: OPENER.beat * 1000 - 20, easing: 'ease-out', fill: 'forwards', composite: 'replace' });
+        }
+      },
+      open() {
+        $('jukebox').animate([{ clipPath: `circle(0px at ${x}px ${y}px)` }, { clipPath: `circle(${Math.hypot(innerWidth, innerHeight)}px at ${x}px ${y}px)` }],
+          { duration: 380, easing: 'cubic-bezier(.5,0,.75,0)' });
+        dot.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' });
+      },
+    };
+  }
+
   async function powerOn() {
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
     const firstBoot = !hasBooted();
@@ -925,15 +975,17 @@ async function main() {
       // Cut to black on the last beat: black and silence, a held breath. Then
       // the opener begins in the dark and the jukebox is there on its bar 2.
       attractScreen.classList.add('is-dark');
+      ember = REVEAL.ember && plan.music === 'opener' ? lightEmber() : null;
       try {
         if (plan.music === 'opener') {
-          await delay(OPENER_LEAD_MS);
+          await delay(REVEAL.leadMs);
           await landOpener();
         } else await delay(OPENER_LEAD_MS + OPENER.firstHit * 1000);
       } catch (err) {
         console.warn('[opener]', err);
       }
       document.body.classList.remove('on-attract');
+      ember?.open();
       attractScreen.classList.add('is-revealed');
       releaseInput();
       setTimeout(retire, 120);
