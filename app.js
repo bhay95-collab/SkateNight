@@ -29,6 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
+import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
   keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker, isInstalledApp, shouldTryHum,
@@ -401,6 +402,7 @@ async function main() {
         if (done) return;
         const frame = last ? now - last : 1000 / 60;
         last = now;
+        if (BENCH && player.currentTrackId === id && player.currentTime > 0) benchMark('songZero', now - player.currentTime * 1000);
         if (REVEAL.power && player.currentTrackId === id) powerTo(player.currentTime - (getEngine()?.ctx.outputLatency || 0));
         if (player.currentTrackId === id && player.currentTime >= at - frame / 2000) finish();
         else requestAnimationFrame(watch);
@@ -941,6 +943,7 @@ async function main() {
   }
 
   async function powerOn() {
+    benchMark('press');
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
     const firstBoot = !hasBooted();
     const plan = arrivalPlan({ autoMusic: autoMusic && Boolean(player), firstBoot, nextId: queue[0] || houseLine[0] || null, openerPlayed });
@@ -968,6 +971,7 @@ async function main() {
       // Cut to black on the last beat: black and silence, a held breath. Then
       // the opener begins in the dark and the jukebox is there on its bar 2.
       attractScreen.classList.add('is-dark');
+      benchMark('cut');
       if (REVEAL.power && plan.music === 'opener') powerDown();
       try {
         if (plan.music === 'opener') {
@@ -978,6 +982,8 @@ async function main() {
       }
       document.body.classList.remove('on-attract');
       if (REVEAL.power) powerFull();
+      benchMark('reveal');
+      if (BENCH) setTimeout(() => { benchMark('done'); showReport(benchReport({ beatMs: OPENER.beat * 1000, gridLeadMs: OPENER.grid * 1000, revealAtS: REVEAL.at, outputLatencyS: getEngine()?.ctx.outputLatency || 0 })); }, 3000);
       attractScreen.classList.add('is-revealed');
       releaseInput();
       setTimeout(retire, 120);

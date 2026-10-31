@@ -431,8 +431,11 @@ function stageFilm(el, at, cue, film) {
   const robotCanvas = el.robot.core?.tagName === 'CANVAS' ? el.robot.core : null;
   if (PLUNGE) {                               // the Plunge: placed and timed at the press, its WebGL built just after
     const canvas = placePlunge(el.attract);
-    at(PLUNGE_T.domGone, () => { if (canvas.isConnected) el.attract.classList.add('is-inside'); });
-    at(PLUNGE_T.out, () => el.attract.classList.remove('is-inside'));
+    // While inside, the cabinet is not drawn (?inside=keep leaves it under the canvas: a comparison for the
+    // benchmark on the real laptop - hiding saves drawing it, but bringing it back costs a repaint).
+    const keep = new URLSearchParams(location.search).get('inside') === 'keep';
+    if (!keep) at(PLUNGE_T.domGone, () => { if (canvas.isConnected) el.attract.classList.add('is-inside'); });
+    at(PLUNGE_T.out - 700, () => el.attract.classList.remove('is-inside'));   // back under the 3D early, so it is drawn and ready by the hand-back
     at(1, () => stagePlunge(buildPlunge(canvas, robotCanvas), el, film, lens));
   }
   else if (EXTENDED) stageInside(buildInside(el.attract, robotCanvas));   // Bigger on the Inside

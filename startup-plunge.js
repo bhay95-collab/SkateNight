@@ -50,8 +50,8 @@ export const PLUNGE_T = {
   out: through,            // the robot fills the frame; the cabinet's camera takes it back
   done: through + 160,
 };
-export const ZOOM_END = 12;            // the cabinet camera's zoom on the slit when this picture has taken over
-export const OUT_FILL = 1.6;           // how much of the frame's height the robot fills at the hand-back
+export const ZOOM_END = 6;             // the cabinet camera's zoom on the slit when this picture has taken over
+export const OUT_FILL = 0.8;           // how much of the frame's height the robot fills at the hand-back
 
 /* The cabinet camera's zoom during the dive: exponential, accelerating. */
 export function diveZoom(t, push) {
@@ -499,9 +499,16 @@ export function stagePlunge(scene, el, film, { push, em }) {
   const stats = (window.__plungeStats = { frames: [], gpu: [], pending: [] });
   let raf = 0;
   let last = 0;
+  // Tearing a WebGL canvas down can block on the GPU: never at the hand-back. It stops drawing there
+  // (it is already invisible) and is let go when nothing is moving, a while after the song has come in.
+  const release = () => {
+    cancelAnimationFrame(raf);
+    const drop = () => { gl.getExtension('WEBGL_lose_context')?.loseContext(); canvas.remove(); };
+    setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(drop, { timeout: 4000 }) : drop()), 12000);
+  };
   const frame = (now) => {
     const t = film.now();
-    if (t >= PLUNGE_T.done) { canvas.remove(); return; }
+    if (t >= PLUNGE_T.done) { release(); return; }
     if (last) stats.frames.push(now - last);
     last = now;
     let q = null;
@@ -518,5 +525,5 @@ export function stagePlunge(scene, el, film, { push, em }) {
   };
   film.at(PLUNGE_T.hand - 300, () => { size(); raf = requestAnimationFrame(frame); });
   window.__plungeDraw = (t) => drawPlunge(scene, t, { vh: innerHeight, em, push });   // for frame-by-frame capture of the film
-  film.at(PLUNGE_T.done + 50, () => cancelAnimationFrame(raf));
+  film.at(PLUNGE_T.done + 50, release);
 }
