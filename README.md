@@ -379,6 +379,59 @@ waiting screen is silent, as browsers require. Either way, when someone
 touches the machine the hum stops dead - it holds its breath - and the
 film's own power-up takes over. It follows the EFFECTS volume.
 
+### Prepare a pre-rendered Awakening (proof of concept)
+
+The editable real-time animation remains the production source and the
+standard live cut remains the fallback. For a show, the experimental Plunge
+sequence can instead be rendered into a local MP4 and imported into Chrome's
+origin-private file system (OPFS); the film itself is not added to Git.
+
+On the Mac used to prepare the show, install Node dependencies and ensure
+FFmpeg is on `PATH` and Google Chrome is installed. Then render the film:
+
+```sh
+npm install
+npm run render:awakening
+```
+
+The exporter opens the source sequence in installed Chrome at 1920 x 1080,
+advances the browser's virtual animation clock in fixed 1/60-second steps, and
+captures one frame per step; it does not record a real-time screen capture.
+The cabinet's cinematic sound effects are rendered with `OfflineAudioContext`.
+FFmpeg encodes H.264/AAC MP4, verifies its dimensions, frame rate and frame
+count, and writes a matching SHA-256 JSON manifest. The default output is
+`build/awakening-film.mp4` and `build/awakening-film.mp4.json`; `build/` is
+ignored by Git. Set `CHROME_PATH`, `FFMPEG_PATH`, or `FFPROBE_PATH` if the
+installed tools are elsewhere.
+
+On the waiting INSERT COIN screen, press **Alt+Shift+P** to enter show
+preparation without spending a coin; `?prepare` opens the same mode directly.
+Then open **TOOLS** -> **Prepare for Show** and import both generated files
+together. The PWA checks the manifest, checksum, codec
+playability, duration, dimensions and decodability at multiple points before
+reporting **FILM VERIFIED - READY OFFLINE**. It stores the video locally, not
+in the service-worker cache. Do this before the event; on each launch the PWA
+re-verifies and preloads the local copy before enabling the coin interaction.
+Reload the normal PWA address after preparation to return to INSERT COIN.
+If the film is missing, invalid, cannot play, or reduced motion is enabled, the
+existing live standard cut runs instead. The Effects fader also controls the
+film's sound-effects track. The existing opener song still starts after the
+film's cut, on its established musical lead-in, and remains normal jukebox
+playback under the existing transport and Music controls.
+
+This is a proof of concept: render and test on the actual show Mac, projector
+and PA before choosing it as the event default. The exporter requires an
+installed Chrome, FFmpeg and FFprobe; the exported MP4 and manifest are
+machine-local deliverables and should be transferred/imported directly rather
+than committed.
+
+For an on-device comparison, launch the ready PWA with `?bench` to measure
+the film or `?bench&cut=plunge&live=1` to measure the live Plunge source. The
+benchmark report adds video-frame callbacks, decoded frame counts, dropped
+frames, 95th-percentile frame interval and long video-frame gaps beside the
+live renderer's missed-frame, long-task and GPU-time measurements. Run both
+cuts on the same display, Chrome profile and power mode.
+
 The show plays the standard opening. An experimental **extended cut
 (Bigger on the Inside)** is under development and not approved for the
 show; to look at the current version, add `?cut=extended` to the address.
@@ -505,4 +558,3 @@ refuses the wake lock), a three-hour run, Safari and Firefox, and performance on
 a genuinely slow laptop (the headless browser draws in software, so it is a
 pessimistic stand-in). Please do a 10-minute run-through on the venue laptop a
 day before.
-

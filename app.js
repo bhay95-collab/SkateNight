@@ -29,6 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
+import { createAwakeningFilm } from './awakening-film.js';
 import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
@@ -74,6 +75,9 @@ const REVEAL = (() => {
   try { return REVEALS[new URLSearchParams(location.search).get('reveal')] || REVEALS.long; } catch { return REVEALS.long; }
 })();
 const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venue: calibrate on the real projector and PA (README)            // the operator armed the dormant drone (Alt+Shift+D)
+const PREPARE_ON_LAUNCH = (() => {
+  try { return new URLSearchParams(location.search).has('prepare'); } catch { return false; }
+})();
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
 const HANDOFF_MS = 200;        // the INSERT COIN line fading into the boot screen's first strike (styles.css .is-handing)
@@ -102,6 +106,11 @@ async function main() {
   const attractScreen = $('attract');
   attractScreen.hidden = false;
   const cabinetStart = safely('attract', () => wakeAttract(attractScreen));
+  const awakeningFilm = createAwakeningFilm($('awakening-film'));
+  const filmStatus = $('film-status');
+  const initialFilmStatus = await awakeningFilm.prepare();
+  filmStatus.textContent = initialFilmStatus.message;
+  filmStatus.dataset.state = initialFilmStatus.available ? 'ready' : 'bad';
   // The offline shell registers once the first picture is up, while the
   // cabinet waits, so Chrome can offer to install the app from the dark screen.
   const swRegistration = new Promise((resolve) => {
@@ -704,6 +713,7 @@ async function main() {
     setMusicLevel(musicSlider.value / 100);
     setSfxLevel(sfxSlider.value / 100);
     setVinylLevel(vinylSlider.value / 100);
+    awakeningFilm.setVolume((sfxSlider.value / 100) ** 2);
     for (const [output, slider] of [[$('music-value'), musicSlider], [$('sfx-value'), sfxSlider], [$('vinyl-value'), vinylSlider]]) {
       const value = `${slider.value}%`;
       if (output.value !== value) output.value = value;
@@ -855,6 +865,18 @@ async function main() {
     }
   }
 
+  swRegistration.then(async (reg) => {
+    if (!reg) return;
+    try {
+      await navigator.serviceWorker.ready;
+      swOk = true;
+    } catch (err) {
+      console.warn('[offline shell]', err);
+      return;
+    }
+    refreshOfflineLed();
+  });
+
   crateBtn.addEventListener('click', async () => {
     noteInput();
     if (crateBtn.disabled) return;
@@ -886,6 +908,35 @@ async function main() {
       crateBtn.disabled = false;
       crateBtn.textContent = 'LOAD THE CRATES';
       setTimeout(() => { crateFill.style.transform = 'scaleX(0)'; }, 2500);
+    }
+  });
+
+  const filmImportButton = $('btn-film-import');
+  const filmFiles = $('film-files');
+  filmImportButton.addEventListener('click', () => {
+    noteInput();
+    filmFiles.value = '';
+    filmFiles.click();
+  });
+  filmFiles.addEventListener('change', async () => {
+    const files = [...filmFiles.files];
+    const videoFile = files.find((file) => file.name.toLowerCase().endsWith('.mp4') || file.type === 'video/mp4');
+    const manifestFile = files.find((file) => file.name.toLowerCase().endsWith('.json') || file.type === 'application/json');
+    filmImportButton.disabled = true;
+    filmStatus.textContent = 'VERIFYING AND SAVING FILM...';
+    filmStatus.dataset.state = 'checking';
+    try {
+      const result = await awakeningFilm.importFiles(videoFile, manifestFile);
+      filmStatus.textContent = result.message;
+      filmStatus.dataset.state = 'ready';
+      ui.toast('AWAKENING FILM VERIFIED - READY FOR SHOW');
+    } catch (err) {
+      console.error('[awakening film import]', err);
+      filmStatus.textContent = err.message || 'FILM IMPORT FAILED';
+      filmStatus.dataset.state = 'bad';
+      ui.toast('FILM IMPORT FAILED - SEE TOOLS FOR DETAILS');
+    } finally {
+      filmImportButton.disabled = false;
     }
   });
 
@@ -953,15 +1004,35 @@ async function main() {
     // The lift answers the press at once; later cues give a custom MP3 the chance to decode first.
     const later = (name) => () => sfxReady.then(() => play(name));
     const releaseInput = holdArrivalInput(attractScreen);
+    const filmSound = {
+      lift: () => { play('lift'); safely('drone', wakeDrone); }, contact: later('contact'), chute: later('chute'), relay: later('relay'),
+      power: later('power'), tube: later('tube'),
+    };
+    let playedFilm = false;
     try {
-      await cabinetStart?.insert({
-        lift: () => { play('lift'); safely('drone', wakeDrone); }, contact: later('contact'), chute: later('chute'), relay: later('relay'),
-        power: later('power'), tube: later('tube'),
-      });
+      const forceLiveCut = new URLSearchParams(location.search).has('live');
+      if (awakeningFilm.ready && !matchMedia('(prefers-reduced-motion: reduce)').matches && !forceLiveCut) {
+        try {
+          safely('drone', wakeDrone);
+          await awakeningFilm.play((Number($('vol-sfx').value) / 100) ** 2);
+          playedFilm = true;
+        } catch (err) {
+          console.warn('[awakening film]', err);
+          ui.toast('FILM PLAYBACK FAILED - USING THE LIVE CUT');
+          awakeningFilm.stop();
+          await cabinetStart?.insert(filmSound);
+        }
+      } else {
+        await cabinetStart?.insert(filmSound);
+      }
     } catch (err) {
       console.warn('[startup]', err);
     } finally {
       if (!toDark) releaseInput();
+    }
+    if (playedFilm) {
+      attractScreen.classList.add('is-dark');
+      awakeningFilm.stop();
     }
     const retire = () => {
       attractScreen.hidden = true;
@@ -1092,6 +1163,12 @@ async function main() {
   document.addEventListener('visibilitychange', () => drone?.setVisible(!document.hidden));
   // ?hum, or a remembered hum the browser has not let play yet: the first press arms the hum, not the coin
   let humFirst = new URLSearchParams(location.search).has('hum') || rememberedDrone;
+  function enterPrepareMode() {
+    attractScreen.hidden = true;
+    document.body.classList.remove('on-attract');
+    $('cabinet-tools').open = true;
+    ui.toast('SHOW PREPARATION MODE - RELOAD TO RETURN TO INSERT COIN');
+  }
   const armByPress = () => {
     if (!humFirst || drone?.sounding) { humFirst = false; return false; }
     humFirst = false;
@@ -1109,6 +1186,11 @@ async function main() {
   });
   window.addEventListener('keydown', (e) => {
     if (started || attractScreen.hidden) return;
+    if (e.code === 'KeyP' && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      enterPrepareMode();
+      return;
+    }
     if (e.code === 'KeyD' && e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey) {   // the operator arming the drone, not the coin
       e.preventDefault();
       safely('drone', toggleDrone);
@@ -1124,7 +1206,8 @@ async function main() {
   ticker.stop();
   attractScreen.dataset.autofocus = '';             // focused for the keys, not by anyone: no focus mark until it is left and come back to
   attractScreen.addEventListener('blur', () => delete attractScreen.dataset.autofocus, { once: true });
-  attractScreen.focus({ preventScroll: true });
+  if (PREPARE_ON_LAUNCH) enterPrepareMode();
+  else attractScreen.focus({ preventScroll: true });
 
   // Handy for tests and for Ben's console: nothing here is needed to run the night.
   window.__skateNight = {

@@ -504,6 +504,7 @@ export function stagePlunge(scene, el, film, { push, em }) {
     return;
   }
   const { canvas, gl, timer } = scene;
+  const renderMode = new URLSearchParams(location.search).has('render');
   const size = () => { const r = devicePixelRatio || 1; canvas.width = Math.round(innerWidth * r); canvas.height = Math.round(innerHeight * r); };
   size();
   const stats = (window.__plungeStats = { frames: [], gpu: [], pending: [] });
@@ -513,6 +514,7 @@ export function stagePlunge(scene, el, film, { push, em }) {
   // (it is already invisible) and is let go when nothing is moving, a while after the song has come in.
   const release = () => {
     cancelAnimationFrame(raf);
+    if (renderMode) return;
     const drop = () => { gl.getExtension('WEBGL_lose_context')?.loseContext(); canvas.remove(); };
     setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(drop, { timeout: 4000 }) : drop()), 12000);
   };

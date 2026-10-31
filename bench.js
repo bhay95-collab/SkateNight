@@ -59,12 +59,14 @@ export function benchReport({ beatMs, gridLeadMs, revealAtS, outputLatencyS }) {
   const worst = gaps.map((g, i) => [Math.round(frames[i] - p), Math.round(g)]).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const plunge = window.__plungeStats;
   const gpu = plunge?.gpu?.length ? [...plunge.gpu].sort((a, b) => a - b) : null;
+  const film = window.__awakeningFilmStats;
   const songStart = marks.songZero != null ? marks.songZero : null;
   const report = {
     machine: { gpu: gpuName(), screen: `${screen.width}x${screen.height}`, window: `${innerWidth}x${innerHeight}`, pixelRatio: devicePixelRatio, browser: navigator.userAgent, address: location.search },
     frames: { count: gaps.length, refreshMs: +refresh.toFixed(2), medianMs: +refresh.toFixed(2), p95Ms: sorted.length ? +pct(sorted, 0.95).toFixed(2) : null, p99Ms: sorted.length ? +pct(sorted, 0.99).toFixed(2) : null, missed, missedPct: gaps.length ? +((100 * missed) / gaps.length).toFixed(1) : null, worstGaps: worst },
     stalls: stalls.filter(([s]) => s >= p - 50).map(([s, d]) => [Math.round(s - p), d]),
     gpu: gpu ? { frames: gpu.length, medianMs: +pct(gpu, 0.5).toFixed(2), p95Ms: +pct(gpu, 0.95).toFixed(2), maxMs: +gpu.at(-1).toFixed(2) } : 'no GPU timer (or no 3D in this cut)',
+    video: film || 'no pre-rendered film played',
     sync: {
       cutMs: rel(marks.cut),
       songStartedMs: songStart == null ? null : rel(songStart),

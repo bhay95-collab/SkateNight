@@ -83,6 +83,7 @@ const MIX = {
 const FILM_BOOST = { lift: 1.56, contact: 1.56, chute: 1.3, relay: 1.08, power: 1.09, tube: 0.55 };
 const activeVoices = new Map();
 const RELEASE_SECONDS = 0.014;
+let offlineEngine = null;
 
 /* The machine's interior: one shared hall for the film's voices to send
    into, so the coin's ring hangs in the air, each clink falls further away
@@ -135,7 +136,7 @@ function impulse(ctx) {
    tail fades instead of accumulating. File and live-model voices share this
    path, and finished sources release their audio graph connections. */
 function createVoice(name) {
-  const e = getEngine();
+  const e = offlineEngine || getEngine();
   if (!e) return null;
   const { ctx, sfxBus } = e;
   activeVoices.get(name)?.release();
@@ -644,3 +645,54 @@ export const sfx = {
   // Keep the legacy hook without introducing ambient interference during music.
   flicker: effect('flicker'),
 };
+
+/* Render the same timed cinematic voices through OfflineAudioContext for the
+   export pipeline; the installed app continues to use the live audio engine. */
+export async function renderStartupAudio() {
+  const Offline = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
+  if (!Offline) throw new Error('OfflineAudioContext is unavailable in this browser.');
+  const { BEATS: beats } = await import('./startup-timing.js');
+  const { tubeSchedule } = await import('./startup-power.js');
+  const fps = 60;
+  const frames = Math.ceil((beats.end / 1000) * fps);
+  const sampleRate = 48000;
+  const duration = frames / fps;
+  const native = new Offline(2, Math.ceil(duration * sampleRate), sampleRate);
+  const limiter = native.createDynamicsCompressor();
+  limiter.threshold.value = -3;
+  limiter.knee.value = 6;
+  limiter.ratio.value = 12;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.25;
+  limiter.connect(native.destination);
+  const sfxBus = native.createGain();
+  sfxBus.connect(limiter);
+  let time = 0;
+  const ctx = new Proxy(native, {
+    get(target, key) {
+      if (key === 'currentTime') return time;
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+  offlineEngine = { ctx, sfxBus };
+  try {
+    const cues = [
+      [0, 'lift'],
+      [beats.contact, 'contact'],
+      [beats.gone, 'chute'],
+      [beats.relay, 'relay'],
+      [beats.relay, 'power'],
+      [beats.attempt + 700, 'tube'],
+      ...[...tubeSchedule(10, new Set()).values()].map(({ at }) => [at, 'tube']),
+    ].sort((a, b) => a[0] - b[0]);
+    for (const [at, name] of cues) {
+      time = at / 1000;
+      sfx[name]();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    return await native.startRendering();
+  } finally {
+    offlineEngine = null;
+  }
+}

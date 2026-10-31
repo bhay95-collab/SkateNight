@@ -326,6 +326,37 @@ export function wakeAttract(attract) {
 /* One clock for the whole film: the document timeline. at() runs a step on
    its beat; until() resolves when the film reaches a time. */
 function clock(root) {
+  if (new URLSearchParams(location.search).has('render')) {
+    let current = 0;
+    const events = [];
+    const waiters = [];
+    const advance = (ms) => {
+      events.sort((a, b) => a.ms - b.ms);
+      while (events[0]?.ms <= ms) {
+        const event = events.shift();
+        current = event.ms;
+        globalThis.__renderAnimationTime = current;
+        try { event.fn(); } catch (err) { console.warn('[startup render]', err); }
+        events.sort((a, b) => a.ms - b.ms);
+      }
+      current = ms;
+      globalThis.__renderAnimationTime = current;
+      for (let i = waiters.length - 1; i >= 0; i--) {
+        if (waiters[i].ms <= current) waiters.splice(i, 1)[0].resolve();
+      }
+    };
+    globalThis.__advanceAwakening = advance;
+    return {
+      now: () => current,
+      at(ms, fn) { events.push({ ms, fn }); },
+      until(ms) {
+        return new Promise((resolve) => {
+          if (ms <= current) resolve();
+          else waiters.push({ ms, resolve });
+        });
+      },
+    };
+  }
   const reel = root.animate([], { duration: 600000 });   // the film's own clock: follows the timeline, and pauses with it
   // ms is film time, wherever at() is called from (a step scheduled from a later step still lands on its beat)
   const timer = (ms) => root.animate([], { duration: 0, delay: Math.max(0, ms - (reel.currentTime ?? 0)) }).finished;
@@ -437,7 +468,10 @@ function stageFilm(el, at, cue, film) {
     const keep = new URLSearchParams(location.search).get('inside') === 'keep';
     if (!keep) at(PLUNGE_T.domGone, () => { if (canvas.isConnected) el.attract.classList.add('is-inside'); });
     at(PLUNGE_T.out - 700, () => el.attract.classList.remove('is-inside'));   // back under the 3D early, so it is drawn and ready by the hand-back
-    at(1, () => stagePlunge(buildPlunge(canvas, robotCanvas), el, film, lens));
+    const renderMode = new URLSearchParams(location.search).has('render');
+    const build = () => stagePlunge(buildPlunge(canvas, robotCanvas), el, film, lens);
+    if (renderMode) build();
+    else at(1, build);
   }
   else if (EXTENDED) stageInside(buildInside(el.attract, robotCanvas));   // Bigger on the Inside
 }

@@ -4,6 +4,10 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "test:motion": "node scripts/check-animations.mjs"
+    "test:motion": "node scripts/check-animations.mjs",
+    "render:awakening": "node scripts/render-awakening.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.59.1"
   }
 }

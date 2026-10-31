@@ -112,6 +112,7 @@
     <span class="attract-spot"></span>
   </span>
 </button>
+<video class="awakening-film" id="awakening-film" playsinline preload="auto" aria-hidden="true"></video>
 
 <!-- ============ BACKGROUND WORLD ============ -->
 <div class="cab-glow" id="cab-glow" aria-hidden="true"></div>
@@ -280,6 +281,13 @@
             <span class="crate-meter" id="crate-meter" aria-hidden="true"><i id="crate-fill"></i></span>
           </span>
           <small>Save the songs before the night.</small>
+          <div class="film-tools">
+            <strong>Prepare for Show</strong>
+            <output id="film-status" class="film-status" data-state="checking" role="status" aria-live="polite">CHECKING LOCAL FILM...</output>
+            <button type="button" class="btn btn-deck" id="btn-film-import">IMPORT AWAKENING FILM</button>
+            <input id="film-files" type="file" accept=".mp4,.json,video/mp4,application/json" multiple hidden>
+            <small>Choose the exported MP4 and its matching JSON manifest. The verified film is stored on this Mac for offline playback.</small>
+          </div>
           <button type="button" class="btn btn-deck" id="btn-keys">KEYBOARD SHORTCUTS</button>
           <label class="tool-setting" for="vol-vinyl"><span>Vinyl texture <output id="vinyl-value" for="vol-vinyl">100%</output></span><input type="range" id="vol-vinyl" min="0" max="100" value="100" aria-label="Vinyl texture level" aria-describedby="vinyl-help"></label>
           <small id="vinyl-help">Reduce record texture independently. Effects controls cabinet sounds and vinyl together.</small>
