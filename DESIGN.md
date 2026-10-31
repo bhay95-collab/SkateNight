@@ -540,10 +540,11 @@ letter, which is part of the failure.
 
 ## The extended cut: Bigger on the Inside
 
-The default film: the director's cut on top of the standard one (TOOLS ->
-*Extended cut (Bigger on the Inside)*, on unless the operator unticks it,
-stored as '0'; or `?cut=extended` / `?cut=standard` for a comparison; never
-with reduced motion, which keeps the gentle standard telling). Read when the
+Not approved for the show (review, 31 Oct): the standard cut always plays;
+this version only when asked for in the address (`?cut=extended`), never
+from a saved preference (an old one is cleared), never with reduced motion.
+A rebuild in WebGL (Treatment A, "The Plunge") is in development on its own
+branch. Read when the
 page loads, so it plays from the next Awakening. `timeline(true)` in
 `startup-timing.js` gives its times; everything else follows them.
 Up to the coin being swallowed it is the standard film. Then the camera

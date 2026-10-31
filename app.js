@@ -29,7 +29,6 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { EXTENDED, STORE_EXTENDED } from './startup-timing.js';
 import { createUI, createTicker } from './ui.js';
 import {
   keepAwake, setupMediaSession, updateMediaSession, registerServiceWorker, isInstalledApp, shouldTryHum,
@@ -697,13 +696,6 @@ async function main() {
   autoMusicSetting.addEventListener('change', () => {           // for the next Awakening (the next load of the page)
     autoMusic = autoMusicSetting.checked;
     try { localStorage.setItem(STORE_AUTO_MUSIC, autoMusic ? 'on' : 'off'); } catch { /* applies to this visit only */ }
-  });
-  // The extended cut: read when the page loads, so it plays from the next Awakening (startup-timing.js).
-  const extendedSetting = $('extended-cut');
-  try { extendedSetting.checked = localStorage.getItem(STORE_EXTENDED) !== '0'; } catch { extendedSetting.checked = EXTENDED; }   // on unless the operator chose the standard cut
-  extendedSetting.addEventListener('change', () => {
-    try { localStorage.setItem(STORE_EXTENDED, extendedSetting.checked ? '1' : '0'); } catch { /* not remembered */ }
-    ui.setMessage?.(extendedSetting.checked ? 'Extended cut: plays from the next start' : 'Standard cut: plays from the next start');
   });
   const quickPickSetting = $('quick-pick');
   quickPickSetting.checked = quickPick;

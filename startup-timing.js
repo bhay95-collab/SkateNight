@@ -30,12 +30,12 @@ const DARK_MS = 1800;                           // the real dark between the tri
    follows the coin through the slit and falls with it through an interior
    far bigger than the cabinet; the first try fails in there, the second
    rises up through the machine on the heartbeat and out through the back of
-   the screen, onto the lit cabinet for the lock. It is the default; the
-   TOOLS setting turns it off (stored '0'), read when the page loads (so it
-   takes effect the next time the Awakening plays), and ?cut=extended /
-   ?cut=standard compares the two. Never with reduced motion, and not outside
-   a page (the unit tests time the standard cut; they test this one through
-   timeline(true)). */
+   the screen, onto the lit cabinet for the lock. It is NOT approved for the
+   show: the standard cut always plays, and this one only for a comparison,
+   asked for in the address (?cut=extended). A preference saved by an earlier
+   version (STORE_EXTENDED) is ignored and cleared, so it can never switch it
+   on by surprise. Never with reduced motion, and not outside a page (the
+   unit tests time the standard cut; they test this one through timeline(true)). */
 export const STORE_EXTENDED = 'sn-extended-cut';
 export function wantsExtended(env = {}) {
   try {
@@ -43,12 +43,10 @@ export function wantsExtended(env = {}) {
       browser = Boolean(globalThis.document),
       reduced = Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
       search = globalThis.location?.search ?? '',
-      stored = globalThis.localStorage?.getItem(STORE_EXTENDED) ?? null,
     } = env;
+    if (!env.browser && browser) globalThis.localStorage?.removeItem(STORE_EXTENDED);   // a stale preference from an earlier version
     if (!browser || reduced) return false;
-    const asked = new URLSearchParams(search).get('cut');
-    if (asked) return asked === 'extended';
-    return stored !== '0';
+    return new URLSearchParams(search).get('cut') === 'extended';
   } catch {
     return false;
   }
