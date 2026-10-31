@@ -102,6 +102,7 @@ body{
 /* ================= THE CABINET: one lacquered body ================= */
 .rig{
   position:relative; z-index:3; height:100vh; height:100dvh;
+  overflow-x:clip;   /* the spinning record's square box sweeps its (transparent) corners past a narrow screen's edge: never a sideways scroll */
   display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto;
   gap:.45rem; padding:.95rem 1.25rem 1.95rem;   /* the bottom strip is where the key list appears */
 }

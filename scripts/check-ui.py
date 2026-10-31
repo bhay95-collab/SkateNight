@@ -161,6 +161,43 @@ def quick_pick_and_settings(page, tracks):
     return levels + ["3"]
 
 
+def settle_layout(page, width, height, timeout=8000):
+    """Wait until the layout has stopped moving, rather than for a fixed time.
+
+    A fixed wait raced the resize itself, the ResizeObserver, the artwork's
+    next paint and the rack's re-layout whenever the headless browser drew few
+    frames (it often runs at ~10 fps while songs load), so overflow and
+    clipping were sometimes measured mid-change. Settled means: the page has
+    the new size, fonts are loaded, the changer is not swapping a record
+    (start() reloads, and the next song then starts with a swap), no short
+    (finite) animation is running, and the measured boxes have not changed
+    for 300 ms."""
+    settled = page.evaluate("""async ([w, h, timeout]) => {
+      const sig = () => [document.documentElement.scrollWidth, innerWidth, innerHeight,
+        ...[document.querySelector('#strips'), ...document.querySelectorAll('.strip')].map((n) => {
+          const r = n.getBoundingClientRect(); return `${Math.round(r.top)}:${Math.round(r.bottom)}:${Math.round(r.right)}`; })].join(',');
+      // only what is being measured: the rack, its strips, the record crossing the changer
+      const busy = () => document.getAnimations().some((a) => a.playState === 'running'
+        && Number.isFinite(a.effect?.getComputedTiming().endTime)                    // a spinning record never ends; a move does
+        && a.effect.target?.closest?.('.rack-page, #rack-sleeve, #strips, .record-mover'));
+      const frame = () => new Promise((r) => requestAnimationFrame(r));
+      const end = performance.now() + timeout;
+      let last = null;
+      let since = 0;
+      while (performance.now() < end) {
+        await frame();
+        const changing = window.__skateNight?.state().phase === 'changing';   // the changer swapping a record re-lays the rack
+        const now = sig();
+        if (innerWidth !== w || innerHeight !== h || document.fonts.status !== 'loaded' || changing || busy() || now !== last) {
+          last = now; since = performance.now(); continue;
+        }
+        if (performance.now() - since >= 300) return true;
+      }
+      return { w: innerWidth, h: innerHeight, fonts: document.fonts.status, phase: window.__skateNight?.state().phase, busy: busy() };
+    }""", [width, height, timeout])
+    require(settled is True, f"Layout never settled at {width}x{height}: {settled}")
+
+
 def responsive_checks(page, tracks):
     sizes = [(1920, 1080), (1280, 720), (1024, 768), (800, 600), (768, 1024), (375, 812), (640, 360)]
     # Use the album with the most tracks, rather than assuming a fixed list size.
@@ -169,7 +206,7 @@ def responsive_checks(page, tracks):
     page.locator("#key-clear").click()
     for width, height in sizes:
         page.set_viewport_size({"width": width, "height": height})
-        page.wait_for_timeout(150)  # Allow ResizeObserver and artwork's next paint.
+        settle_layout(page, width, height)
         result = page.evaluate("""() => {
           const list = document.querySelector('#strips').getBoundingClientRect();
           const rows = [...document.querySelectorAll('.strip')];

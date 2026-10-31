@@ -246,8 +246,12 @@ if (queued.length >= 2) {
 }
 
 section('[7] SELECTION ACCEPTED wipes rather than dissolving');
+// Read the wipe from its CSS transition, not by sampling on timers: the
+// headless browser can draw very few frames while songs load, and a 120 ms
+// transition sampled every 20 ms then looked as if it never moved.
+const finished = () => page.evaluate(() => Promise.all(document.getElementById('sign-flash').getAnimations().map((a) => a.finished)));
 await page.waitForFunction(() => !document.getElementById('sign-flash').classList.contains('is-on'), null, { timeout: 8000 });
-await page.waitForTimeout(400);       // well past the 120 ms wipe, even on a busy machine
+await finished();
 const rest = await page.evaluate(() => {
   const s = getComputedStyle(document.getElementById('sign-flash'));
   return { clip: s.clipPath, transition: s.transitionProperty };
@@ -257,17 +261,16 @@ check(rest.transition === 'clip-path', 'clip-path alone carries it, with no opac
 const wipe = await page.evaluate(async () => {
   const sign = document.getElementById('sign-flash');
   sign.classList.add('is-on');
-  const samples = [];
-  for (let i = 0; i < 10; i++) {
-    await new Promise((r) => setTimeout(r, 20));
-    samples.push(getComputedStyle(sign).clipPath);
-  }
+  const [run] = sign.getAnimations();
+  const info = run ? { property: run.transitionProperty, duration: run.effect.getComputedTiming().duration } : null;
+  await run?.finished;
+  const end = getComputedStyle(sign).clipPath;
   sign.classList.remove('is-on');
-  return samples;
+  return { info, end };
 });
-const mid = wipe.find((v) => v !== 'inset(0px 0px 0px 100%)' && v !== 'inset(0px)');
-check(Boolean(mid), 'the wipe has intermediate frames (it animates, it does not jump)', mid ?? wipe.join(','));
-check(wipe.at(-1) === 'inset(0px)', 'and it settles fully open', wipe.at(-1));
+check(wipe.info?.property === 'clip-path' && wipe.info.duration > 0, 'the wipe is a clip-path transition (it animates, it does not jump)', JSON.stringify(wipe.info));
+check(wipe.end === 'inset(0px)', 'and it settles fully open', wipe.end);
+await finished();
 
 section('[8] a record being picked beats a decorative page turn');
 await page.waitForTimeout(400);
