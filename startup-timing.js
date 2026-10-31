@@ -29,13 +29,14 @@ const QUICKEN_MS = 2800;                        // the second try, from the heav
 const DEAD = 7550 + 380;                        // the first try's supply reaches nothing
 
 export const BEATS = {
-  coinIn: 300,      // the coin swings into shot, close to the lens, out of focus
-  align: 1500,      // turned face-on, hanging over the slit; the rim catches the light
-  descend: 2350,    // after a held breath, it sinks toward the door
-  contact: 3050,    // its edge meets the slit and catches
-  slip: 3550,       // it is pressed, it resists - then the gate gives and it drops through
-  gone: 3850,       // swallowed
-  credit: 4750,     // the coin box: a clunk, and 1 CREDIT
+  look: 700,        // the press: the machine holds its breath; then the robot looks toward the slot
+  coinIn: 1100,     // the camera follows its look down to the door; a small coin rises into the lamp's light
+  align: 1700,      // face-on over the slit, small in frame; the rim catches the light
+  descend: 2050,    // it sinks toward the door
+  contact: 2550,    // its edge meets the slit and catches
+  slip: 2850,       // it is pressed, it resists - then the gate gives and it drops through
+  gone: 3100,       // swallowed; the camera holds on the empty slot, then tilts up the machine
+  credit: 5150,     // after a long fall, far below: the coin box, a clunk, and 1 CREDIT
   relay: 5450,      // the main relay pulls in - THUNK - and standby cuts out
   attempt: 5950,    // A: the transformer gathers; a line creeps across the tube, one tube catches...
   almost: 7100,     //    ...it nearly holds...
@@ -47,8 +48,13 @@ export const BEATS = {
 };
 BEATS.end = BEATS.cut;                    // the film ends on the cut; the song begins in the dark (app.js)
 
-/* Down the chute after it is swallowed: each bounce deeper, quieter, slower to ring out. */
-export const CHUTE_CLINKS_MS = [70, 250, 400, 520, 615, 690, 750];
+/* Phase B: how long the robot is alone in the black tube before the line
+   and the raster follow it (startup-robot.js, startup-power.js, sound.js). */
+export const ROBOT_FIRST_MS = 450;
+
+/* Down the chute after it is swallowed: a long fall, each bounce further
+   down, quieter and wetter, the gaps opening as it drops away from us. */
+export const CHUTE_CLINKS_MS = [70, 300, 560, 850, 1170, 1510, 1870];
 
 /* The pulse: the second try's heartbeat, quickening from about 60 BPM to the
    song's tempo so that its next beat would be the lock, then the lock's

@@ -263,12 +263,16 @@ Chrome window first; Alt+F4 / Cmd+Q to leave).
 - The site opens on the dormant cabinet: the jukebox standing almost
   invisible in a dark basement, its old picture tube the only light, and on
   it the little RFAI robot, faint and slowly breathing in the static. There
-  are no instructions on purpose. Click, tap or press any key and the camera
-  moves in as the slot lamp catches and a coin swings into the light, lines
-  up and drops through the slot; you hear it fall deep inside, a relay thumps,
-  the machine tries to start, nearly makes it, dies, and sits dark; then a
-  heartbeat, quickening into the first song's tempo, and the machine lights
-  up and thumps in time for two bars - then cuts to black on the beat (about
+  are no instructions on purpose. Click, tap or press any key and everything
+  goes still: the hum stops and the robot holds its breath, then looks toward
+  the coin slot. The camera follows its look, the slot lamp catches and a
+  small coin rises into the light and drops through the slot; you hear it
+  fall for a long way, deep inside, while the camera tilts up the machine. A
+  relay thumps, the machine tries to start, nearly makes it, dies, and sits
+  dark. Then the robot lights up first, alone in the black screen, and the
+  machine follows it: a heartbeat, quickening into the first song's tempo,
+  and from a low angle, towering, the machine lights up and thumps in time
+  for two bars - then cuts to black on the beat (about
   fifteen and a half seconds in all). A held breath, and the night's first
   song begins in the dark, on the same beat; one bar later, on the home chord,
   the jukebox is there, already playing. (With TOOLS -> *The Awakening starts

@@ -32,7 +32,7 @@
    Every effect is wrapped so a sound failure can never stop the music.
    ============================================================ */
 import { getEngine } from './audio.js';
-import { BEATS, CHUTE_CLINKS_MS, PULSE, supplyAt } from './startup-timing.js';
+import { BEATS, CHUTE_CLINKS_MS, PULSE, ROBOT_FIRST_MS, supplyAt } from './startup-timing.js';
 
 /* The film's beats in seconds, from the moment each sound is cued. */
 const secs = (ms) => ms / 1000;
@@ -40,6 +40,8 @@ const SLIP_S = secs(BEATS.slip - BEATS.contact);
 const GATE_S = secs(BEATS.gone - BEATS.contact);
 const CLINKS_S = CHUTE_CLINKS_MS.map(secs);
 const CREDIT_S = secs(BEATS.credit - BEATS.gone);
+const UP_S = secs(BEATS.coinIn);          // lift plays at the press; the coin rises into the light later
+const FACE_S = secs(BEATS.align);
 const fromRelay = (ms) => secs(ms - BEATS.relay);
 const CUT_S = fromRelay(BEATS.cut);
 
@@ -78,9 +80,43 @@ const MIX = {
    faders, against the opener: the coin about 20 dB under it, the first try
    15, the heartbeat 12, the lock 8 (DESIGN.md). A custom MP3 keeps its own
    level; the Effects fader and the limiter still apply. */
-const FILM_BOOST = { lift: 1.27, contact: 1.27, chute: 1.06, relay: 1.08, power: 1.09, tube: 0.55 };
+const FILM_BOOST = { lift: 1.56, contact: 1.56, chute: 1.3, relay: 1.08, power: 1.09, tube: 0.55 };
 const activeVoices = new Map();
 const RELEASE_SECONDS = 0.014;
+
+/* The machine's interior: one shared hall for the film's voices to send
+   into, so the coin's ring hangs in the air, each clink falls further away
+   and the relays boom like bulkheads. A generated impulse - noise that
+   darkens as it decays over about three seconds - so nothing is fetched.
+   On the Effects bus, under the limiter, like everything else. */
+const HALL = { seconds: 3.2, rt60: 2.6, predelay: 0.018, level: 0.55 };
+let hall = null;
+function interior(ctx, bus) {
+  if (hall?.ctx === ctx) return hall.input;
+  if (!ctx.createConvolver) return null;
+  const rate = ctx.sampleRate;
+  const n = Math.ceil(rate * HALL.seconds);
+  const ir = ctx.createBuffer(2, n, rate);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    let low = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / rate;
+      if (t < HALL.predelay) continue;
+      const k = 0.08 + 0.75 * Math.exp(-t / 0.5);             // brighter early, darker as it dies
+      low += k * (Math.random() * 2 - 1 - low);
+      d[i] = low * Math.exp((-6.9 * t) / HALL.rt60) * Math.min(1, (t - HALL.predelay) / 0.03);
+    }
+  }
+  const input = ctx.createGain();
+  const conv = ctx.createConvolver();
+  conv.buffer = ir;                                            // normalised by the browser
+  const out = ctx.createGain();
+  out.gain.value = HALL.level;
+  input.connect(conv).connect(out).connect(bus);
+  hall = { ctx, input };
+  return input;
+}
 
 /* One voice per action. Fast presses still respond immediately, but the old
    tail fades instead of accumulating. File and live-model voices share this
@@ -96,6 +132,8 @@ function createVoice(name) {
   output.gain.setValueAtTime(level, ctx.currentTime);
   output.connect(sfxBus);
   const sources = new Set();
+  const extras = new Set();       // routing made by via(), let go with the voice
+  let space = null;               // this voice's send into the interior, following its level
   const voice = {
     ctx, output,
     rate: 1 + (Math.random() * 2 - 1) * variation,
@@ -107,24 +145,52 @@ function createVoice(name) {
         sources.delete(source);
         if (!sources.size) {
           output.disconnect();
+          extras.forEach((n) => n.disconnect());
           if (activeVoices.get(name) === voice) activeVoices.delete(name);
         }
       };
     },
+    // A voice for things further inside the machine: dry straight out, wet into its interior (interior()).
+    via({ dry = 1, wet = 0 }) {
+      const input = ctx.createGain();
+      const near = ctx.createGain();
+      near.gain.value = dry;
+      input.connect(near).connect(output);
+      extras.add(input).add(near);
+      const hall = wet > 0 ? interior(ctx, sfxBus) : null;
+      if (hall) {
+        if (!space) {
+          space = ctx.createGain();
+          space.gain.setValueAtTime(level, ctx.currentTime);
+          space.connect(hall);
+          extras.add(space);
+        }
+        const far = ctx.createGain();
+        far.gain.value = wet;
+        input.connect(far).connect(space);
+        extras.add(far);
+      }
+      return { ctx, rate: voice.rate, output: input, track: voice.track };
+    },
     louder(k) {                     // the live model, raised to its film level
       level = gain * k;
       output.gain.setValueAtTime(level, ctx.currentTime);
+      space?.gain.setValueAtTime(level, ctx.currentTime);
     },
     release() {
       const t = ctx.currentTime;
       output.gain.cancelScheduledValues(t);
       output.gain.setValueAtTime(level, t);
       output.gain.linearRampToValueAtTime(0.0001, t + RELEASE_SECONDS);
+      space?.gain.cancelScheduledValues(t);
+      space?.gain.setValueAtTime(level, t);
+      space?.gain.linearRampToValueAtTime(0.0001, t + RELEASE_SECONDS);
       for (const source of sources) {
         try { source.stop(t + RELEASE_SECONDS); } catch { /* already finished */ }
       }
       if (!sources.size) {
         output.disconnect();
+        extras.forEach((n) => n.disconnect());
         if (activeVoices.get(name) === voice) activeVoices.delete(name);
       }
     },
@@ -449,15 +515,20 @@ export const sfx = {
 
   // The coin taken up, swung through the air into the light; its rim rings faintly as it is turned.
   lift: effect('lift', (voice) => {
-    thump(voice, { freq: 2900, dur: 0.01, peak: 0.05 });
-    ring(voice, { freq: 4100, peak: 0.012, decay: 0.3 });
-    whoosh(voice, { at: 0.12, dur: 0.75, from: 380, to: 1500, peak: 0.035, q: 1.1 });
-    ring(voice, { freq: 3300, at: 0.95, peak: 0.01, decay: 1.2 });
+    // Silence at the press (the machine holds its breath). Then the coin is
+    // taken up into the lamp's light, and as it turns its face to the light
+    // its rim rings - and the ring hangs, as if the room were far bigger.
+    const far = voice.via({ dry: 0.8, wet: 0.75 });
+    thump(voice, { freq: 2900, dur: 0.01, peak: 0.04, at: UP_S - 0.05 });
+    whoosh(voice, { at: UP_S, dur: 0.6, from: 380, to: 1500, peak: 0.03, q: 1.1 });
+    ring(far, { freq: 4100, at: UP_S + 0.2, peak: 0.008, decay: 0.4 });
+    ring(far, { freq: 3300, at: FACE_S, peak: 0.012, decay: 1.4 });
   }),
 
   // Its edge meets the slit and catches - a tick, a gritty scrape - then the
   // gate gives, it slides through, and the gate snaps back behind it.
-  contact: effect('contact', (voice) => {
+  contact: effect('contact', (dry) => {
+    const voice = dry.via({ dry: 1, wet: 0.2 });
     thump(voice, { freq: 3400, dur: 0.008, peak: 0.11 });
     ring(voice, { freq: 2700, peak: 0.035, decay: 0.3 });
     whoosh(voice, { at: 0.02, dur: SLIP_S * 0.95, from: 5200, to: 3400, peak: 0.03, q: 6, amHz: 70 });   // pressed against the gate
@@ -467,24 +538,28 @@ export const sfx = {
     thump(voice, { freq: 600, dur: 0.04, peak: 0.08, at: GATE_S - 0.025 });
   }),
 
-  // Down inside: each clink lower, softer and longer, as if further into the
-  // cabinet than you can see; then the coin box, and the counter ticking over.
+  // The long fall: each clink further down - lower, quieter, and wetter, as
+  // if deeper into the machine than it could possibly be; far below, the
+  // coin box; then, close by on the door, the counter ticking over.
   chute: effect('chute', (voice) => {
     CLINKS_S.forEach((at, i) => {
-      const fade = 1 - i / CLINKS_S.length;
-      ring(voice, { freq: 1900 - i * 150, at, peak: 0.015 + 0.035 * fade, decay: 0.2 + i * 0.03 });
-      thump(voice, { freq: 1500 - i * 120, dur: 0.02, peak: 0.02 + 0.05 * fade, at });
+      const deep = i / (CLINKS_S.length - 1);
+      const v = voice.via({ dry: 1 - 0.85 * deep, wet: 0.25 + 0.75 * deep });
+      ring(v, { freq: 1900 - i * 150, at, peak: 0.02 + 0.03 * (1 - deep), decay: 0.2 + i * 0.05 });
+      thump(v, { freq: 1500 - i * 120, dur: 0.02, peak: 0.025 + 0.045 * (1 - deep), at });
     });
-    whoosh(voice, { at: CLINKS_S.at(-1) + 0.03, dur: 0.3, from: 900, to: 400, peak: 0.02, q: 3, amHz: 24 });   // rolling to a stop
-    thump(voice, { freq: 130, dur: 0.18, peak: 0.22, at: CREDIT_S });                                           // the coin box
-    thump(voice, { freq: 520, dur: 0.05, peak: 0.1, at: CREDIT_S });
-    ring(voice, { freq: 700, at: CREDIT_S, peak: 0.02, decay: 0.45 });
-    thump(voice, { freq: 2600, dur: 0.008, peak: 0.06, at: CREDIT_S + 0.14 });                                  // the counter
+    const below = voice.via({ dry: 0.3, wet: 1 });
+    whoosh(below, { at: CLINKS_S.at(-1) + 0.03, dur: 0.3, from: 900, to: 400, peak: 0.015, q: 3, amHz: 24 });   // rolling to a stop
+    thump(below, { freq: 130, dur: 0.18, peak: 0.22, at: CREDIT_S });                                           // the coin box, far below
+    thump(below, { freq: 520, dur: 0.05, peak: 0.1, at: CREDIT_S });
+    ring(below, { freq: 700, at: CREDIT_S, peak: 0.02, decay: 0.45 });
+    thump(voice, { freq: 2600, dur: 0.008, peak: 0.06, at: CREDIT_S + 0.14 });                                  // the counter, on the door
     thump(voice, { freq: 2300, dur: 0.008, peak: 0.05, at: CREDIT_S + 0.2 });
   }),
 
   // The main relay: contacts, armature, the body of the cabinet booming once.
-  relay: effect('relay', (voice) => {
+  relay: effect('relay', (dry) => {
+    const voice = dry.via({ dry: 1, wet: 0.65 });   // a bulkhead, booming through the machine
     thump(voice, { freq: 1300, dur: 0.02, peak: 0.16 });
     thump(voice, { freq: 380, dur: 0.07, peak: 0.2, at: 0.004 });
     thump(voice, { freq: 62, dur: 0.4, peak: 0.3, at: 0.01 });
@@ -503,16 +578,18 @@ export const sfx = {
       [fromRelay(BEATS.fail), 0.035], [fromRelay(BEATS.fail) + 0.42, 0]] });
     tone(voice, { freq: EB2, to: 27, type: 'sawtooth', at: fromRelay(BEATS.fail), dur: 0.6, peak: 0.04 });     // it dies, winding down like a tape
     whoosh(voice, { at: fromRelay(BEATS.fail), dur: 0.5, from: 1400, to: 160, peak: 0.02, q: 1.4 });
+    const inside = voice.via({ dry: 0.5, wet: 0.9 });
     const tick = fromRelay(BEATS.tick);                                                                       // the dark: one tick somewhere inside
-    thump(voice, { freq: 2400, dur: 0.006, peak: 0.035, at: tick });
-    ring(voice, { freq: 1320, at: tick, peak: 0.006, decay: 0.25 });
+    thump(inside, { freq: 2400, dur: 0.006, peak: 0.035, at: tick });
+    ring(inside, { freq: 1320, at: tick, peak: 0.006, decay: 0.25 });
+    const heavy = voice.via({ dry: 1, wet: 0.65 });
     const relay2 = fromRelay(BEATS.catch);                                                                    // B: the deeper, heavier relay
-    thump(voice, { freq: 1100, dur: 0.02, peak: 0.1, at: relay2 });
-    thump(voice, { freq: 300, dur: 0.07, peak: 0.1, at: relay2 + 0.004 });
-    thump(voice, { freq: 55, dur: 0.5, peak: 0.2, at: relay2 + 0.01 });
-    tone(voice, { freq: 52, to: 36, dur: 0.5, peak: 0.11, at: relay2 });
-    ring(voice, { freq: 160, at: relay2 + 0.01, peak: 0.028, decay: 1.6 });
-    const degauss = fromRelay(BEATS.catch + 640);
+    thump(heavy, { freq: 1100, dur: 0.02, peak: 0.1, at: relay2 });
+    thump(heavy, { freq: 300, dur: 0.07, peak: 0.1, at: relay2 + 0.004 });
+    thump(heavy, { freq: 55, dur: 0.5, peak: 0.2, at: relay2 + 0.01 });
+    tone(heavy, { freq: 52, to: 36, dur: 0.5, peak: 0.11, at: relay2 });
+    ring(heavy, { freq: 160, at: relay2 + 0.01, peak: 0.028, decay: 1.6 });
+    const degauss = fromRelay(BEATS.catch + ROBOT_FIRST_MS + 640);   // as the raster opens, after the robot's moment alone
     held(voice, { freq: EB2, type: 'sawtooth', filterHz: 360, points: [[degauss, 0], [degauss + 0.06, 0.06], [degauss + 0.2, 0.018],
       [degauss + 0.36, 0.048], [degauss + 0.56, 0.012], [degauss + 0.76, 0.027], [degauss + 1.3, 0]] });
     thump(voice, { freq: 150, dur: 0.35, peak: 0.09, at: degauss + 0.02 });

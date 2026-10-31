@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { BEATS, BEAT_MS, LOCK_BEATS, PULSE, STANDBY, supplyAt } from '../startup-timing.js';
+import { BEATS, BEAT_MS, CHUTE_CLINKS_MS, LOCK_BEATS, PULSE, STANDBY, supplyAt } from '../startup-timing.js';
 import { RESPONSE, tubeSchedule } from '../startup-power.js';
 
 test('the neon letters strike on the pulse, one a beat, and the dead ones last, at the lock', () => {
@@ -129,14 +129,51 @@ test('the opening is the darkest the cabinet gets while it has any power, and th
   }
 });
 
-test('one robot on the tube at a time: the phosphor robot gives way to the lit logo behind the collapse', () => {
+test('one robot, all the way through: it holds, looks, flickers, leads, and is the robot in the lit tube', async () => {
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   const js = readFileSync(new URL('../startup.js', import.meta.url), 'utf8');
-  assert.match(css, /\.attract:not\(\.is-tube-lit\) \.tv-phosphor\.is-ready ~ \.attract-logo\{\s*opacity:0;\s*visibility:hidden;/, 'the lit logo waits while the robot is there');
-  assert.match(css, /\.attract:not\(\.is-powered\) \.attract-logo,/, 'and without the robot it still lights at the relay');
-  assert.match(css, /\.attract\.is-tube-lit \.tv-phosphor/, 'the phosphor robot goes when it comes');
-  assert.match(js, /at\(relay \+ 100, \(\) => el\.attract\.classList\.add\('is-tube-lit'\)\)/, 'only once the relay has collapsed the picture');
-  assert.ok(BEATS.relay + 100 < BEATS.catch, 'and long before the raster opens again');
+  const robot = readFileSync(new URL('../startup-robot.js', import.meta.url), 'utf8');
+  const { robotLevelAt } = await import('../startup-robot.js');
+  const { ROBOT_FIRST_MS } = await import('../startup-timing.js');
+  assert.match(css, /\.attract:has\(\.tv-phosphor\.is-ready\) \.attract-logo\{\s*opacity:0;\s*visibility:hidden;/, 'once the robot is drawn, the framed logo tile never shows');
+  assert.match(css, /\.attract:not\(\.is-powered\) \.attract-logo,/, 'and without the robot the logo still lights at the relay');
+  assert.doesNotMatch(css, /\.attract\.is-tube-lit \.tv-phosphor/, 'the robot is not hidden when the picture comes back');
+  assert.match(css, /\.attract\.is-inserting:not\(\.is-powered\) \.attract-grain\{ animation-play-state:paused; \}/, 'the press: the static freezes');
+  assert.match(js, /dormant\.hold\(\);/, 'the press: it stops breathing');
+  assert.match(robot, /holder\.parentElement\?\.after\(holder\)/, 'lifted off the collapsing picture at the relay');
+  assert.ok(BEATS.look < BEATS.coinIn, 'it looks toward the slot before the coin appears');
+  const { relay, attempt, almost, fail, catch: caught, ignite, cut } = BEATS;
+  assert.equal(robotLevelAt(relay + 150), 0, 'gone with the relay');
+  assert.ok(robotLevelAt(almost) > 0.1 && robotLevelAt(almost) <= 0.32, 'A: back, but faint');
+  for (let ms = fail + 300; ms < caught + 60; ms += 50) assert.equal(robotLevelAt(ms), 0, 'dark with the dark');
+  assert.ok(robotLevelAt(caught + ROBOT_FIRST_MS - 10) >= 1, 'B: fully lit before the line or the raster come');
+  assert.ok(robotLevelAt(caught + 310) > robotLevelAt(almost) * 3, 'brighter than it ever was');
+  for (let ms = ignite + 700; ms <= cut; ms += 50) assert.equal(robotLevelAt(ms), robotLevelAt(cut), 'held, lit, to the cut');
+  assert.ok(attempt < almost);
   assert.doesNotMatch(readFileSync(new URL('../index.html', import.meta.url), 'utf8').match(/<button class="attract"[\s\S]*?<\/button>/)[0].replace(/aria-label="[^"]*"/, ''),
     /INSERT COIN|PRESS ANY|CLICK TO|TAP TO/i, 'no visible prompt anywhere on the cabinet');
 });
+
+test('the coin is the key, filmed small: a short hang, a long fall, all before the relay', () => {
+  const { look, coinIn, contact, gone, credit, relay } = BEATS;
+  assert.ok(look < coinIn && coinIn < contact && contact < gone, 'it looks, the coin comes, catches and is swallowed');
+  assert.ok(gone - coinIn <= 2100, `the coin is on screen about two seconds (${gone - coinIn} ms)`);
+  assert.ok(CHUTE_CLINKS_MS.at(-1) - CHUTE_CLINKS_MS[0] >= 1700, 'the fall lasts nearly two seconds');
+  const gaps = CHUTE_CLINKS_MS.slice(1).map((ms, n) => ms - CHUTE_CLINKS_MS[n]);
+  assert.ok(gaps.every((g, n) => n === 0 || g >= gaps[n - 1]), 'the clinks spread out as it falls away');
+  assert.ok(gone + CHUTE_CLINKS_MS.at(-1) < credit && credit < relay, 'far below, the coin box, and only then the relay');
+  const js = readFileSync(new URL('../startup.js', import.meta.url), 'utf8');
+  assert.match(js, /const COIN_ON_SCREEN = 0\.1;/, 'small in frame');
+  const coin = readFileSync(new URL('../startup-coin.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(coin, /blur: 9/, 'it no longer swings in past the lens');
+});
+
+test('the camera: still at the press, the low hero angle held still through the lock', () => {
+  const js = readFileSync(new URL('../startup.js', import.meta.url), 'utf8');
+  const cam = js.slice(js.indexOf('function stageCamera'), js.indexOf('/* Heavy things moving'));
+  assert.match(cam, /\{ offset: 0, \.\.\.aim\(mid, 1, mid\) \},\s*\{ offset: t\(look \+ 200\), \.\.\.aim\(mid, 1, mid\)/, 'nothing moves at the press');
+  assert.match(cam, /\{ offset: t\(ignite - 150\), \.\.\.aim\(tube, heroScale, \{ x: vw \/ 2, y: vh \* HERO\.tubeAt \}, HERO\.tilt\) \},/, 'it reaches the low angle as the lock lands');
+  assert.match(cam, /\{ offset: 1, \.\.\.aim\(tube, heroScale, \{ x: vw \/ 2, y: vh \* HERO\.tubeAt \}, HERO\.tilt\) \},/, 'and holds it, still, to the cut');
+  assert.match(js, /const HERO = \{ scale: 1\.16, tubeAt: 0\.37, footAt: 0\.83, tilt: 6 \}/);
+});
+

@@ -310,10 +310,9 @@ record changer and the readouts carry the show; the world around it stays dim.
     compositor for as long as the machine waits. Reduced motion or calm
     lights: the robot glows, still. No sign, no printing, no bulbs, no lamp:
     the slot lamp reveals the door's markings at the touch, the sign joins the
-    supply at the relay (`.is-powered`), and the lit logo takes over from the
-    phosphor robot only once the relay has collapsed the picture
-    (`.is-tube-lit`, relay + 100 ms), so the two are never on together; the
-    robot breathes on through the coin until then.
+    supply at the relay (`.is-powered`). The phosphor robot is the film's
+    one character and stays the robot in the lit tube; once it has been
+    drawn the framed logo tile never shows (`startup-robot.js`).
     The sound of it waiting (`drone.js`): a low drone on E-flat 1 (38.89 Hz)
     - the key of the opener, which the film's transformer hums in too, so
     the machine and the song are one instrument -
@@ -377,8 +376,9 @@ record changer and the readouts carry the show; the world around it stays dim.
     timeline (WAAPI animations with delays; steps fire from zero-length timer
     animations), from `BEATS`. Nothing chains timers, so nothing drifts; and a
     paused, seeked film shows any exact frame.
-  The film (~15.7 s, `startup.js`, `startup-coin.js`, `startup-power.js`) is
-  cut like a scene - discovery, contact, the machine's response, a failed
+  The film (~15.7 s, `startup.js`, `startup-robot.js`, `startup-coin.js`,
+  `startup-power.js`) is cut like a scene, with one character, the robot -
+  attention, a small key, the machine's response, a failed
   first try, a real dark, a heartbeat that quickens into the song's tempo,
   two bars of the machine lit and thumping in time, then a cut to black.
   Slow where the audience should look, sudden where something heavy moves,
@@ -388,43 +388,56 @@ record changer and the readouts carry the show; the world around it stays dim.
   that nearly reaches running, 1.8 s of real dark, a heartbeat that
   quickens and lands one beat before the lock, a steady lit lock of 1.5 s+,
   the cut on its last beat).
-  1. the coin (0-3.85 s, `lift`, `contact`): the camera pushes in on the coin
-     entry; a struck, worn 3D coin (two faces, reeded edge of stacked discs,
-     moving specular band) swings in from the right close to the lens, out of
-     focus and robot side out, turns through edge-on to the 25 and hangs there
-     for about a second, breathing, while the rim turns into the light; then it
-     sinks toward the door - shrinking as it recedes, its shadow tightening on
-     the entry's top, the slot lamp warming its lower edge. It catches on the
-     slit and is pressed against it for half a second - it wobbles, the gate
-     pushes back, a gritty scrape and a straining spring - then the gate gives
-     and gravity takes it. The entry clips everything below the slit, so it
-     really goes IN;
-  2. the chute (`chute`): seven clinks going deeper, each jolting the entry
-     less; the coin box clunks and 1 CREDIT flips over like a counter while
-     the camera pulls back to reveal the whole machine;
+  0. the press (0-0.7 s): nothing moves. The drone stops in 150 ms, the
+     robot stops breathing and settles at half its glow, the static freezes.
+     The stillness is the event: the machine has noticed;
+  1. the look and the coin (0.7-3.1 s, `lift`, `contact`): the robot's eyes
+     brighten and drop toward the slot; the slot lamp stutters and catches,
+     and the camera follows that look - a slow push down to the coin door,
+     settling a little past and back. A small coin (a struck, worn 3D disc,
+     about a tenth of the screen's short side at the slit) rises into the
+     lamp's light, turns its face to it - its rim rings, and the ring hangs in
+     the air as if the room were far bigger - sinks, catches on the slit, is
+     pressed against it for a moment, and the gate gives. The entry clips
+     everything below the slit, so it really goes IN;
+  2. the fall (3.1-5.15 s, `chute`): the lamp dies as the coin passes; the
+     camera holds on the empty slot, then tilts slowly up the face of the
+     machine until the tube is in frame, a little low, while the coin falls -
+     seven clinks over nearly two seconds, each further down, quieter and
+     wetter, the gaps opening - and far below the coin box clunks and 1 CREDIT
+     flips over. The picture keeps the coin small; the sound makes the
+     machine big (an interior: one generated hall in `sound.js` that the
+     ring, the clinks, the coin box, the relays and the tick send into);
   3. the relay (5.45 s, `relay`, `power`): THUNK - the cabinet jolts, the sign
      rattles on its brackets a beat later, dust shakes off the arch, and the
-     standby supply drops out: dark;
+     standby supply drops out: dark. The collapsing picture takes the robot;
+     it is lifted off the picture, still dark, to come back on its own;
   4. A, the first attempt (5.95-7.93 s): the transformer gathers itself (a low
      rising growl under the hum); a dot of light creeps out into a line across
      the tube; one neon letter weakly catches; the sign half-lights; for a
-     moment (7.1 s) it nearly holds - then it stumbles and dies: the line
-     shrinks to a dot, the letter goes out, the hum winds down, and the
-     cabinet settles on its feet;
+     moment (7.1 s) it nearly holds, and the robot flickers back, faint -
+     then it stumbles and dies: the line shrinks to a dot, the robot and the
+     letter go out, the hum winds down, and the cabinet settles on its feet;
   5. the dark (7.93-9.73 s): nothing on the supply, no static on the tube, no
-     lamp at the slit, no sound. One small tick somewhere inside (8.83 s). The
-     camera leans in very slightly, waiting;
-  6. B, the heartbeat (9.73 s): a deeper, heavier relay; the line snaps across
-     the tube and the raster opens out of it while the supply climbs smoothly
-     - no full-frame flicker. A heartbeat starts at about 60 BPM and quickens
+     lamp at the slit, no sound. One small tick somewhere deep inside
+     (8.83 s). The camera waits, still;
+  6. B, the robot leads (9.73 s): a deeper, heavier relay, and the robot
+     lights first - alone in the black tube, brighter than it has ever been,
+     one steady rise (`ROBOT_FIRST_MS`, 450 ms alone). Then the machine follows
+     it: the line snaps across the tube and the raster opens out of it while
+     the supply climbs smoothly - no full-frame flicker - and the camera sinks
+     to a low hero angle. A heartbeat starts at about 60 BPM and quickens
      to the opener's 134.4 (four beats, `PULSE.heartbeat`); each beat is a
      low E-flat thump, a neon letter striking, a small kick through the
      relays. Its next beat is the lock;
   7. C, the lock (12.53 s): the supply locks with a bright accent and
-     overshoot; the dead tubes catch, the logo lights, gold blooms round the
-     coin door, and for two bars (`LOCK_BEATS`, 8 beats in tempo) the machine
-     thumps in time while the bulbs climb the arch a group a beat and the
-     camera drifts closer;
+     overshoot; the robot flares and settles, the dead tubes catch, gold
+     blooms round the coin door, and for two bars (`LOCK_BEATS`, 8 beats in
+     tempo) the machine thumps in time while the bulbs climb the arch a group
+     a beat. The camera is low and still: the machine towers, the arch's
+     crown past the top of the frame, its verticals leaning in (`HERO`: the
+     tube at 37% of the height, 1.16x or enough to reach the door's foot on
+     a tall screen, tilted back 6 degrees);
   8. the cut (15.66 s, the lock's last beat): hard to black, and the
      transformer hum stops with it. The song begins in the dark on the same
      grid (see *The arrival: the song inside*).
@@ -511,8 +524,11 @@ drone about -17 dB, the coin -20, the first try -15, the heartbeat -11,
 the lock -8 (`FILM_BOOST` in sound.js, `DRONE.level`). The heartbeat swells
 from 30% into the lock's full weight. Before this, the film ran 10 dB above
 the song and into the limiter.
-Next stages (not built): character and scale (the robot lights first, a
-small coin with a long fall, a low hero angle), then removing ornament.
+Character and scale (built): the hum stops at the press, the robot looks
+toward the slot and lights first on the second try, a small coin with a long
+fall into an interior, the tilt up the machine and the low hero angle.
+Next (not built): removing ornament - the coin's spin and shine, dust,
+glints and the surplus neon struggle, each A/B tested.
 
 ## One window: the installed app
 
@@ -911,6 +927,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `startup.js` | The INSERT COIN cabinet: building it, the phosphor robot and its breath, the camera, the relays, the cut, the reduced-motion telling |
 | `startup-coin.js` | The coin going in: flight, tumble, catch, slip, chute, credit counter |
 | `startup-power.js` | The one supply and every part's response to it; tubes on the pulse, raster, bulbs on the lock |
+| `startup-robot.js` | The robot's part in the film: the look, the faint flicker, lighting first, the robot in the lit tube |
 | `startup-timing.js` | The film's score: `BEATS`, `CHUTE_CLINKS_MS`, `SUPPLY` (pure, shared with sound.js) |
 | `neon.js` | Desynced neon flicker |
 | `rink.js` | Wake lock, media session, service worker registration |

@@ -6,15 +6,15 @@
    sign, the tube, the lamps, the chrome's reflections and the room's light
    together - and sound.js sags the transformer hum on the same curve.
    On top of that, authored beats: the tube's line in the first attempt, the
-   raster opening out of it, a neon letter striking on each beat of the
+   raster opening out of it after the robot has lit alone (startup-robot.js), a neon letter striking on each beat of the
    second try's heartbeat (PULSE), and at the lock the dead tubes catch, the
-   bulbs climb the arch a step per beat, the logo lights, gold blooms round
+   bulbs climb the arch a step per beat, the robot flares, gold blooms round
    the coin door, and light glints across the chrome.
 
    Every animation is created at the press with a delay, on the document
    timeline, so nothing drifts from anything else.
    ============================================================ */
-import { BEATS, PULSE, STANDBY, supplyAt } from './startup-timing.js';
+import { BEATS, PULSE, ROBOT_FIRST_MS, STANDBY, supplyAt } from './startup-timing.js';
 
 const STEP_MS = 30;
 const STANDBY_EMBER = 0.25;                           // the few bulbs that warm first: an ember, not a glow
@@ -136,9 +136,12 @@ export function stageTubes(tubes, dead, at, cue) {
 export function stageTube(el) {
   // The raster: it falls in to a line when the relay cuts the standby supply,
   // opens out of the line in phase B, rolls, and locks.
+  // In phase B the robot lights first, alone (startup-robot.js): the line
+  // and the raster follow it, ROBOT_FIRST_MS later.
+  const b = caught + ROBOT_FIRST_MS;
   const raster = [
-    [relay, 0, 1], [relay + 70, 0, 0.004], [caught + 450, 0, 0.004], [caught + 640, 0, 0.09],
-    [caught + 1150, -16, 1], [caught + 1400, 7, 1], [caught + 1620, -3, 1], [caught + 1900, 1, 1], [ignite, 0, 1], [end, 0, 1],
+    [relay, 0, 1], [relay + 70, 0, 0.004], [b + 450, 0, 0.004], [b + 640, 0, 0.09],
+    [b + 1150, -16, 1], [b + 1400, 7, 1], [b + 1620, -3, 1], [b + 1900, 1, 1], [ignite, 0, 1], [end, 0, 1],
   ];
   // While it is only a line, the picture itself is not drawn at all (the
   // .tv-line carries it): a filtered layer squashed to almost nothing is
@@ -147,21 +150,21 @@ export function stageTube(el) {
     offset: (ms - relay) / (end - relay), transform: `translateY(${y}%) scaleY(${sy})`, opacity: sy < 0.01 ? 0 : 1, easing: 'ease-out',
   })), { ...span(relay, end), easing: 'linear' });   // eased step by step: an eased whole would bend every beat out of place
   followSupply(el.picture, RESPONSE.picture);
-  followSupply(el.grain, RESPONSE.static);           // a dead tube shows no snow: the static needs the supply too
+  followSupply(el.grain, (v, ms) => (ms >= caught && ms < b + 450 ? { opacity: 0 } : RESPONSE.static(v)));   // a dead tube shows no snow; nor does the robot's moment alone
 
   // The bright line of the first attempt: it creeps out from the centre as
   // the transformer gathers, nearly spans the tube, shrinks to a dot as the
   // supply dies; in phase B it snaps across and the raster opens out of it.
   const shape = (ms) => {
-    if (ms < attempt + 150 || ms > caught + 1100) return { o: 0, w: 0.05 };
+    if (ms < attempt + 150 || ms > b + 1100 || (ms >= caught && ms < b)) return { o: 0, w: 0.05 };
     if (ms < fail) return { o: 2, w: clamp(Math.pow((ms - attempt - 150) / (almost - attempt - 150), 1.6), 0.05, 1) };
     if (ms < caught) return { o: 2, w: clamp(1 - (ms - fail) / 360, 0.02, 1) };
-    return { o: 2 * clamp(1 - (ms - caught - 650) / 450), w: clamp((ms - caught) / 200, 0.3, 1) };
+    return { o: 2 * clamp(1 - (ms - b - 650) / 450), w: clamp((ms - b) / 200, 0.3, 1) };
   };
   followSupply(el.line, (v, ms) => {
     const { o, w } = shape(ms);
     return { opacity: clamp(o * v), transform: `scaleX(${w.toFixed(3)})` };
-  }, attempt, caught + 1100);
+  }, attempt, b + 1100);
 }
 
 /* ---------------- ignition: swept through the cabinet ---------------- */
@@ -186,8 +189,6 @@ export function stageIgnition(el, at) {
   el.bloom?.animate([
     { opacity: 0, transform: 'scale(.35)' }, { opacity: 0.85, transform: 'scale(1)', offset: 0.2 }, { opacity: 0, transform: 'scale(1.7)' },
   ], { delay: ignite, duration: 1500, easing: 'cubic-bezier(.23,1,.32,1)' });
-  el.logo?.animate([{ filter: 'brightness(2.2)' }, { filter: 'brightness(1)' }],
-    { delay: ignite + 100, duration: 700, easing: 'ease-out', composite: 'add' });
   el.doorBloom?.animate([{ opacity: 0 }, { opacity: 1, offset: 0.25 }, { opacity: 0.55 }],
     { ...span(ignite + 200, ignite + 1100), easing: 'ease-out' });
   const sweep = [{ transform: 'translateX(-120%) skewX(-18deg)' }, { transform: 'translateX(520%) skewX(-18deg)' }];

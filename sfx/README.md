@@ -43,9 +43,9 @@ beat, so line the recording up with the times below (from its own start).
 
 | File | When it plays | Length, and what must land where |
 |---|---|---|
-| `lift.mp3` | The press: the coin taken up and swung into the light | about 1.5 s |
+| `lift.mp3` | Plays from the press: silence, then the coin taken up into the lamp's light, its rim ringing into a big space | about 3.1 s: taken up at 1.1 s, the ring at 1.7 s |
 | `contact.mp3` | The coin's edge meets the slit | about 0.6 s: scrape, slip at 0.3 s, gate at 0.55 s |
-| `chute.mp3` | Swallowed: clinks going deeper inside | about 1.1 s: coin box at 0.67 s |
+| `chute.mp3` | Swallowed: the long fall, clinks further and wetter, the coin box far below, the counter | about 2.5 s: clinks to 1.87 s, coin box at 2.05 s |
 | `relay.mp3` | The main relay pulling in | about 1.5 s: the THUNK at the very start |
 | `power.mp3` | Relay to the cut: hum, the first try dying, the dark, the heartbeat, the lock's eight beats | 10.2 s: dies at 2.48 s, second relay at 4.28 s, heartbeat from 4.68 s, lock at 7.08 s (446.5 ms a beat), cut at 10.21 s |
 | `tube.mp3` | One neon letter striking (plays many times) | under 0.25 s |

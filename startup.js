@@ -13,22 +13,26 @@
 
    insert(sound) plays the film. Everything is scheduled at the press on the
    document timeline, from startup-timing.js:
-     the coin     the camera pushes in on the coin entry; the coin swings in
-                  close to the lens, turns, lines up, sinks, catches and is
-                  swallowed (startup-coin.js)
-     the chute    clinks deep inside; the coin box; 1 CREDIT; the camera
-                  pulls back to the whole machine
+     the press    nothing moves: the robot stops breathing, the static freezes
+     the look     the robot looks toward the slot (startup-robot.js); the
+                  camera follows it down to the coin door; a small coin rises
+                  into the lamp's light, sinks, catches and is swallowed
+                  (startup-coin.js)
+     the fall     clinks falling far inside, the coin box, 1 CREDIT; the
+                  camera tilts up the machine to the tube
      the relay    THUNK - the cabinet jolts, dust shakes off the arch, and
                   the standby supply drops out: dark
      A            the transformer gathers; a line creeps across the tube, one
                   tube weakly catches; it nearly holds - and dies
-     the dark     nothing at all for 1.8 s, one tick inside; the camera leans in
-     B            a deeper relay; a heartbeat starts in the transformer and
+     the dark     nothing at all for 1.8 s, one tick inside; the camera waits
+     B            a deeper relay; the robot lights first, alone, and the
+                  machine follows it; a heartbeat starts in the transformer and
                   quickens to the opener's tempo (PULSE), the cabinet giving a
                   small jolt on each beat and a neon letter striking on each;
                   the raster opens out of the line and rolls to lock
      the lock     two bars of the machine lit and thumping in tempo, the
-                  bulbs climbing the arch a step per beat
+                  bulbs climbing the arch a step per beat, seen from a low,
+                  still hero angle
      the cut      on the last beat insert resolves; the caller cuts to black
                   and the song begins in the dark (app.js)
    With prefers-reduced-motion the story is told without travel, shake or
@@ -40,6 +44,7 @@ import { BEATS, PULSE, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
 import { gatherFault, stageFaults, startDormantFaults } from './startup-fault.js';
+import { addEyes, stageRobot } from './startup-robot.js';
 
 const MOTES = 16;
 const DEAD_TUBES = 2;
@@ -47,9 +52,9 @@ const DUST_SPECKS = 10;
 const ARCH = { inset: 2.8, radius: 33.2, foot: 110, gap: 8.4 };   // the chrome tube's centre line, in cabinet em
 const STANDBY_BULBS = [0.28, 0.62, 0.97];                          // the few bulbs still glowing on standby
 const ROBOT_PX = 256;                                              // the phosphor robot is drawn once at this size
-const COIN_ON_SCREEN = 0.145;                                      // the coin at the slit, as a share of the short side
+const COIN_ON_SCREEN = 0.1;                                        // the coin at the slit, as a share of the short side: small
 const SLIT_EM = 1.12;                                              // the slit, down from the top of the coin entry (styles.css)
-const { coinIn, align, descend, contact, gone, credit, relay, attempt, fail, catch: caught, ignite, end } = BEATS;
+const { look, coinIn, align, contact, gone, credit, relay, attempt, fail, catch: caught, ignite, end } = BEATS;
 
 const between = (lo, hi) => lo + Math.random() * (hi - lo);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -165,6 +170,7 @@ function buildRobot(el) {
   const bloom = Object.assign(document.createElement('canvas'), { className: 'phos-bloom' });
   const core = Object.assign(document.createElement('canvas'), { className: 'phos-core' });
   holder.append(bloom, core);
+  const eyes = addEyes(holder);
   const plain = () => {                                  // no canvas to read from: the logo itself, held dim
     const img = el.logo.cloneNode();
     img.className = 'phos-core is-plain';
@@ -173,7 +179,7 @@ function buildRobot(el) {
   };
   const ready = el.logo.decode().then(() => drawPhosphor(el.logo, core, bloom)).then(() => core, () => { bloom.remove(); return plain(); });
   ready.then(() => holder.classList.add('is-ready'));
-  return { holder, core, bloom, ready };
+  return { holder, core, bloom, eyes, ready };
 }
 
 function addMotes(room) {
@@ -298,7 +304,8 @@ export function wakeAttract(attract) {
     faults.stop();                         // the dormant contact goes quiet; the film has its own
     attract.classList.add('is-inserting');
     const film = clock(attract);
-    film.at(relay + 120, dormant.stop);   // it breathes on while the coin goes in; the relay takes the picture
+    dormant.hold();                       // the press: the machine holds its breath
+    film.at(relay + 120, dormant.stop);   // the relay takes the picture
     cue('lift');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) stageGently(el, film.at, cue);
     else stageFilm(el, film.at, cue);
@@ -333,7 +340,7 @@ function clock(root) {
    Reduced motion or calm lights: the robot simply glows, still. */
 function startDormant(el) {
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.lights === 'calm';
-  if (still) return { stop() {}, plan: null, phase: () => null };
+  if (still) return { stop() {}, hold() {}, plan: null, phase: () => null };
   const plan = planBreath();
   const timing = { duration: plan.duration, iterations: Infinity };
   const running = [];
@@ -345,7 +352,9 @@ function startDormant(el) {
   const snow = RESPONSE.static(STANDBY).opacity;
   breathe(el.spill, (l) => ({ opacity: rest(spill * (0.8 + 0.32 * l)) }));
   breathe(el.grain, (l) => ({ opacity: rest(snow * (1.3 - 0.6 * l)) }));
+  let holding = false;
   el.robot.ready?.then((core) => {
+    if (holding) return;
     breathe(el.robot.bloom, (l) => ({ opacity: rest(0.12 + 0.76 * l) }));
     breathe(core, (l) => ({ opacity: rest(0.3 + 0.56 * l) }));
   });
@@ -380,6 +389,21 @@ function startDormant(el) {
       return Number.isFinite(t) ? t % plan.duration : null;
     },
     stop() { running.forEach((anim) => anim.cancel()); running.length = 0; },
+    // The press: it stops breathing. Each layer holds where it is, the robot
+    // settles to half its glow, a passing band is gone; the static freezes (styles.css).
+    hold() {
+      holding = true;
+      const half = { [el.robot.core?.className]: 0.3 + 0.56 * 0.5, [el.robot.bloom?.className]: 0.12 + 0.76 * 0.5 };
+      const held = running.splice(0).map((anim) => {
+        const target = anim.effect?.target;
+        const now = target ? Number(getComputedStyle(target).opacity) : 1;
+        anim.cancel();
+        if (!target || target === el.roll || target === el.robot.holder) return null;
+        const to = half[target.className] ?? now;
+        return target.animate([{ opacity: now }, { opacity: to }], { duration: 450, fill: 'forwards', easing: 'ease-out' });
+      });
+      running.push(...held.filter(Boolean));
+    },
   };
 }
 
@@ -387,6 +411,7 @@ function startDormant(el) {
 function stageFilm(el, at, cue) {
   at(relay + 100, () => el.attract.classList.add('is-tube-lit'));   // the picture is a dead line by now: the lit logo waits behind it
   stageCamera(el);
+  stageRobot(el, at);
   stageCoin(el);
   stageMechanism(el, at, cue);
   stageRelays(el, at, cue);
@@ -397,35 +422,52 @@ function stageFilm(el, at, cue) {
   stageFaults(el.fault);
 }
 
-/* The camera: in on the coin entry, back out to the whole machine as the
-   coin falls through it, leaning in through the dark, then a slow drift
-   closer through the lock, to the cut. */
+/* The camera is almost still. It does not move at the press (the stillness
+   is the event); it follows the robot's look down to the coin door and
+   settles with a little overshoot; it holds on the empty slot, then tilts
+   slowly up the face of the machine until the tube is in frame, a little
+   low; it waits through the first try and the dark; and during the
+   heartbeat it sinks to a low hero angle - the machine towering, the arch
+   past the top of the frame, its verticals leaning in - and holds there,
+   still, for the two bars of the lock. */
+const HERO = { scale: 1.16, tubeAt: 0.37, footAt: 0.83, tilt: 6 };   // the low angle: tube centre at 37% of the height, looking up 6 degrees; the door's foot at 83% of the cabinet
 function stageCamera(el) {
   const vw = innerWidth;
   const vh = innerHeight;
-  const look = (point, s, to) => ({ transform: `translate(${(to.x - s * point.x).toFixed(1)}px, ${(to.y - s * point.y).toFixed(1)}px) scale(${s.toFixed(4)})` });
+  const centre = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  // look at a point of the world, scaled, placed at a point on screen, the frame tilted back by `up` degrees about its foot
+  const pivot = { x: vw / 2, y: vh };
+  const aim = (point, s, to, up = 0) => ({ transform:
+    `translate(${pivot.x}px, ${pivot.y}px) perspective(${Math.round(vh * 1.4)}px) rotateX(${up}deg) translate(${-pivot.x}px, ${-pivot.y}px) ` +
+    `translate(${(to.x - s * point.x).toFixed(1)}px, ${(to.y - s * point.y).toFixed(1)}px) scale(${s.toFixed(4)})` });
   const mid = { x: vw / 2, y: vh / 2 };
   const em = parseFloat(getComputedStyle(el.cab).fontSize) || 8;
-  const push = clamp((COIN_ON_SCREEN * Math.min(vw, vh)) / (8 * em), 1.3, 2.4);
+  const push = clamp((COIN_ON_SCREEN * Math.min(vw, vh)) / (8 * em), 1.15, 1.6);
   const entry = el.mech.getBoundingClientRect();
   const slit = { x: entry.left + entry.width / 2, y: entry.top + SLIT_EM * em };
-  const onCoin = { x: vw / 2, y: vh * 0.7 };
+  const onSlot = { x: vw / 2, y: vh * 0.62 };
+  const tube = centre(el.crt.getBoundingClientRect());
+  // The hero scale: enough that the coin door's foot reaches the bottom of the frame on any screen shape (a tall phone needs more).
+  const cabBox = el.cab.getBoundingClientRect();
+  const heroScale = clamp((vh * (1 - HERO.tubeAt)) / (cabBox.top + cabBox.height * HERO.footAt - tube.y), HERO.scale, 1.6);
+  const tubeLow = { x: vw / 2, y: vh * 0.56 };
   const t = (ms) => ms / end;
 
   const frames = [
-    { offset: 0, ...look(mid, 1, mid), easing: 'cubic-bezier(.16,1,.3,1)' },
-    { offset: t(align - 250), ...look(slit, push, onCoin) },
-    { offset: t(descend), ...look(slit, push, onCoin), easing: 'cubic-bezier(.45,0,.25,1)' },
-    { offset: t(contact), ...look(slit, push * 1.06, onCoin) },
-    { offset: t(gone + 80), ...look(slit, push * 1.06, onCoin), easing: 'cubic-bezier(.65,0,.35,1)' },
-    { offset: t(relay - 80), ...look(mid, 1, mid), easing: 'cubic-bezier(.45,0,.55,1)' },
-    { offset: t(caught), ...look(mid, 1.012, mid), easing: 'cubic-bezier(.3,0,.25,1)' },     // leaning in, in the dark, waiting
-    { offset: t(ignite), ...look(mid, 1.012, mid), easing: 'cubic-bezier(.33,0,.3,1)' },
-    { offset: 1, ...look(mid, 1.045, mid) },                                                // the lit machine, in tempo, drifting closer
+    { offset: 0, ...aim(mid, 1, mid) },
+    { offset: t(look + 200), ...aim(mid, 1, mid), easing: 'cubic-bezier(.45,0,.3,1)' },          // the press: nothing moves; then it follows the robot's look
+    { offset: t(coinIn + 650), ...aim(slit, push * 1.025, onSlot), easing: 'cubic-bezier(.3,0,.3,1)' },
+    { offset: t(coinIn + 1050), ...aim(slit, push, onSlot) },                                     // settling, a little past and back
+    { offset: t(gone + 250), ...aim(slit, push, onSlot), easing: 'cubic-bezier(.45,0,.4,1)' },    // the empty slot, held
+    { offset: t(relay - 150), ...aim(tube, 1.2, tubeLow) },                                       // tilting up the face of the machine as the coin falls
+    { offset: t(caught), ...aim(tube, 1.21, tubeLow), easing: 'cubic-bezier(.45,0,.35,1)' },     // waiting, through the first try and the dark
+    { offset: t(ignite - 150), ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },   // the heartbeat: sinking to the low angle
+    { offset: 1, ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },       // and still, for two bars
   ];
   el.camera.animate(frames, { duration: end, fill: 'forwards' });
   el.spot?.animate([
-    { opacity: 0 }, { opacity: 0.86, offset: (coinIn + 600) / relay }, { opacity: 0.86, offset: (gone + 80) / relay }, { opacity: 0 },
+    { opacity: 0 }, { opacity: 0, offset: (coinIn - 250) / relay }, { opacity: 0.86, offset: (coinIn + 250) / relay }, { opacity: 0.86, offset: gone / relay },
+    { opacity: 0, offset: (gone + 900) / relay }, { opacity: 0 },
   ], { duration: relay, fill: 'forwards', easing: 'ease-in-out' });
 }
 
@@ -466,9 +508,11 @@ function stageGently(el, at, cue) {
   at(gone, () => cue('chute'));
   at(credit, () => { el.label.textContent = '1 CREDIT'; el.label.classList.add('is-credited'); });
   at(relay, () => { cue('relay'); cue('power'); el.attract.classList.add('is-powered'); });   // the sign joins the supply, as in the film
-  fade(el.robot.holder, [{ opacity: 1 }, { opacity: 0 }], attempt, attempt + 900);           // the standby robot gives way to the lit logo
+  el.robot.eyes?.forEach((eye) => fade(eye, [{ opacity: 0 }, { opacity: 0.8 }], look, look + 450));   // it looks toward the slot (no travel)
+  el.robot.eyes?.forEach((eye) => fade(eye, [{ opacity: 0.8 }, { opacity: 0 }], relay, attempt));
   at(attempt + 900, () => el.attract.classList.add('is-tube-lit'));
-  fade(el.logo, [{ opacity: 0 }, { opacity: 1 }], attempt + 900, ignite);
+  fade(el.robot.core, [{ opacity: 0.66 }, { opacity: 1 }], caught, caught + 600);              // it lights first, then the machine follows
+  fade(el.robot.bloom, [{ opacity: 0.6 }, { opacity: 0.95 }], caught, caught + 600);
   at(ignite, () => {
     el.attract.classList.add('is-lit');
     el.tubes.forEach((tube) => tube.classList.remove('is-dead'));

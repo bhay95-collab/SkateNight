@@ -158,6 +158,19 @@ test('the pulse never flashes the frame: the whole picture climbs smoothly, only
   assert.ok(reveal - BEATS.cut >= 1000, 'the cut and the reveal are never in the same second');
 });
 
+test('the robot adds no flash: it lights once, rises over a quarter second, and is small', async () => {
+  const { BEATS } = await import('../startup-timing.js');
+  const { robotLevelAt } = await import('../startup-robot.js');
+  const legs = supplySwings((ms) => Math.min(1, robotLevelAt(ms)), BEATS.end);
+  for (const start of legs) assert.ok(legs.filter((ms) => ms >= start && ms < start + 1000).length <= 4, `at most two flashes in any second (${legs})`);
+  const rise = [];
+  for (let ms = BEATS.catch; ms < BEATS.catch + 400; ms += 10) rise.push(robotLevelAt(ms));
+  assert.ok(rise.slice(1).every((v, n) => v >= rise[n]), 'it lights first in one steady rise, no flicker');
+  // the robot is drawn 16 x 16 em on the tube: at the 1280 x 720 reference (6.91 px an em), with the
+  // hero angle's 1.16 zoom, under a quarter of a WCAG flash area (341 x 256 px) even counted whole
+  assert.ok((16 * 6.91 * 1.16) ** 2 < 0.25 * 341 * 256, 'a small area of the frame');
+});
+
 test('the INSERT COIN film keeps its beats in order', async () => {
   const { BEATS, SUPPLY, CHUTE_CLINKS_MS } = await import('../startup-timing.js');
   const times = Object.values(BEATS);

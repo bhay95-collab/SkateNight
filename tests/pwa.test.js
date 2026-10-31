@@ -86,7 +86,7 @@ test('the service worker registers while the cabinet waits, once, and the app wo
   assert.ok(app.indexOf('registerServiceWorker()') < app.indexOf('async function startNight'), 'before anyone presses anything');
   assert.match(app, /addEventListener\('load', register, \{ once: true \}\)/, 'after first paint');
   const sw = read('sw.js');
-  for (const f of ['manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'drone.js', 'startup-fault.js']) assert.ok(sw.includes(`'${f}'`), `${f} cached`);
+  for (const f of ['manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'drone.js', 'startup-fault.js', 'startup-robot.js']) assert.ok(sw.includes(`'${f}'`), `${f} cached`);
   for (const f of ['crowd.js', 'link.js']) assert.ok(!sw.includes(`'${f}'`), `${f} retired`);
   assert.match(sw, /const CRATE_CACHE = 'skatenight-crates';/, 'saved songs keep their cache');
   const listed = [...sw.matchAll(/'([\w./-]+\.(?:js|css|png|webmanifest|woff2|wav|html))'/g)].map((m) => m[1]);
