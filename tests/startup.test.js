@@ -176,8 +176,9 @@ test('the camera: still at the press, the low hero angle held still through the 
   const js = readFileSync(new URL('../startup.js', import.meta.url), 'utf8');
   const cam = js.slice(js.indexOf('function stageCamera'), js.indexOf('/* Heavy things moving'));
   assert.match(cam, /\{ offset: 0, \.\.\.aim\(mid, 1, mid\) \},\s*\{ offset: t\(look \+ 200\), \.\.\.aim\(mid, 1, mid\)/, 'nothing moves at the press');
-  assert.match(cam, /\{ offset: t\(ignite - 150\), \.\.\.aim\(tube, heroScale, \{ x: vw \/ 2, y: vh \* HERO\.tubeAt \}, HERO\.tilt\) \},/, 'it reaches the low angle as the lock lands');
-  assert.match(cam, /\{ offset: 1, \.\.\.aim\(tube, heroScale, \{ x: vw \/ 2, y: vh \* HERO\.tubeAt \}, HERO\.tilt\) \},/, 'and holds it, still, to the cut');
+  assert.match(cam, /const hero = aim\(tube, heroScale, \{ x: vw \/ 2, y: vh \* HERO\.tubeAt \}, HERO\.tilt\);/);
+  assert.match(cam, /\.\.\.\(PLUNGE \? \[\] : \[\{ offset: t\(ignite - 150\), \.\.\.hero \}\]\),/, 'it reaches the low angle as the lock lands');
+  assert.match(cam, /\{ offset: 1, \.\.\.hero \},/, 'and holds it, still, to the cut');
   assert.match(js, /const HERO = \{ scale: 1\.16, tubeAt: 0\.37, footAt: 0\.83, tilt: 6 \}/);
 });
 

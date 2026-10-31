@@ -43,13 +43,14 @@
    sound is { lift, contact, chute, relay, power, tube }.
    ============================================================ */
 import { BREATH, planBreath } from './lights.js';
-import { BEATS, EXTENDED, PULSE, STANDBY } from './startup-timing.js';
+import { BEATS, EXTENDED, PLUNGE, PULSE, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
 import { gatherFault, stageFaults, startDormantFaults } from './startup-fault.js';
 import { addEyes, stageRobot } from './startup-robot.js';
 import { ORNAMENT } from './ornament.js';
 import { buildInside, stageInside } from './startup-inside.js';
+import { OUT_FILL, PLUNGE_T, buildPlunge, diveZoom, placePlunge, stagePlunge } from './startup-plunge.js';
 
 const MOTES = 16;
 const DEAD_TUBES = 2;
@@ -313,7 +314,7 @@ export function wakeAttract(attract) {
     film.at(relay + 120, dormant.stop);   // the relay takes the picture
     cue('lift');
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) stageGently(el, film.at, cue);
-    else stageFilm(el, film.at, cue);
+    else stageFilm(el, film.at, cue, film);
     await film.until(end);
   }
 
@@ -326,7 +327,9 @@ export function wakeAttract(attract) {
    its beat; until() resolves when the film reaches a time. */
 function clock(root) {
   const timer = (ms) => root.animate([], { duration: 0, delay: ms }).finished;
+  const reel = root.animate([], { duration: 600000 });   // the film's own clock: follows the timeline, and pauses with it
   return {
+    now: () => reel.currentTime ?? 0,
     at(ms, fn) {
       timer(ms).then(() => { try { fn(); } catch (err) { console.warn('[startup]', err); } }, () => {});
     },
@@ -413,9 +416,9 @@ function startDormant(el) {
 }
 
 /* ---------------- the film ---------------- */
-function stageFilm(el, at, cue) {
+function stageFilm(el, at, cue, film) {
   at(relay + 100, () => el.attract.classList.add('is-tube-lit'));   // the picture is a dead line by now: the lit logo waits behind it
-  stageCamera(el);
+  const lens = stageCamera(el);
   stageRobot(el, at);
   stageCoin(el);
   stageMechanism(el, at, cue);
@@ -425,7 +428,14 @@ function stageFilm(el, at, cue) {
   stageBulbs(el.bulbs);
   stageIgnition(el, at);
   stageFaults(el.fault);
-  if (EXTENDED) stageInside(buildInside(el.attract, el.robot.core?.tagName === 'CANVAS' ? el.robot.core : null));   // Bigger on the Inside
+  const robotCanvas = el.robot.core?.tagName === 'CANVAS' ? el.robot.core : null;
+  if (PLUNGE) {                               // the Plunge: placed and timed at the press, its WebGL built just after
+    const canvas = placePlunge(el.attract);
+    at(PLUNGE_T.domGone, () => { if (canvas.isConnected) el.attract.classList.add('is-inside'); });
+    at(PLUNGE_T.out, () => el.attract.classList.remove('is-inside'));
+    at(1, () => stagePlunge(buildPlunge(canvas, robotCanvas), el, film, lens));
+  }
+  else if (EXTENDED) stageInside(buildInside(el.attract, robotCanvas));   // Bigger on the Inside
 }
 
 /* The camera is almost still. It does not move at the press (the stillness
@@ -453,11 +463,28 @@ function stageCamera(el) {
   const slit = { x: entry.left + entry.width / 2, y: entry.top + SLIT_EM * em };
   const onSlot = { x: vw / 2, y: vh * 0.62 };
   const tube = centre(el.crt.getBoundingClientRect());
+  const robot = centre(el.robot.holder?.getBoundingClientRect() ?? el.crt.getBoundingClientRect());
   // The hero scale: enough that the coin door's foot reaches the bottom of the frame on any screen shape (a tall phone needs more).
   const cabBox = el.cab.getBoundingClientRect();
   const heroScale = clamp((vh * (1 - HERO.tubeAt)) / (cabBox.top + cabBox.height * HERO.footAt - tube.y), HERO.scale, 1.6);
   const tubeLow = { x: vw / 2, y: vh * 0.56 };
   const t = (ms) => ms / end;
+  const hero = aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt);
+  // The Plunge (startup-plunge.js): along one zoom curve into the slit, until the 3D picture has taken
+  // over in the same place; then, unseen, framed on the robot as close as the 3D one ends, and pulled
+  // back from it to the low angle as the lock lands.
+  const plungeFrames = () => {
+    const out = [];
+    for (let ms = PLUNGE_T.dive + 70; ms <= PLUNGE_T.domGone; ms += 70) {
+      const u = (ms - PLUNGE_T.dive) / (PLUNGE_T.domGone - PLUNGE_T.dive);
+      const k = Math.min(1, u / 0.6);
+      out.push({ offset: t(ms), ...aim(slit, diveZoom(ms, push), { x: onSlot.x + (mid.x - onSlot.x) * k, y: onSlot.y + (mid.y - onSlot.y) * k }) });
+    }
+    const close = aim(robot, (OUT_FILL * vh) / (16 * em), mid);
+    out.push({ offset: t(PLUNGE_T.domGone + 30), ...close }, { offset: t(PLUNGE_T.out), ...close, easing: 'cubic-bezier(.3,.55,.2,1)' },
+      { offset: t(ignite + 320), ...hero });
+    return out;
+  };
 
   const frames = [
     { offset: 0, ...aim(mid, 1, mid) },
@@ -465,7 +492,7 @@ function stageCamera(el) {
     { offset: t(coinIn + 650), ...aim(slit, push * 1.025, onSlot), easing: 'cubic-bezier(.3,0,.3,1)' },
     { offset: t(coinIn + 1050), ...aim(slit, push, onSlot) },                                     // settling, a little past and back
     { offset: t(gone + 250), ...aim(slit, push, onSlot), easing: 'cubic-bezier(.45,0,.4,1)' },    // the empty slot, held
-    ...(EXTENDED ? [
+    ...(PLUNGE ? plungeFrames() : EXTENDED ? [
       // the extended cut dives through the slit after the coin (startup-inside.js has the camera from there),
       // and is waiting at the low angle, unseen, when it comes back out through the screen
       { offset: t(BEATS.inside), ...aim(slit, push * 4, onSlot), easing: 'step-end' },
@@ -474,14 +501,15 @@ function stageCamera(el) {
       { offset: t(relay - 150), ...aim(tube, 1.2, tubeLow) },                                       // tilting up the face of the machine as the coin falls
       { offset: t(caught), ...aim(tube, 1.21, tubeLow), easing: 'cubic-bezier(.45,0,.35,1)' },     // waiting, through the first try and the dark
     ]),
-    { offset: t(ignite - 150), ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },   // the heartbeat: sinking to the low angle
-    { offset: 1, ...aim(tube, heroScale, { x: vw / 2, y: vh * HERO.tubeAt }, HERO.tilt) },       // and still, for two bars
+    ...(PLUNGE ? [] : [{ offset: t(ignite - 150), ...hero }]),   // the heartbeat: sinking to the low angle
+    { offset: 1, ...hero },                                       // and still, for two bars
   ];
   el.camera.animate(frames, { duration: end, fill: 'forwards' });
   el.spot?.animate([
     { opacity: 0 }, { opacity: 0, offset: (coinIn - 250) / relay }, { opacity: 0.86, offset: (coinIn + 250) / relay }, { opacity: 0.86, offset: gone / relay },
     { opacity: 0, offset: (gone + 900) / relay }, { opacity: 0 },
   ], { duration: relay, fill: 'forwards', easing: 'ease-in-out' });
+  return { push, em };
 }
 
 /* Heavy things moving: the relays, the heartbeat, the lock. */

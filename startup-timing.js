@@ -46,12 +46,18 @@ export function wantsExtended(env = {}) {
     } = env;
     if (!env.browser && browser) globalThis.localStorage?.removeItem(STORE_EXTENDED);   // a stale preference from an earlier version
     if (!browser || reduced) return false;
-    return new URLSearchParams(search).get('cut') === 'extended';
+    return ['extended', 'plunge'].includes(new URLSearchParams(search).get('cut'));
   } catch {
     return false;
   }
 }
 export const EXTENDED = wantsExtended();
+/* The Plunge (startup-plunge.js): Treatment A of the extended cut, rebuilt
+   in WebGL. In development on its own branch, only with ?cut=plunge; it
+   keeps the extended cut's timing. */
+export const PLUNGE = (() => {
+  try { return EXTENDED && new URLSearchParams(globalThis.location?.search ?? '').get('cut') === 'plunge'; } catch { return false; }
+})();
 
 /* The pulse: the second try's heartbeat, quickening from about 60 BPM to the
    song's tempo so that its next beat would be the lock, then the lock's

@@ -155,6 +155,10 @@ button{ font:inherit; color:inherit; }
 .attract-world{ position:absolute; inset:0; overflow:hidden; transform-origin:50% 50%; will-change:transform; }   /* clipped, so the collapse squeezes only what is on screen */
 .attract-camera{ position:absolute; inset:0; transform-origin:0 0; will-change:transform; }
 
+/* The Plunge (startup-plunge.js): one WebGL canvas over the cabinet, shown
+   only where the two match; the cabinet is not drawn while we are inside. */
+.plunge{ position:absolute; inset:0; width:100%; height:100%; opacity:0; pointer-events:none; }
+.attract.is-inside .attract-camera{ visibility:hidden; }
 /* The extended cut's interior (startup-inside.js): black silhouette at three
    depths, lit only by what is powered. Built at the press, only for that cut. */
 .inside{ position:absolute; inset:0; overflow:hidden; opacity:0; pointer-events:none; background:#010002; }
