@@ -136,11 +136,26 @@ function supplySwings(supplyAt, endMs) {
 test('the INSERT COIN power-up never packs more than two flashes into a second', async () => {
   const { BEATS, supplyAt } = await import('../startup-timing.js');
   const legs = supplySwings(supplyAt, BEATS.end);
-  assert.ok(legs.length >= 8, 'the supply really does struggle before it locks');
+  assert.ok(legs.filter((ms) => ms >= BEATS.relay && ms <= BEATS.fail + 380).length >= 4, 'the first try really does struggle before it dies');
   for (const start of legs) {
     const inSecond = legs.filter((ms) => ms >= start && ms < start + 1000).length;
     assert.ok(inSecond <= 4, `at most 4 brightness changes (2 flashes) in the second from ${start} ms (found ${inSecond})`);
   }
+});
+
+test('the pulse never flashes the frame: the whole picture climbs smoothly, only small things beat', async () => {
+  const { BEATS, PULSE, BEAT_MS, supplyAt } = await import('../startup-timing.js');
+  const legs = supplySwings(supplyAt, BEATS.end);
+  const second = legs.filter((ms) => ms > BEATS.catch);
+  assert.ok(second.length <= 2 && second.every((ms) => ms >= BEATS.ignite - 80), `the second try's supply only climbs, overshoots once and settles (${second})`);
+  const beats = [...PULSE.heartbeat, ...PULSE.lock];
+  const gaps = beats.slice(1).map((ms, n) => ms - beats[n]);
+  assert.ok(gaps.every((g) => g >= BEAT_MS - 0.1), 'never faster than the song: at most 2.24 beats a second');
+  assert.ok(1000 / Math.min(...gaps) <= 2.3, 'well inside three flashes a second, even counted as flashes');
+  // the cut to black is one change; the reveal comes in the song, seconds later
+  const { OPENER } = await import('../rotation.js');
+  const reveal = BEATS.cut + (5 * OPENER.beat - OPENER.bar1) * 1000 + OPENER.revealAt * 1000;
+  assert.ok(reveal - BEATS.cut >= 1000, 'the cut and the reveal are never in the same second');
 });
 
 test('the INSERT COIN film keeps its beats in order', async () => {

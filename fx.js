@@ -136,24 +136,6 @@ function renderBootLog(overlay, holdMs) {
     .join('');
 }
 
-/* Where the boot screen's first line will strike (its text block squeezed to
-   a line), so the INSERT COIN picture can collapse onto exactly that line.
-   Lays the log out unseen to measure it; startBoot then keeps that log. */
-const measuredLogs = new WeakSet();
-export function bootLine(overlay) {
-  const screen = overlay?.querySelector('.boot-screen');
-  if (!screen) return null;
-  const wasHidden = overlay.hidden;
-  overlay.style.visibility = 'hidden';
-  overlay.hidden = false;
-  renderBootLog(overlay, BOOT_LOG_MS);
-  measuredLogs.add(overlay);                     // startBoot keeps this log, so the line matches
-  const rect = screen.getBoundingClientRect();
-  overlay.hidden = wasHidden;
-  overlay.style.visibility = '';
-  return rect.width ? { y: rect.top + rect.height / 2, width: rect.width } : null;
-}
-
 /* Input belongs to the cabinet only after arrival. Inert keeps focus out of
    the hidden controls; capture guards also cover the window's shortcuts.
    Preserve existing inert states.
@@ -183,7 +165,7 @@ export function startBoot(overlay, { minMs = 6500, capMs = 10000 } = {}) {
   } catch { /* storage blocked - just boot */ }
 
   overlay.hidden = false;
-  if (!measuredLogs.delete(overlay)) renderBootLog(overlay, BOOT_LOG_MS);
+  renderBootLog(overlay, BOOT_LOG_MS);
   const screen = overlay.querySelector('.boot-screen');
   if (screen) screen.style.opacity = '1';            // static CALM presentation
   const releaseInput = holdArrivalInput(overlay);

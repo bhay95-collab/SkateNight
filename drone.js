@@ -2,16 +2,17 @@
    DRONE - the sound of the dormant machine: something alive inside it,
    dreaming of waking up.
 
-   A low electrical drone on the cabinet's own mains: the transformer the
-   film powers up hums at 100/150/200/300 Hz, so the drone is built on 50 Hz
-   and its harmonics are the same machine, not a second hum. Layers:
+   A low electrical drone in the opener's key: the night's first song is in
+   E-flat (OPENER, rotation.js) and the transformer the film powers up hums
+   on E-flat too, so the drone is built on E-flat 1 and its harmonics are the
+   same machine - and the same song, waiting. Layers:
      body    two slightly detuned saws on the root, one on its fifth,
              drifting against each other, through a resonant low-pass: as
              the robot gathers its light the filter opens and the harmonics
              come up through it; as it fades they sink back into the hum.
              An octave saw and only a little sine under them: most speakers
              here are laptops, so the drone lives in its harmonics.
-     ghost   the 6th and 7th harmonics (300 and 350 Hz, the 7th flat of
+     ghost   the 6th and 7th harmonics (233 and 272 Hz, the 7th flat of
              anything in tune), sines a few cents apart beating slowly, trailing
              the breath by a second, through a dark feedback echo.
      whine   the CRT's flyback, distant and faint.
@@ -27,20 +28,17 @@
    It plays only once audio is allowed: the operator arms it before the
    night with Alt+Shift+D (app.js; remembered, so a browser that permits
    sound on load starts it by itself), or the visitor's own touch starts
-   it quietly under the coin. Unarmed, the dormant screen is silent.
+   it. Unarmed, the dormant screen is silent.
 
-   awaken() hands it to the film (startup-timing.js beats): it stirs as
-   the coin comes, steps back for the coin's own sounds, drops out with the
-   standby supply at the relay; its ghost rides the first attempt and dies
-   with it into the dark. Nothing of it is left by the second attempt, which
-   is the film's transformer alone. Everything is on the Effects bus, under
-   the limiter; every change is a ramp, so it never clicks.
+   awaken() is the press: the machine holds its breath. Every layer falls
+   silent in 150 ms and the drone is let go; the coin, the relays and the
+   transformer are the film's own (sound.js). Everything is on the Effects
+   bus, under the limiter; every change is a ramp, so it never clicks.
    ============================================================ */
-import { BEATS } from './startup-timing.js';
 import { breathLevelAt, breathTroubles } from './lights.js';
 
 export const DRONE = {
-  root: 50,
+  root: 38.89,         // E-flat 1
   level: 1.2,          // the whole drone, before the Effects fader (measured: see tests/drone.test.js)
   fadeInS: 3,          // barely there at first, then it rises (and the operator hears it has armed)
   fadeOutS: 1.6,
@@ -53,7 +51,6 @@ export const DRONE = {
 };
 
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
-const { align, credit, relay, attempt, almost, fail } = BEATS;
 const S = (ms) => ms / 1000;
 
 /* The breath level (0..1) -> each layer. */
@@ -68,15 +65,10 @@ export function voiceAt(level) {
   };
 }
 
-/* After the press, each layer's share of its dormant level, as [ms from the press, share]. */
-export const AFTER_PRESS = {
-  body: [[0, 1], [align, 0.6], [credit, 0.6], [relay - 120, 0.66], [relay, 0.66], [relay + 60, 0.1], [attempt, 0.06], [attempt + 600, 0]],
-  ghost: [[0, 1], [align, 0.5], [relay, 0.5], [relay + 60, 0.08], [attempt, 0.1], [almost, 0.75], [fail, 0.55], [fail + 300, 0]],
-  echo: [[0, 1], [fail, 1], [fail + 350, 0]],   // and its echo with it: the dark is the film's, silent
-  hiss: [[0, 1], [align, 0.45], [relay, 0.45], [relay + 60, 0]],
-  whine: [[0, 1], [relay, 1], [relay + 60, 0]],
-};
-export const DONE_MS = fail + 1000;   // nothing left of it after this (silent since fail + 350)
+/* After the press: every layer's share of its dormant level, as [ms from the press, share]. It holds its breath. */
+const HOLD_MS = 150;
+export const AFTER_PRESS = Object.fromEntries(['body', 'ghost', 'echo', 'hiss', 'whine'].map((layer) => [layer, [[0, 1], [HOLD_MS, 0]]]));
+export const DONE_MS = HOLD_MS + 400;   // nothing left of it after this
 
 function noiseBuffer(ctx, seconds) {
   const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * seconds), ctx.sampleRate);
@@ -317,21 +309,15 @@ export function createDrone(engine, breath = {}) {
       if (state !== 'dormant') return;
       clearTimeout(timer);
       state = 'awake';
-      if (level === 0) fade(DRONE.level * 0.7, 1.4, at);   // not armed: the touch wakes it quietly under the coin
-      for (const p of params()) hold(p, at);
-      // it stirs: the harmonics open, the pitch strains up a little, then holds while the coin has the stage
-      filter.frequency.linearRampToValueAtTime(voiceAt(0.72).cutoff, at + 1.2);
-      breathGain.gain.linearRampToValueAtTime(0.75 * voiceAt(0.72).breath, at + 1.2);
-      ghostGain.gain.linearRampToValueAtTime(0.5 * voiceAt(0.6).ghost, at + 1.6);
-      saws.forEach((s, i) => { hold(s.detune, at); s.detune.linearRampToValueAtTime(SAW_CENTS[i] + 9, at + 3); });
-      for (const [layer, share] of [['body', bodyGain], ['ghost', ghostShare], ['echo', echoShare], ['echo', feedback], ['hiss', hissShare], ['whine', whineShare]]) {
-        hold(share.gain, at);
-        const scale = share === feedback ? 0.42 : 1;
-        for (const [ms, v] of AFTER_PRESS[layer]) share.gain.linearRampToValueAtTime(v * scale, at + S(ms));
+      if (level > 0) {                                        // armed and sounding: it stops, all at once
+        for (const p of params()) hold(p, at);
+        for (const [layer, share] of [['body', bodyGain], ['ghost', ghostShare], ['echo', echoShare], ['echo', feedback], ['hiss', hissShare], ['whine', whineShare]]) {
+          hold(share.gain, at);
+          const scale = share === feedback ? 0.42 : 1;
+          for (const [ms, v] of AFTER_PRESS[layer]) share.gain.linearRampToValueAtTime(v * scale, at + S(ms));
+        }
       }
-      // the ghost bends down as the first attempt dies
-      for (const g of ghosts) { g.detune.setValueAtTime(g.detune.value, at + S(fail)); g.detune.linearRampToValueAtTime(g.detune.value - 70, at + S(fail + 420)); }
-      setTimeout(dispose, DONE_MS + 300 + Math.max(0, at - ctx.currentTime) * 1000);
+      setTimeout(dispose, DONE_MS + Math.max(0, at - ctx.currentTime) * 1000);
     },
 
     dispose,

@@ -266,10 +266,11 @@ Chrome window first; Alt+F4 / Cmd+Q to leave).
   are no instructions on purpose. Click, tap or press any key and the camera
   moves in as the slot lamp catches and a coin swings into the light, lines
   up and drops through the slot; you hear it fall deep inside, a relay thumps,
-  the machine tries to start, nearly makes it, dies, sits dark, catches on a
-  second try, and comes alive bulb by bulb - then dives into its own screen
-  (about fourteen and a half seconds in all). Black, a held breath, and the
-  night's first song begins in the dark; one bar later, on the home chord,
+  the machine tries to start, nearly makes it, dies, and sits dark; then a
+  heartbeat, quickening into the first song's tempo, and the machine lights
+  up and thumps in time for two bars - then cuts to black on the beat (about
+  fifteen and a half seconds in all). A held breath, and the night's first
+  song begins in the dark, on the same beat; one bar later, on the home chord,
   the jukebox is there, already playing. (With TOOLS -> *The Awakening starts
   the music* unticked, the old 6.5-second power-on screen plays instead and
   the jukebox waits for START.)
@@ -371,8 +372,8 @@ coin in. On a laptop you can instead press **Alt+Shift+D**
 switch it off. The laptop remembers, so after a reload (or next time, if
 the browser allows this site sound) it hums by itself. Without it the
 waiting screen is silent, as browsers require. Either way, when someone
-touches the machine the hum stirs, steps back for the coin, and dies away
-into the film's own power-up. It follows the EFFECTS volume.
+touches the machine the hum stops dead - it holds its breath - and the
+film's own power-up takes over. It follows the EFFECTS volume.
 
 ### Keyboard
 

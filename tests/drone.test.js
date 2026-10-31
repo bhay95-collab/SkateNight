@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createDrone, voiceAt, AFTER_PRESS, DONE_MS, DRONE } from '../drone.js';
 import { planBreath, breathLevelAt, breathTroubles, BREATH } from '../lights.js';
-import { BEATS, supplyAt } from '../startup-timing.js';
+import { BEATS } from '../startup-timing.js';
 
 /* Just enough Web Audio to watch what the drone schedules. */
 class Param {
@@ -91,24 +91,20 @@ test('it is drawn from the screen\'s own phase, a little behind the light', (t) 
   drone.stop();
 });
 
-test('the hand-off: it steps back for the coin, drops out at the relay and is gone before the dark', (t) => {
-  const finals = Object.fromEntries(Object.entries(AFTER_PRESS).map(([k, pts]) => [k, pts.at(-1)]));
-  for (const [layer, [ms, v]] of Object.entries(finals)) {
-    assert.equal(v, 0, `${layer} ends silent`);
-    assert.ok(ms <= BEATS.fail + 380, `${layer} is gone when the supply dies (${ms})`);
+test('the press: it holds its breath - every layer silent in 150 ms, the drone let go, nothing after', (t) => {
+  for (const [layer, pts] of Object.entries(AFTER_PRESS)) {
+    assert.deepEqual(pts[0], [0, 1], `${layer} starts where it was`);
+    assert.deepEqual(pts.at(-1), [150, 0], `${layer} is silent by 150 ms`);
   }
-  assert.ok(AFTER_PRESS.body.find(([ms]) => ms === BEATS.align)[1] < 1, 'it steps back for the coin');
-  assert.ok(AFTER_PRESS.body.at(-1)[0] < BEATS.attempt + 1000, 'its hum leaves the first attempt to the transformer');
-  assert.ok(AFTER_PRESS.body.filter(([ms]) => ms > BEATS.relay).every(([, v]) => v <= 0.1), 'one hum at a time after the relay');
-  assert.ok(DONE_MS < BEATS.catch, 'nothing of it is left by the second attempt');
-  assert.ok(supplyAt(BEATS.fail + 380) === 0, 'and the dark it falls into is the film\'s');
+  assert.ok(DONE_MS < BEATS.coinIn + 400, 'gone before the coin has swung into shot');
+  assert.ok(DONE_MS < BEATS.catch, 'nothing of it is left for the heartbeat');
 
   const { ctx, drone, out } = setup(t, { plan: planBreath(seeded(5)), phase: () => 0 });
   drone.start();
   ctx.currentTime = 30;
   drone.awaken();
   const latest = Math.max(...ctx.nodes.flatMap((n) => Object.values(n).filter((v) => v instanceof Param).flatMap((p) => p.events.map((e) => e[2]))));
-  assert.ok(latest <= 30 + (BEATS.fail + 500) / 1000, `nothing is scheduled past the first attempt (${latest.toFixed(2)})`);
+  assert.ok(latest <= 30 + 0.15 + 1e-9, `nothing is scheduled past the held breath (${latest.toFixed(3)})`);
   assert.equal(drone.state, 'awake');
   t.mock.timers.tick(DONE_MS + 400);
   assert.ok(ctx.sources.every((s) => s.stopped), 'every oscillator and noise source stopped');
@@ -116,12 +112,11 @@ test('the hand-off: it steps back for the coin, drops out at the relay and is go
   assert.equal(out.disconnected, true);
 });
 
-test('unarmed, the touch wakes it quietly under the coin', (t) => {
+test('unarmed, the press is silent: nothing sounds, and it is let go', (t) => {
   const { ctx, drone, out } = setup(t, {});
   ctx.currentTime = 5;
   drone.awaken();
-  const rise = out.gain.events.find(([k, v]) => k === 'lin' && v > 0);
-  assert.ok(rise && rise[1] < DRONE.level && rise[2] > 5.5, 'a soft fade, not a start');
+  assert.ok(!out.gain.events.some(([k, v]) => k === 'lin' && v > 0), 'no fade in: the dormant cabinet was silent and stays so');
   t.mock.timers.tick(DONE_MS + 400);
   assert.ok(ctx.sources.every((s) => s.stopped));
 });

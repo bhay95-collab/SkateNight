@@ -1,17 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { BEATS, STANDBY, supplyAt } from '../startup-timing.js';
+import { BEATS, BEAT_MS, LOCK_BEATS, PULSE, STANDBY, supplyAt } from '../startup-timing.js';
 import { RESPONSE, tubeSchedule } from '../startup-power.js';
 
-test('the neon tubes catch through phase B and the dead ones last, at ignition', () => {
+test('the neon letters strike on the pulse, one a beat, and the dead ones last, at the lock', () => {
   const dead = new Set([3, 8]);
   const plan = tubeSchedule(10, dead);
+  const beats = new Set([...PULSE.heartbeat, ...PULSE.lock.slice(1)].map(Math.round));
   assert.equal(plan.size, 10, 'every tube strikes');
-  for (const [i, { at }] of plan) {
-    if (dead.has(i)) assert.ok(at >= BEATS.ignite, `dead tube ${i} catches only when the supply locks`);
-    else assert.ok(at > BEATS.catch && at < BEATS.ignite, `tube ${i} strikes while the supply climbs`);
-  }
+  const live = [...plan].filter(([i]) => !dead.has(i)).map(([, { at }]) => at);
+  for (const at of live) assert.ok(beats.has(at), `a live letter strikes on a beat (${at})`);
+  assert.equal(new Set(live).size, live.length, 'one letter a beat, never two at once');
+  for (const i of dead) assert.ok(plan.get(i).at >= BEATS.ignite && plan.get(i).at < BEATS.cut, `dead tube ${i} catches only when the supply locks`);
 });
 
 /* brightness and saturate out of a CSS filter, e.g. "brightness(.55) saturate(.55)". */
@@ -30,17 +31,25 @@ test('the dormant cabinet in styles.css is the cabinet on standby supply', () =>
   assert.equal(RESPONSE.room(standby).opacity, 0, 'the room only lights once the cabinet is awake');
 });
 
-test('the film keeps its story: a failed first try, a real silence, and a held, lit machine', () => {
-  const { relay, attempt, almost, fail, tick, catch: caught, ignite, surge } = BEATS;
+test('the film keeps its story: a failed first try, a real dark, a quickening pulse, a held machine, a cut', () => {
+  const { relay, attempt, almost, fail, tick, catch: caught, ignite, cut } = BEATS;
   assert.ok(supplyAt(relay + 100) < 0.05, 'the relay cuts the standby supply');
   assert.ok(supplyAt(almost) >= 0.5 && supplyAt(almost) < 0.84, 'the first try nearly reaches running, and no more');
   assert.ok(attempt < almost && almost < fail, 'it gathers, nearly holds, then fails');
   const dark = [];
   for (let ms = fail; ms <= caught; ms += 10) if (supplyAt(ms) < 0.05) dark.push(ms);
-  assert.ok(dark.length && dark.at(-1) - dark[0] >= 500, 'at least half a second of real dark before the second try');
+  assert.ok(dark.length && dark.at(-1) - dark[0] >= 1700, 'a real dark, nearly two seconds, before the second try');
   assert.ok(tick > dark[0] && tick < caught, 'the tick lands in the dark');
-  for (let ms = ignite + 420; ms <= surge; ms += 50) assert.ok(supplyAt(ms) >= 1, 'the lit machine holds steady');
-  assert.ok(surge - ignite >= 1500, 'the lit machine gets its moment before the dive');
+  assert.ok(PULSE.heartbeat[0] > caught && PULSE.heartbeat.length >= 3, 'the heartbeat starts after the heavier relay');
+  const gaps = PULSE.heartbeat.slice(1).map((ms, n) => ms - PULSE.heartbeat[n]);
+  assert.ok(gaps.every((g, n) => n === 0 || g < gaps[n - 1]), `it quickens (${gaps.map(Math.round)})`);
+  assert.ok(Math.abs(ignite - PULSE.heartbeat.at(-1) - BEAT_MS) < 0.1, 'and its next beat is the lock, on the song\'s tempo');
+  assert.equal(PULSE.lock.length, LOCK_BEATS);
+  assert.equal(PULSE.lock[0], ignite);
+  PULSE.lock.slice(1).forEach((ms, n) => assert.ok(Math.abs(ms - PULSE.lock[n] - BEAT_MS) < 0.1, 'the lock keeps the tempo'));
+  for (let ms = ignite + 420; ms <= cut; ms += 50) assert.ok(supplyAt(ms) >= 1, 'the lit machine holds steady');
+  assert.ok(cut - ignite >= 1500, 'the lit machine gets its moment before the cut');
+  assert.equal(cut, PULSE.lock.at(-1), 'the cut is the last beat');
 });
 
 test('the dormant attract scene is intentionally dark and instruction-free', () => {

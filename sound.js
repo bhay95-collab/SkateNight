@@ -17,9 +17,11 @@
      chute    clinks going deeper into the cabinet, the coin box, the counter
      relay    the main relay pulling in: a deep THUNK through the cabinet
      power    the supply trying, dying, catching and locking: transformer hum
-              that follows SUPPLY, relays, degauss, crackle, flyback whine
+              that follows SUPPLY (in E-flat, the opener's key), relays,
+              degauss, crackle, flyback whine, and the second try's heartbeat
+              quickening into two bars of thumps at the song's tempo (PULSE)
+              - all of it stopping dead on the last beat, the cut
      tube     one neon letter striking
-     collapse the tube surging and squeezing to a line: whine, thunk
 
    Your own recordings: put an MP3 named after the effect in the sfx/
    folder (sfx/coin.mp3, sfx/key.mp3, sfx/confirm.mp3, sfx/whirr.mp3,
@@ -30,7 +32,7 @@
    Every effect is wrapped so a sound failure can never stop the music.
    ============================================================ */
 import { getEngine } from './audio.js';
-import { BEATS, CHUTE_CLINKS_MS, supplyAt } from './startup-timing.js';
+import { BEATS, CHUTE_CLINKS_MS, PULSE, supplyAt } from './startup-timing.js';
 
 /* The film's beats in seconds, from the moment each sound is cued. */
 const secs = (ms) => ms / 1000;
@@ -39,10 +41,13 @@ const GATE_S = secs(BEATS.gone - BEATS.contact);
 const CLINKS_S = CHUTE_CLINKS_MS.map(secs);
 const CREDIT_S = secs(BEATS.credit - BEATS.gone);
 const fromRelay = (ms) => secs(ms - BEATS.relay);
-const SURGE_S = secs(BEATS.collapse - BEATS.surge);
-const LINE_S = secs(BEATS.end - BEATS.surge);
+const CUT_S = fromRelay(BEATS.cut);
 
-const STARTUP = ['lift', 'contact', 'chute', 'relay', 'power', 'tube', 'collapse'];   // the INSERT COIN film (startup.js)
+/* The opener's key (rotation.js OPENER, E-flat major): the machine hums in it, so its song is already inside. */
+const EB1 = 38.89;
+const EB2 = 77.78;
+
+const STARTUP = ['lift', 'contact', 'chute', 'relay', 'power', 'tube'];   // the INSERT COIN film (startup.js)
 const SFX_NAMES = ['coin', 'key', 'confirm', 'whirr', 'thud', 'buzz', 'flicker', 'page', ...STARTUP];
 const MP3_ONLY = new Set(['flicker', ...STARTUP]);   // no bundled WAV: a custom MP3 or the live model
 const rawFiles = new Map();      // name -> ordered { path, bytes } candidates
@@ -67,13 +72,12 @@ const MIX = {
   relay: { gain: 1.0, variation: 0 },
   power: { gain: 0.95, variation: 0 },
   tube: { gain: 0.70, variation: 0.05 },
-  collapse: { gain: 0.85, variation: 0 },
 };
 /* The film's live models are drawn quietly (their partials stack), so they
    are raised to sit at music level: measured at the 70% Effects fader they
    were 18-20 dB under a typical track. A custom MP3 keeps its own level; the
    Effects fader and the limiter still apply. */
-const FILM_BOOST = { lift: 12, contact: 12, chute: 10, relay: 7, power: 8, tube: 8, collapse: 7 };
+const FILM_BOOST = { lift: 12, contact: 12, chute: 10, relay: 7, power: 8, tube: 8 };
 const activeVoices = new Map();
 const RELEASE_SECONDS = 0.014;
 
@@ -356,13 +360,14 @@ function whoosh(voice, { at = 0, dur = 0.6, from = 500, to = 2000, peak = 0.05, 
   src.stop(t + dur + 0.05);
 }
 
-/* The transformer hum from the relay to the line, its level following SUPPLY
+/* The transformer hum from the relay to the cut, its level following SUPPLY
    (the picture's own curve) and its upper partials opening with the voltage. */
 const HUM_STEP_MS = 30;
-const HUM_PARTIALS = [[100, 1, 0], [150, 0.55, 1], [200, 0.35, 1], [300, 0.18, 1.5]];   // [Hz, share, how much it needs volts]
+const HUM_PARTIALS = [[EB2, 1, 0], [EB2 * 1.5, 0.55, 1], [EB2 * 2, 0.35, 1], [EB2 * 3, 0.18, 1.5]];   // [Hz, share, how much it needs volts]: root, fifth, octave, twelfth
 function supplyHum(voice) {
   const points = [];
-  for (let ms = BEATS.relay; ms <= BEATS.end; ms += HUM_STEP_MS) points.push([fromRelay(ms), supplyAt(ms)]);
+  for (let ms = BEATS.relay; ms <= BEATS.cut; ms += HUM_STEP_MS) points.push([fromRelay(ms), supplyAt(ms)]);
+  points.push([CUT_S, supplyAt(BEATS.cut)], [CUT_S + 0.03, 0]);   // the cut: it stops dead
   for (const [freq, share, need] of HUM_PARTIALS) {
     held(voice, { freq, type: 'sawtooth', filterHz: 700, points: points.map(([at, v]) => {
       const live = v < 0.05 ? 0 : Math.min(v, 1.15);
@@ -493,9 +498,9 @@ export const sfx = {
   power: effect('power', (voice) => {
     supplyHum(voice);
     const gather = fromRelay(BEATS.attempt);                                                                  // A: the transformer gathering itself
-    held(voice, { freq: 50, type: 'sawtooth', filterHz: 240, points: [[gather, 0], [fromRelay(BEATS.almost), 0.05],
+    held(voice, { freq: EB1, type: 'sawtooth', filterHz: 240, points: [[gather, 0], [fromRelay(BEATS.almost), 0.05],
       [fromRelay(BEATS.fail), 0.035], [fromRelay(BEATS.fail) + 0.42, 0]] });
-    tone(voice, { freq: 100, to: 34, type: 'sawtooth', at: fromRelay(BEATS.fail), dur: 0.6, peak: 0.04 });     // it dies, winding down
+    tone(voice, { freq: EB2, to: 27, type: 'sawtooth', at: fromRelay(BEATS.fail), dur: 0.6, peak: 0.04 });     // it dies, winding down like a tape
     whoosh(voice, { at: fromRelay(BEATS.fail), dur: 0.5, from: 1400, to: 160, peak: 0.02, q: 1.4 });
     const tick = fromRelay(BEATS.tick);                                                                       // the dark: one tick somewhere inside
     thump(voice, { freq: 2400, dur: 0.006, peak: 0.035, at: tick });
@@ -507,36 +512,37 @@ export const sfx = {
     tone(voice, { freq: 52, to: 36, dur: 0.5, peak: 0.16, at: relay2 });
     ring(voice, { freq: 160, at: relay2 + 0.01, peak: 0.028, decay: 1.6 });
     const degauss = fromRelay(BEATS.catch + 640);
-    held(voice, { freq: 88, type: 'sawtooth', filterHz: 360, points: [[degauss, 0], [degauss + 0.06, 0.1], [degauss + 0.2, 0.03],
+    held(voice, { freq: EB2, type: 'sawtooth', filterHz: 360, points: [[degauss, 0], [degauss + 0.06, 0.1], [degauss + 0.2, 0.03],
       [degauss + 0.36, 0.08], [degauss + 0.56, 0.02], [degauss + 0.76, 0.045], [degauss + 1.3, 0]] });
     thump(voice, { freq: 150, dur: 0.35, peak: 0.14, at: degauss + 0.02 });
     crackle(voice);
-    held(voice, { freq: 7800, points: [[degauss, 0], [fromRelay(BEATS.catch + 900), 0.004], [fromRelay(BEATS.surge), 0.003], [fromRelay(BEATS.end), 0]] });
-    const lock = fromRelay(BEATS.ignite);                                                                    // it locks
+    held(voice, { freq: 7800, points: [[degauss, 0], [fromRelay(BEATS.catch + 900), 0.004], [CUT_S, 0.003], [CUT_S + 0.03, 0]] });
+    // The heartbeat: a body that sags in pitch as it rings, a sub, a contact.
+    // It quickens through the second try, locks to the song's tempo, and
+    // thumps for two bars; each beat a little heavier than the last.
+    const beats = [...PULSE.heartbeat, ...PULSE.lock];
+    beats.forEach((ms, n) => {
+      const at = fromRelay(ms);
+      const k = Math.min(1, n / PULSE.heartbeat.length);
+      tone(voice, { freq: EB2 * 1.55, to: EB2, at, dur: 0.16, peak: 0.05 + 0.04 * k });
+      tone(voice, { freq: EB1, to: EB1 * 0.92, at, dur: 0.32, peak: 0.06 + 0.05 * k });
+      thump(voice, { freq: 2200, dur: 0.006, peak: 0.015 + 0.02 * k, at });
+    });
+    const lock = fromRelay(BEATS.ignite);                                                                    // it locks: the first beat of the lock
     thump(voice, { freq: 60, dur: 0.45, peak: 0.26, at: lock });
     thump(voice, { freq: 900, dur: 0.03, peak: 0.12, at: lock });
-    tone(voice, { freq: 55, to: 42, at: lock, dur: 0.5, peak: 0.16 });
-    ring(voice, { freq: 220, at: lock, peak: 0.03, decay: 1.6 });
-    ring(voice, { freq: 1975, at: lock + 0.04, peak: 0.022, decay: 0.9 });
-    tone(voice, { freq: 988, type: 'triangle', at: lock + 0.04, dur: 0.5, peak: 0.018 });
-    tone(voice, { freq: 1480, type: 'triangle', at: lock + 0.1, dur: 0.45, peak: 0.013 });
-    held(voice, { freq: 50, type: 'sawtooth', filterHz: 180, points: [[lock, 0], [lock + 0.6, 0.045], [fromRelay(BEATS.surge), 0.04], [fromRelay(BEATS.end), 0]] });   // the machine standing there, alive
+    tone(voice, { freq: EB2, to: EB1, at: lock, dur: 0.5, peak: 0.16 });
+    ring(voice, { freq: EB2 * 2, at: lock, peak: 0.03, decay: 1.6 });
+    ring(voice, { freq: 1864.66, at: lock + 0.04, peak: 0.022, decay: 0.9 });                             // B-flat, E-flat, G: the lock rings in the song's chord
+    tone(voice, { freq: 1244.51, type: 'triangle', at: lock + 0.04, dur: 0.5, peak: 0.018 });
+    tone(voice, { freq: 1567.98, type: 'triangle', at: lock + 0.1, dur: 0.45, peak: 0.013 });
+    held(voice, { freq: EB1, type: 'sawtooth', filterHz: 180, points: [[lock, 0], [lock + 0.6, 0.045], [CUT_S, 0.04], [CUT_S + 0.03, 0]] });   // the machine standing there, alive, to the cut
   }),
 
   // One neon letter catching: a short mains buzz and the electrode tick.
   tube: effect('tube', (voice) => {
     thump(voice, { freq: 3200, dur: 0.008, peak: 0.06 });
     held(voice, { freq: 120, type: 'sawtooth', filterHz: 1400, points: [[0.005, 0.03], [0.06, 0.012], [0.09, 0.028], [0.2, 0]] });
-  }),
-
-  // The surge: the whine climbs as the camera dives in; the picture squeezes
-  // to a line with a falling zip, and lands with a thunk.
-  collapse: effect('collapse', (voice) => {
-    tone(voice, { freq: 1800, to: 9000, dur: SURGE_S + 0.2, peak: 0.02 });
-    whoosh(voice, { dur: SURGE_S, from: 300, to: 2400, peak: 0.045, q: 0.9 });
-    whoosh(voice, { at: SURGE_S, dur: LINE_S - SURGE_S, from: 3200, to: 380, peak: 0.05, q: 1 });
-    thump(voice, { freq: 110, dur: 0.25, peak: 0.2, at: LINE_S - 0.02 });
-    thump(voice, { freq: 900, dur: 0.03, peak: 0.08, at: LINE_S - 0.02 });
   }),
 
   // Keep the legacy hook without introducing ambient interference during music.

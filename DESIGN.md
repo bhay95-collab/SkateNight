@@ -314,8 +314,9 @@ record changer and the readouts carry the show; the world around it stays dim.
     phosphor robot only once the relay has collapsed the picture
     (`.is-tube-lit`, relay + 100 ms), so the two are never on together; the
     robot breathes on through the coin until then.
-    The sound of it waiting (`drone.js`): a low drone on 50 Hz - the mains
-    the film's transformer hums on, so its harmonics are the same machine -
+    The sound of it waiting (`drone.js`): a low drone on E-flat 1 (38.89 Hz)
+    - the key of the opener, which the film's transformer hums in too, so
+    the machine and the song are one instrument -
     from detuned saws through a resonant low-pass, a ghost of the 6th and
     7th harmonics in a dark echo, a distant flyback whine and a little hiss.
     It breathes on the robot's own plan (`breathLevelAt` at the screen's
@@ -325,10 +326,9 @@ record changer and the readouts carry the show; the world around it stays dim.
     hiss. Measured dormant: about -29 LUFS, 15 dB under the lit machine.
     The operator arms it before the night (Alt+Shift+D, or open the site
     with ?hum and the first press arms it instead of the coin; remembered); unarmed
-    the dormant screen is silent and the touch wakes it quietly. At the
-    press it stirs and steps back for the coin, drops out with standby at
-    the relay, its ghost rides the first attempt and dies with it by fail +
-    350 ms: the dark and the second attempt are the film's alone
+    the dormant screen is silent and stays so at the touch. At the press
+    the machine holds its breath: every layer falls silent in 150 ms and the
+    drone is let go; everything after is the film's own
     (`AFTER_PRESS`, `tests/drone.test.js`).
     The fault in the machine (`startup-fault.js`): one bad contact behind
     the coin door - the service compartment - on its left edge (about y
@@ -342,8 +342,8 @@ record changer and the readouts carry the show; the world around it stays dim.
     recoveries, one timer at
     a time, quiet in a hidden tab and stopped at the press. The film: four,
     on the beats and gated by `supplyAt` - attempt + 440, almost + 210,
-    catch + 130, catch + 1460 - none in the coin, the dead interval, the
-    tick, or from ignition on. With the supply's swings they keep every
+    catch + 130, and the third heartbeat - none in the coin, the dark, the
+    tick, or from the lock on. With the supply's swings they keep every
     second to three flashes or fewer, over a lit area under a quarter of a
     WCAG flash area (`tests/fault.test.js`, `tests/safety.test.js`). None
     with reduced motion or calm lights. The tube's light falls off
@@ -376,13 +376,17 @@ record changer and the readouts carry the show; the world around it stays dim.
     timeline (WAAPI animations with delays; steps fire from zero-length timer
     animations), from `BEATS`. Nothing chains timers, so nothing drifts; and a
     paused, seeked film shows any exact frame.
-  The film (~14.5 s, `startup.js`, `startup-coin.js`, `startup-power.js`) is
+  The film (~15.7 s, `startup.js`, `startup-coin.js`, `startup-power.js`) is
   cut like a scene - discovery, contact, the machine's response, a failed
-  first try, silence, a second try, the awakening, a held hero shot, then the
-  dive. Slow where the audience should look, sudden where something heavy
-  moves, and still where nothing should happen. Every time is a `BEATS` entry;
-  `tests/startup.test.js` holds the story (a first try that nearly reaches
-  running, at least half a second of real dark, a steady lit hold of 1.5 s+).
+  first try, a real dark, a heartbeat that quickens into the song's tempo,
+  two bars of the machine lit and thumping in time, then a cut to black.
+  Slow where the audience should look, sudden where something heavy moves,
+  and still where nothing should happen. Every time is a `BEATS` entry; the
+  pulse is `PULSE` (`startup-timing.js`), built from the opener's own beat
+  (`BEAT_MS`, 446.5 ms); `tests/startup.test.js` holds the story (a first try
+  that nearly reaches running, 1.8 s of real dark, a heartbeat that
+  quickens and lands one beat before the lock, a steady lit lock of 1.5 s+,
+  the cut on its last beat).
   1. the coin (0-3.85 s, `lift`, `contact`): the camera pushes in on the coin
      entry; a struck, worn 3D coin (two faces, reeded edge of stacked discs,
      moving specular band) swings in from the right close to the lens, out of
@@ -400,33 +404,33 @@ record changer and the readouts carry the show; the world around it stays dim.
   3. the relay (5.45 s, `relay`, `power`): THUNK - the cabinet jolts, the sign
      rattles on its brackets a beat later, dust shakes off the arch, and the
      standby supply drops out: dark;
-  4. A, the first attempt (5.95-7.9 s): the transformer gathers itself (a low
+  4. A, the first attempt (5.95-7.93 s): the transformer gathers itself (a low
      rising growl under the hum); a dot of light creeps out into a line across
      the tube; one neon letter weakly catches; the sign half-lights; for a
      moment (7.1 s) it nearly holds - then it stumbles and dies: the line
      shrinks to a dot, the letter goes out, the hum winds down, and the
      cabinet settles on its feet;
-  5. the dark (7.9-8.75 s): nothing on the supply, no static on the tube, no
-     lamp at the slit. One small tick somewhere inside (8.25 s). The camera
-     leans in very slightly, waiting;
-  6. B, it catches (8.75 s): a deeper, heavier relay and a longer shudder; the
-     line snaps across the tube, the degauss thumps as the raster opens out of
-     it and rolls to lock, colour swimming and splitting red/cyan as the
-     voltage struggles; the letters strike one, then another, then quicker
-     (two struggle), the bubble tubes warm;
-  7. C, ignition (11.05 s): the supply locks with a relay and a bright accent;
-     the dead tubes catch, bulbs climb the arch from both feet to the crown
-     over 0.9 s, the logo lights, gold blooms round the coin door, light
-     glints across glass and chrome, and the machine's own light reveals its
-     lacquer, the wall behind and the floor;
-  8. the hero hold (11.05-13.35 s): the machine simply stands there, lit, on a
-     steady deep hum; the camera drifts closer and a second, slower glint
-     travels the chrome;
-  9. D, the handoff (13.35 s, `collapse`): the tube surges and tears, the
-     camera dives into it, it washes out, and the clipped view squeezes to the
-     line the boot screen's first strike opens from (`bootLine` in `fx.js`
-     measures that line, and the boot keeps the self-test it was measured
-     with); the line fades as the boot's line comes up (`.is-handing`, 200 ms).
+  5. the dark (7.93-9.73 s): nothing on the supply, no static on the tube, no
+     lamp at the slit, no sound. One small tick somewhere inside (8.83 s). The
+     camera leans in very slightly, waiting;
+  6. B, the heartbeat (9.73 s): a deeper, heavier relay; the line snaps across
+     the tube and the raster opens out of it while the supply climbs smoothly
+     - no full-frame flicker. A heartbeat starts at about 60 BPM and quickens
+     to the opener's 134.4 (four beats, `PULSE.heartbeat`); each beat is a
+     low E-flat thump, a neon letter striking, a small kick through the
+     relays. Its next beat is the lock;
+  7. C, the lock (12.53 s): the supply locks with a bright accent and
+     overshoot; the dead tubes catch, the logo lights, gold blooms round the
+     coin door, and for two bars (`LOCK_BEATS`, 8 beats in tempo) the machine
+     thumps in time while the bulbs climb the arch a group a beat and the
+     camera drifts closer;
+  8. the cut (15.66 s, the lock's last beat): hard to black, and the
+     transformer hum stops with it. The song begins in the dark on the same
+     grid (see *The arrival: the song inside*).
+  The struggle lives in the first try and the pulse, not in flicker: during
+  the heartbeat only small things (a letter, a group of bulbs, a relay kick)
+  move on each beat, never the whole frame, at most 2.24 beats a second
+  (`tests/safety.test.js`).
   Clean rendering rules the film depends on:
   - everything on the tube is clipped to its curved face with `clip-path`
     (`.tv`, `.tv-glass`), not just `overflow` + `border-radius`, which lets
@@ -442,8 +446,10 @@ record changer and the readouts carry the show; the world around it stays dim.
     hard black box on the GPU;
   - long multi-step WAAPI animations ease each step, never the whole
     animation (an eased whole bends every beat out of place).
-  Input is held for the whole film. If the boot already ran in this tab, the
-  film plays to D and fades straight to the jukebox. With
+  Input is held for the whole film and, by default, through the dark until
+  the reveal. With the TOOLS setting off, the boot screen strikes up as the
+  lit machine fades on the cut (first time in this tab), or the film fades
+  straight to the jukebox. With
   `prefers-reduced-motion` the same story is told without travel, shake or
   flicker: the coin appears at the slit and is taken, the cabinet fades up,
   and the screen crossfades into the boot.
@@ -452,7 +458,7 @@ record changer and the readouts carry the show; the world around it stays dim.
   steady strike (no flicker dips), then a 640 ms reveal with only a faint
   phosphor bloom (10 s recovery cap, 11 s CSS failsafe). It is drawn inside the
   same tube: a faint phosphor face and dark, curved glass corners. The ignition stays
-  the brightest moment of the arrival; the dive into the tube is held below it. Header line: SKATE BY FAITH JUKEBOX. Keyboard and pointer input
+  the brightest moment of the arrival; the cut is to black, never to a flash. Header line: SKATE BY FAITH JUKEBOX. Keyboard and pointer input
   cannot reach controls behind the arrival. CALM holds the same duration with
   static diagnostics. A completed arrival is remembered once per tab; reloading
   during warm-up starts the full sequence again.
@@ -472,9 +478,11 @@ Before adding anything new, ask what it replaces.
 
 ## The arrival: the song inside
 
-The approved director's cut (sound previs: Sketch A). After the film's
-collapse the screen goes black and silent for a held breath (about 1.5
-beats); the night's opener - `OPENER` in rotation.js, *Praise Lifted On High*
+The approved director's cut (sound previs: Sketch A). The film's lock
+keeps the opener's tempo and ends with a cut to black on its last beat; the
+dark is silent for a held breath (about one beat: the song's file begins
+`OPENER_LEAD_MS`, 435 ms, after the cut, so its bar 1 is the fifth beat after
+the cut and the free first hit falls in between); the night's opener - `OPENER` in rotation.js, *Praise Lifted On High*
 - begins in the dark with no needle drop, the record already shown playing;
 and the jukebox is revealed on its bar 2 downbeat (3.584 s into the file,
 the home chord, one complete bar after the steady groove begins). Measured
@@ -488,8 +496,19 @@ at 60 Hz the same logic lands within about half a frame. The diagnostics
 screen is out of the show path but kept whole: unticking TOOLS -> *The
 Awakening starts the music* restores it and START exactly (`arrivalPlan`).
 A reload in the same window doesn't repeat the opener: the next song starts
-the normal way. Next stages (not built): the heartbeat and tempo lock, the
-drone in E-flat, the match cut.
+the normal way, on the same lead. The whole Awakening is in E-flat, the
+opener's key: the drone, the transformer hum (E-flat 2 and its partials),
+the gathering and failing tones, the heartbeat and the lock chime. Measured
+in headless Chromium (one run): the cut to black lands with the last lock
+beat and the song's first hit came within 20 ms of the grid; the dark
+between is silent (-90 LUFS). The song starts through a media element, which
+is not sample-accurate, so the hand-over is checked by ear on the venue
+laptop; the reveal itself follows the song's clock, so it stays on bar 2. Level: the lock
+(about -15 LUFS) is about 10 dB above the song at the default faders (about
+-26 LUFS), the same balance as the old lit hold (-16 LUFS); setting the
+film against the song is a venue decision for the faders or a later trim.
+Next stages (not built): character and scale (the robot lights first, a
+small coin with a long fall, a low hero angle), then removing ornament.
 
 ## One window: the installed app
 
@@ -657,7 +676,7 @@ Audit list - every `@keyframes` in `styles.css`, `jukebox.css` and `changer.css`
 `crt-roll` 11 s (one band, whole screen), `spot-drift` 45-95 s, `logo-breathe` 4.8 s, `bulb-chase`
 4.6 s / 1.6 s in attract (light passing over fixed lamps), `neon-flicker-a/b/c` 7-14 s with 1-2 dips,
 `ball-turn` 9 s, `record-spin` 1.333333 s (45 rpm), `dot-pulse` 1.2 s (small LED),
-`coin-drop` once, `score-pop` once, boot sequence once per tab. Dormant cabinet: `lamp-breathe` 2.8 s (the slot lamp, dark until the touch), `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s (dimmed until the touch), `attract-roll` 6.5 s once the relay has the picture, `bubbles-rise` 2.6 s once lit; the robot's breath (a WAAPI loop from `planBreath`: level never moves more than a quarter of its range in a quarter second, at most two flashes in any second, checked in `tests/safety.test.js`) and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the surge into the line is one brightening, then the bright area shrinks.
+`coin-drop` once, `score-pop` once, boot sequence once per tab. Dormant cabinet: `lamp-breathe` 2.8 s (the slot lamp, dark until the touch), `grain-jump` 1 s (low-contrast grain moving, not a flash), `mote-drift` 14-28 s (dimmed until the touch), `attract-roll` 6.5 s once the relay has the picture, `bubbles-rise` 2.6 s once lit; the robot's breath (a WAAPI loop from `planBreath`: level never moves more than a quarter of its range in a quarter second, at most two flashes in any second, checked in `tests/safety.test.js`) and the power-up's supply are JavaScript (see above). The supply never swings by 10% or more than four times in any second (two flashes), checked in `tests/safety.test.js`; the second try's supply only climbs, overshoots once at the lock and settles; the heartbeat moves only small things (a letter, a group of bulbs), never the frame, and the cut is one change to black, seconds before the reveal.
 Screen flicker (JavaScript, not CSS): at most 2 dips per burst, a burst under
 1 s, bursts at least 25 s apart, never more than 60% darker - so never more
 than 2 flashes in any second. The burst plays across a blurred 4x3 grid of
@@ -741,7 +760,7 @@ custom long `whirr` recordings fade to fit. Missing optional MP3s may show harml
 Effects remain **off until a person clicks** INSERT COIN, which now comes before
 the arrival, so the coin and the power-up are heard and the boot follows in
 silence. The start-up sounds (`lift`, `contact`, `chute`, `relay`, `power`,
-`tube`, `collapse`) are live Web Audio models timed from `BEATS`; an MP3 of the
+`tube`) are live Web Audio models timed from `BEATS`; an MP3 of the
 same name in `sfx/` replaces any of them. `lift` plays at the press; the rest
 give a custom MP3 up to 0.4 s to decode.
 Audio failures must never stop the music.
@@ -759,9 +778,8 @@ Audio failures must never stop the music.
 | `contact` | Its edge meeting the slit: a tick and a gritty scrape, the slip, the gate snapping back |
 | `chute` | Clinks going deeper into the cabinet (`CHUTE_CLINKS_MS`), the coin box, the counter ticking over |
 | `relay` | The main relay pulling in: contacts, armature, a deep THUNK and the cabinet booming once |
-| `power` | Relay to line: transformer hum following `SUPPLY` (upper partials opening with the voltage), the first attempt dying, a second relay, degauss, crackle where it struggles, flyback whine, the lock with a bright accent |
+| `power` | Relay to the cut: transformer hum in E-flat following `SUPPLY` (upper partials opening with the voltage), the first attempt dying, a second relay, degauss, the quickening heartbeat and the lock's eight beats (`PULSE`), flyback whine, the lock chime; the hum stops on the cut |
 | `tube` | One neon letter striking: a mains buzz and the electrode tick |
-| `collapse` | The surge and the dive: the whine climbing, a falling zip as it squeezes to a line, a thunk |
 | `flicker` | Silent compatibility hook unless a custom MP3 is supplied |
 
 The original WAV pack is precached with the app shell. Effects sit below the
@@ -875,7 +893,7 @@ from 10 metres). Everything about reading and validating that file lives in
 | `lights.js` | Screen flicker and the dormant robot's breath, planned (pure) |
 | `audio.js` | Shared Web Audio engine, two volume paths, analysers |
 | `sound.js` | Original mechanical effects, custom MP3 overrides and quiet fallbacks |
-| `drone.js` | The dormant machine's breathing drone and its hand-off to the film |
+| `drone.js` | The dormant machine's breathing drone, held at the press |
 | `startup-fault.js` | The bad contact behind the side panel: dormant and film sparks |
 | `sfx/`, `scripts/generate-sfx.py` | Bundled original WAVs and their reproducible generator |
 | `carousel.js` | The record carousel: turn maths (pure) and its drawing |
@@ -886,9 +904,9 @@ from 10 metres). Everything about reading and validating that file lives in
 | `visualiser.js` | Shared loop, canvases, mirror light |
 | `ui.js` | Rack, strips, queue, keypad, readouts, ticker |
 | `fx.js` | Boot sequence, screen flicker, count-up |
-| `startup.js` | The INSERT COIN cabinet: building it, the phosphor robot and its breath, the camera, the relays, the handoff, the reduced-motion telling |
+| `startup.js` | The INSERT COIN cabinet: building it, the phosphor robot and its breath, the camera, the relays, the cut, the reduced-motion telling |
 | `startup-coin.js` | The coin going in: flight, tumble, catch, slip, chute, credit counter |
-| `startup-power.js` | The one supply and every part's response to it; tubes, raster, bulbs, ignition |
+| `startup-power.js` | The one supply and every part's response to it; tubes on the pulse, raster, bulbs on the lock |
 | `startup-timing.js` | The film's score: `BEATS`, `CHUTE_CLINKS_MS`, `SUPPLY` (pure, shared with sound.js) |
 | `neon.js` | Desynced neon flicker |
 | `rink.js` | Wake lock, media session, service worker registration |

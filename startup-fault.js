@@ -18,7 +18,7 @@
    lit machine or after. The sparks are evidence of the supply; they never
    drive it. Reduced motion or calm lights: none at all.
    ============================================================ */
-import { BEATS, supplyAt } from './startup-timing.js';
+import { BEATS, PULSE, supplyAt } from './startup-timing.js';
 import { breathTroubles } from './lights.js';
 
 export const FAULT = {
@@ -44,7 +44,7 @@ const AUTHORED = [
   [attempt + 440, 30, 60, 0, 0.8],       // A: the transformer first gathering - the contact just touches
   [almost + 210, 48, 90, 2, 1],          //    the stumble as it nearly holds - a sputter, then it fails
   [caught + 130, 42, 80, 1, 0.95],       // B: the heavier relay - power back, the contact bites
-  [caught + 1460, 55, 100, 2, 0.85],     //    the last hesitation before it locks - then it seats, clean
+  [Math.round(PULSE.heartbeat[2]), 55, 100, 2, 0.85],   //    on a heartbeat, as it quickens - then it seats, clean
 ];
 export const FILM_FAULTS = AUTHORED
   .filter(([at]) => supplyAt(at) >= FAULT.minSupply)

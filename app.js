@@ -18,7 +18,7 @@ import {
   createRotator,
 } from './copy.js';
 import {
-  startBoot, bootLine, hasBooted, holdArrivalInput, isCalm, onCalmChange, delay, safely, startScreenFlicker,
+  startBoot, hasBooted, holdArrivalInput, isCalm, onCalmChange, delay, safely, startScreenFlicker,
 } from './fx.js';
 import { unlockAudio, getEngine, setMusicLevel, setSfxLevel, setVinylLevel } from './audio.js';
 import { createDrone } from './drone.js';
@@ -50,7 +50,9 @@ const STORE_QUICK_PICK = 'sn-quick-pick';
 const STORE_DRONE = 'sn-drone';
 const STORE_AUTO_MUSIC = 'sn-awakening-music';   // 'off' = the Awakening hands over to diagnostics and START, as before
 const OPENER_FLAG = 'sn_opened';                 // sessionStorage: the opener has landed in this tab (a reload starts the next song instead)
-const OPENER_HOLD_MS = 650;                      // the held breath in the dark between the collapse and the song's first hit (about 1.5 beats)
+// The song file starts this long after the cut, so its bar 1 lands five beats after the last thump - on the lock's grid -
+// and its free first hit after about 1.5 beats of held breath in the dark.
+const OPENER_LEAD_MS = (5 * OPENER.beat - OPENER.bar1) * 1000;
 const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venue: calibrate on the real projector and PA (README)            // the operator armed the dormant drone (Alt+Shift+D)
 const BACK_RESTART_SEC = 3;     // BACK after this long restarts the song; sooner goes to the previous one
 const HISTORY_LIMIT = 50;
@@ -891,16 +893,16 @@ async function main() {
 
   /* ---------------- the INSERT COIN moment ---------------- */
 
-  /* The coin goes in and the cabinet wakes; then the boot screen strikes
-     from the collapsed picture (first time in this tab) or the cabinet
-     fades straight to the jukebox. Input is held for the whole film. */
+  /* The coin goes in and the cabinet wakes, and on the lock's last beat the
+     film ends. Then, by default, a cut to black and the opener in the dark;
+     with the TOOLS setting off, the boot screen (first time in this tab) or
+     a fade straight to the jukebox, as before. Input is held throughout. */
   async function powerOn() {
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
     const firstBoot = !hasBooted();
     const plan = arrivalPlan({ autoMusic: autoMusic && Boolean(player), firstBoot, nextId: queue[0] || houseLine[0] || null, openerPlayed });
     const toDark = autoMusic && !plan.diagnostics;                     // the new cut: black, the song, the reveal
     if (plan.music === 'opener') safely('opener', () => player.cue(trackById.get(OPENER.id)));   // fifteen seconds to be ready
-    const centre = { y: innerHeight / 2, width: innerWidth / 2 };
     const play = (name) => safely(name, () => sfx[name]());
     // The lift answers the press at once; later cues give a custom MP3 the chance to decode first.
     const later = (name) => () => sfxReady.then(() => play(name));
@@ -908,8 +910,8 @@ async function main() {
     try {
       await cabinetStart?.insert({
         lift: () => { play('lift'); safely('drone', wakeDrone); }, contact: later('contact'), chute: later('chute'), relay: later('relay'),
-        power: later('power'), tube: later('tube'), collapse: later('collapse'),
-      }, { collapseTo: plan.diagnostics ? bootLine($('boot')) || centre : toDark ? centre : null });
+        power: later('power'), tube: later('tube'),
+      });
     } catch (err) {
       console.warn('[startup]', err);
     } finally {
@@ -920,14 +922,14 @@ async function main() {
       attractScreen.getAnimations({ subtree: true }).forEach((anim) => anim.cancel());   // the film is over: let it go
     };
     if (toDark) {
-      // The collapsed line goes out: black and silence, a held breath. Then the
-      // opener begins in the dark and the jukebox is there on its bar 2.
+      // Cut to black on the last beat: black and silence, a held breath. Then
+      // the opener begins in the dark and the jukebox is there on its bar 2.
       attractScreen.classList.add('is-dark');
       try {
         if (plan.music === 'opener') {
-          await delay(Math.max(0, OPENER_HOLD_MS - OPENER.firstHit * 1000));
+          await delay(OPENER_LEAD_MS);
           await landOpener();
-        } else await delay(OPENER_HOLD_MS);
+        } else await delay(OPENER_LEAD_MS + OPENER.firstHit * 1000);
       } catch (err) {
         console.warn('[opener]', err);
       }
@@ -941,7 +943,7 @@ async function main() {
     document.body.classList.remove('on-attract');
     const boot = startBoot($('boot'));
     if (boot.played) {
-      // The boot screen strikes from the collapsed picture: our line fades as its line comes up.
+      // The boot screen strikes up as the lit machine fades.
       attractScreen.classList.add('is-handing');
       setTimeout(retire, HANDOFF_MS);
       boot.reveal();
@@ -1022,11 +1024,8 @@ async function main() {
     }
     armDrone();
   }
-  function wakeDrone() {                             // the coin: the film takes the drone over
-    const engine = getEngine();
-    if (!engine) return;
-    if (drone?.state !== 'dormant') drone = newDrone(engine);
-    drone.awaken();
+  function wakeDrone() {                             // the coin: the machine holds its breath
+    if (drone?.state === 'dormant') drone.awaken();
   }
   let savedHum = null;
   try { savedHum = localStorage.getItem(STORE_DRONE); } catch { /* no choice saved */ }

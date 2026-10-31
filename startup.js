@@ -11,8 +11,8 @@
    move with it, as one tired signal (planBreath in lights.js). It returns
    { insert, breath } (breath is for the dormant drone, drone.js).
 
-   insert(sound, { collapseTo }) plays the film. Everything is scheduled at
-   the press on the document timeline, from startup-timing.js:
+   insert(sound) plays the film. Everything is scheduled at the press on the
+   document timeline, from startup-timing.js:
      the coin     the camera pushes in on the coin entry; the coin swings in
                   close to the lens, turns, lines up, sinks, catches and is
                   swallowed (startup-coin.js)
@@ -22,21 +22,21 @@
                   the standby supply drops out: dark
      A            the transformer gathers; a line creeps across the tube, one
                   tube weakly catches; it nearly holds - and dies
-     the dark     nothing at all, one tick inside; the camera leans in
-     B            a deeper relay; it catches and climbs, shuddering; tubes
-                  strike, the raster opens out of the line and rolls to lock
-     C            it locks: ignition swept through the cabinet, then the lit
-                  machine is simply held for a moment
-     D            the tube surges, the camera dives into it, and the picture
-                  squeezes to the line the boot screen strikes from
-                  (collapseTo is that line; without it - boot already seen in
-                  this tab - insert resolves at D and the caller fades out)
+     the dark     nothing at all for 1.8 s, one tick inside; the camera leans in
+     B            a deeper relay; a heartbeat starts in the transformer and
+                  quickens to the opener's tempo (PULSE), the cabinet giving a
+                  small jolt on each beat and a neon letter striking on each;
+                  the raster opens out of the line and rolls to lock
+     the lock     two bars of the machine lit and thumping in tempo, the
+                  bulbs climbing the arch a step per beat
+     the cut      on the last beat insert resolves; the caller cuts to black
+                  and the song begins in the dark (app.js)
    With prefers-reduced-motion the story is told without travel, shake or
    flicker: the coin is taken at the slit and the cabinet fades up.
-   sound is { lift, contact, chute, relay, power, tube, collapse }.
+   sound is { lift, contact, chute, relay, power, tube }.
    ============================================================ */
 import { BREATH, planBreath } from './lights.js';
-import { BEATS, STANDBY } from './startup-timing.js';
+import { BEATS, PULSE, STANDBY } from './startup-timing.js';
 import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
 import { gatherFault, stageFaults, startDormantFaults } from './startup-fault.js';
@@ -49,7 +49,7 @@ const STANDBY_BULBS = [0.28, 0.62, 0.97];                          // the few bu
 const ROBOT_PX = 256;                                              // the phosphor robot is drawn once at this size
 const COIN_ON_SCREEN = 0.145;                                      // the coin at the slit, as a share of the short side
 const SLIT_EM = 1.12;                                              // the slit, down from the top of the coin entry (styles.css)
-const { coinIn, align, descend, contact, gone, credit, relay, attempt, fail, catch: caught, ignite, surge, collapse, end } = BEATS;
+const { coinIn, align, descend, contact, gone, credit, relay, attempt, fail, catch: caught, ignite, end } = BEATS;
 
 const between = (lo, hi) => lo + Math.random() * (hi - lo);
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -293,16 +293,16 @@ export function wakeAttract(attract) {
   const dormant = startDormant(el);
   const faults = startDormantFaults(el.fault, dormant);
 
-  async function insert(sound = {}, { collapseTo = null } = {}) {
+  async function insert(sound = {}) {
     const cue = (name) => { try { sound[name]?.(); } catch (err) { console.warn('[startup]', err); } };
     faults.stop();                         // the dormant contact goes quiet; the film has its own
     attract.classList.add('is-inserting');
     const film = clock(attract);
     film.at(relay + 120, dormant.stop);   // it breathes on while the coin goes in; the relay takes the picture
     cue('lift');
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) stageGently(el, film.at, cue, collapseTo);
-    else stageFilm(el, film.at, cue, collapseTo);
-    await film.until(collapseTo ? end : surge);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) stageGently(el, film.at, cue);
+    else stageFilm(el, film.at, cue);
+    await film.until(end);
   }
 
   // breath: the robot's breathing plan and where in it the screen is now
@@ -384,9 +384,9 @@ function startDormant(el) {
 }
 
 /* ---------------- the film ---------------- */
-function stageFilm(el, at, cue, collapseTo) {
+function stageFilm(el, at, cue) {
   at(relay + 100, () => el.attract.classList.add('is-tube-lit'));   // the picture is a dead line by now: the lit logo waits behind it
-  stageCamera(el, collapseTo);
+  stageCamera(el);
   stageCoin(el);
   stageMechanism(el, at, cue);
   stageRelays(el, at, cue);
@@ -395,15 +395,14 @@ function stageFilm(el, at, cue, collapseTo) {
   stageBulbs(el.bulbs);
   stageIgnition(el, at);
   stageFaults(el.fault);
-  if (collapseTo) stageHandoff(el, at, cue, collapseTo);
 }
 
 /* The camera: in on the coin entry, back out to the whole machine as the
-   coin falls through it, a slow drift while it glows, then into the tube. */
-function stageCamera(el, collapseTo) {
+   coin falls through it, leaning in through the dark, then a slow drift
+   closer through the lock, to the cut. */
+function stageCamera(el) {
   const vw = innerWidth;
   const vh = innerHeight;
-  const centre = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
   const look = (point, s, to) => ({ transform: `translate(${(to.x - s * point.x).toFixed(1)}px, ${(to.y - s * point.y).toFixed(1)}px) scale(${s.toFixed(4)})` });
   const mid = { x: vw / 2, y: vh / 2 };
   const em = parseFloat(getComputedStyle(el.cab).fontSize) || 8;
@@ -411,8 +410,7 @@ function stageCamera(el, collapseTo) {
   const entry = el.mech.getBoundingClientRect();
   const slit = { x: entry.left + entry.width / 2, y: entry.top + SLIT_EM * em };
   const onCoin = { x: vw / 2, y: vh * 0.7 };
-  const last = collapseTo ? collapse : surge;
-  const t = (ms) => ms / last;
+  const t = (ms) => ms / end;
 
   const frames = [
     { offset: 0, ...look(mid, 1, mid), easing: 'cubic-bezier(.16,1,.3,1)' },
@@ -423,34 +421,20 @@ function stageCamera(el, collapseTo) {
     { offset: t(relay - 80), ...look(mid, 1, mid), easing: 'cubic-bezier(.45,0,.55,1)' },
     { offset: t(caught), ...look(mid, 1.012, mid), easing: 'cubic-bezier(.3,0,.25,1)' },     // leaning in, in the dark, waiting
     { offset: t(ignite), ...look(mid, 1.012, mid), easing: 'cubic-bezier(.33,0,.3,1)' },
-    { offset: t(surge), ...look(mid, 1.045, mid), easing: 'cubic-bezier(.62,0,.3,1)' },     // the lit machine, held, drifting closer
+    { offset: 1, ...look(mid, 1.045, mid) },                                                // the lit machine, in tempo, drifting closer
   ];
-  if (collapseTo) {
-    const screen = el.crt.getBoundingClientRect();
-    frames.push({ offset: 1, ...look(centre(screen), Math.max(vw / screen.width, vh / screen.height) * 1.04, mid) });
-  }
-  el.camera.animate(frames, { duration: last, fill: 'forwards' });
+  el.camera.animate(frames, { duration: end, fill: 'forwards' });
   el.spot?.animate([
     { opacity: 0 }, { opacity: 0.86, offset: (coinIn + 600) / relay }, { opacity: 0.86, offset: (gone + 80) / relay }, { opacity: 0 },
   ], { duration: relay, fill: 'forwards', easing: 'ease-in-out' });
 }
 
-/* Heavy things moving: the relays, the transformer's shudder, the lock. */
+/* Heavy things moving: the relays, the heartbeat, the lock. */
 function impulse(target, em, delay, duration = 520) {
   target?.animate([
     { transform: 'translateY(0)' }, { transform: `translateY(${em}em)`, offset: 0.14 }, { transform: `translateY(${-em * 0.34}em)`, offset: 0.38 },
     { transform: `translateY(${em * 0.12}em)`, offset: 0.62 }, { transform: 'translateY(0)' },
   ], { delay, duration, easing: 'ease-out', composite: 'add' });
-}
-
-function shudder(target, delay, duration, amplitude) {
-  const frames = [];
-  for (let i = 0; i <= 28; i++) {
-    const p = i / 28;
-    const a = amplitude * Math.exp(-2.6 * p) * Math.sin(p * duration * 0.082);
-    frames.push({ offset: p, transform: `translate(${a.toFixed(3)}em, ${(a * -0.35).toFixed(3)}em)` });
-  }
-  target?.animate(frames, { delay, duration, easing: 'linear', composite: 'add' });
 }
 
 function stageRelays(el, at, cue) {
@@ -467,26 +451,13 @@ function stageRelays(el, at, cue) {
   });
   impulse(el.cab, 0.07, fail + 360, 600);                 // the power gone, the cabinet settles on its feet
   impulse(el.cab, 0.32, caught, 480);                     // the second relay is the heavier one
-  shudder(el.cab, caught + 100, 1300, 0.17);
-  impulse(el.cab, 0.26, ignite, 460);
-}
-
-/* Phase D: the surge washes the tube out, then the whole view squeezes to
-   the line the boot screen strikes from. */
-function stageHandoff(el, at, cue, line) {
-  at(surge, () => cue('collapse'));
-  el.flash?.animate([{ opacity: 0 }, { opacity: 0.12 }], { delay: collapse - 120, duration: 340, fill: 'forwards', easing: 'ease-in' });
-  const dy = line.y - innerHeight / 2;
-  const sx = clamp(line.width / innerWidth, 0.15, 1);
-  el.world.animate([
-    { transform: 'translateY(0) scale(1, 1)', filter: 'brightness(1)', easing: 'cubic-bezier(.55,0,.9,.45)' },
-    { transform: `translateY(${dy.toFixed(1)}px) scale(1, .014)`, filter: 'brightness(1.25)', offset: 0.62 },
-    { transform: `translateY(${dy.toFixed(1)}px) scale(${sx.toFixed(3)}, .006)`, filter: 'brightness(2.6)' },
-  ], { delay: collapse, duration: end - collapse, fill: 'forwards' });
+  PULSE.heartbeat.forEach((ms, n) => impulse(el.cab, 0.08 + 0.03 * n, ms, 360));   // the heartbeat moves the whole machine, a little more each beat
+  impulse(el.cab, 0.26, ignite, 460);                     // the lock
+  PULSE.lock.slice(1, -1).forEach((ms) => impulse(el.cab, 0.1, ms, 340));       // and it thumps in tempo (the last beat is the cut)
 }
 
 /* ---------------- reduced motion: the same story, gently ---------------- */
-function stageGently(el, at, cue, collapseTo) {
+function stageGently(el, at, cue) {
   const fade = (target, frames, from, to) => target?.animate(frames, { delay: from, duration: to - from, fill: 'forwards', easing: 'ease-in-out' });
   el.hero.style.transform = 'translate(0, 0) scale(.3333)';
   fade(el.hero, [{ opacity: 0 }, { opacity: 1 }], coinIn, align);
@@ -512,5 +483,4 @@ function stageGently(el, at, cue, collapseTo) {
   el.bulbs.forEach(({ el: bulb }) => fade(bulb, [{ opacity: 0 }, { opacity: 1 }], caught, ignite + 400));
   el.pillars.forEach((fill) => fade(fill, [{ transform: 'scaleY(.06)', opacity: 0 }, { transform: 'scaleY(1)', opacity: 1 }], caught, ignite + 400));
   for (const part of [el.halo, el.floor, el.glow, el.doorBloom]) fade(part, [{ opacity: 0 }, { opacity: 0.8 }], caught, ignite + 400);
-  if (collapseTo) fade(el.world, [{ opacity: 1 }, { opacity: 0 }], surge, end);
 }

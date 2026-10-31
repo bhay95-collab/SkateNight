@@ -47,9 +47,8 @@ beat, so line the recording up with the times below (from its own start).
 | `contact.mp3` | The coin's edge meets the slit | about 0.6 s: scrape, slip at 0.3 s, gate at 0.55 s |
 | `chute.mp3` | Swallowed: clinks going deeper inside | about 1.1 s: coin box at 0.67 s |
 | `relay.mp3` | The main relay pulling in | about 1.5 s: the THUNK at the very start |
-| `power.mp3` | Relay to line: hum, the first try dying, catching, the lock | 5.2 s: dies at 0.92 s, second relay at 1.38 s, lock at 2.82 s |
+| `power.mp3` | Relay to the cut: hum, the first try dying, the dark, the heartbeat, the lock's eight beats | 10.2 s: dies at 2.48 s, second relay at 4.28 s, heartbeat from 4.68 s, lock at 7.08 s (446.5 ms a beat), cut at 10.21 s |
 | `tube.mp3` | One neon letter striking (plays many times) | under 0.25 s |
-| `collapse.mp3` | The surge, the dive, the squeeze to a line | 1.1 s: line and thunk at 1.1 s |
 
 The original pack totals about 124 KB. Peaks are deliberately conservative;
 the needle landing and motor are quieter than the coin and switches. The legacy

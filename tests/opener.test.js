@@ -61,9 +61,16 @@ test('wired in: cued at the press, started in the dark, revealed by the song\'s 
   assert.match(read('styles.css'), /\.attract\.is-dark \.attract-world\{ opacity:0;/);
 });
 
-test('the film itself is untouched: the beats, the supply and the dead interval', async () => {
-  const { BEATS } = await import('../startup-timing.js');
-  assert.equal(BEATS.end, 14530, 'the film still ends at 14.53 s');
-  assert.equal(BEATS.fail, 7550);
-  assert.equal(BEATS.catch, 8750);
+test('the film hands over on the grid: it ends on the cut, the song\'s bar 1 five beats later', async () => {
+  const { BEATS, PULSE, BEAT_MS } = await import('../startup-timing.js');
+  assert.equal(BEATS.end, BEATS.cut, 'the film ends on the cut');
+  assert.equal(BEATS.cut, PULSE.lock.at(-1), 'and the cut is the lock\'s last beat');
+  assert.equal(BEATS.fail, 7550, 'the first try is untouched');
+  const app = read('app.js');
+  assert.match(app, /const OPENER_LEAD_MS = \(5 \* OPENER\.beat - OPENER\.bar1\) \* 1000;/);
+  const lead = (5 * OPENER.beat - OPENER.bar1) * 1000;
+  assert.ok(lead > 0, 'the song starts after the cut, in the dark');
+  assert.ok(Math.abs(BEATS.cut + lead + OPENER.bar1 * 1000 - (BEATS.cut + 5 * BEAT_MS)) < 1e-6, 'bar 1 is the fifth beat after the cut');
+  const power = app.slice(app.indexOf('async function powerOn'), app.indexOf('async function startNight'));
+  assert.match(power, /await delay\(OPENER_LEAD_MS\);/, 'the opener waits out the lead in the dark');
 });

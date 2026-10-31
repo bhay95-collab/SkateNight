@@ -27,7 +27,7 @@ export const OPENING_IDS = [
 ];
 
 /* The night's first song when the Awakening starts the music (app.js). It
-   begins in the dark once the machine has collapsed into its screen, and the
+   begins in the dark after the film's cut to black, on the lock's grid, and the
    jukebox is revealed on its bar 2 downbeat - the home chord - one complete
    bar after the steady groove begins. Measured from the file and confirmed by
    ear: a free first hit at 0.207 s, then 134.4 BPM (0.4465 s a beat) from bar 1

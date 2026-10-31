@@ -6,21 +6,22 @@
    sign, the tube, the lamps, the chrome's reflections and the room's light
    together - and sound.js sags the transformer hum on the same curve.
    On top of that, authored beats: the tube's line in the first attempt, the
-   raster opening out of it, neon tubes striking one by one, and at ignition
-   a sweep through the cabinet (dead tubes catch, bulbs climb the arch, the
-   logo lights, gold blooms round the coin door, light glints across chrome).
+   raster opening out of it, a neon letter striking on each beat of the
+   second try's heartbeat (PULSE), and at the lock the dead tubes catch, the
+   bulbs climb the arch a step per beat, the logo lights, gold blooms round
+   the coin door, and light glints across the chrome.
 
    Every animation is created at the press with a delay, on the document
    timeline, so nothing drifts from anything else.
    ============================================================ */
-import { BEATS, STANDBY, supplyAt } from './startup-timing.js';
+import { BEATS, PULSE, STANDBY, supplyAt } from './startup-timing.js';
 
 const STEP_MS = 30;
 const STANDBY_EMBER = 0.25;                           // the few bulbs that warm first: an ember, not a glow
 const OFF = 0.12;                                     // an unlit neon tube: just the glass
 const STRIKE_ORDER = [0, 5, 2, 9, 3, 6, 1, 8, 4, 7];  // the order the letters catch in phase B
-const STRUGGLING = new Set([2, 6]);                   // these two catch, drop, then hold
-const { relay, attempt, almost, fail, catch: caught, ignite, surge, end } = BEATS;
+const STRUGGLING = new Set([2]);                      // this one catches, drops, then holds
+const { relay, attempt, almost, fail, catch: caught, ignite, end } = BEATS;
 
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
 const span = (from, to) => ({ delay: from, duration: to - from, fill: 'forwards' });
@@ -100,15 +101,14 @@ function strikeSteps(t, struggle) {
     : [[t, OFF], [t + 25, 0.9], [t + 70, 0.45], [t + 110, 1]];
 }
 
-/* When each tube catches: live ones through phase B (quicker as the supply
-   builds), the dead ones last, at ignition. The first tube tries in phase A. */
+/* When each tube catches: one live letter on each beat of the second try's
+   heartbeat, the rest on the first beats of the lock, the dead ones last, on
+   the lock itself. The first tube tries in phase A. */
 export function tubeSchedule(count, dead) {
   const live = STRIKE_ORDER.filter((i) => i < count && !dead.has(i));
+  const beats = [...PULSE.heartbeat, ...PULSE.lock.slice(1)];
   const times = new Map();
-  live.forEach((i, n) => {
-    const at = caught + 300 + 1500 * Math.pow(n / Math.max(1, live.length - 1), 0.8);   // one, then another, then quicker
-    times.set(i, { at: Math.round(at), struggle: STRUGGLING.has(i) });
-  });
+  live.forEach((i, n) => times.set(i, { at: Math.round(beats[Math.min(n, beats.length - 1)]), struggle: STRUGGLING.has(i) }));
   [...dead].forEach((i, n) => times.set(i, { at: ignite + 70 * n, struggle: false }));
   return times;
 }
@@ -135,7 +135,7 @@ export function stageTubes(tubes, dead, at, cue) {
 /* ---------------- the picture tube ---------------- */
 export function stageTube(el) {
   // The raster: it falls in to a line when the relay cuts the standby supply,
-  // opens out of the line in phase B, rolls, and locks; at the surge it tears.
+  // opens out of the line in phase B, rolls, and locks.
   const raster = [
     [relay, 0, 1], [relay + 70, 0, 0.004], [caught + 450, 0, 0.004], [caught + 640, 0, 0.09],
     [caught + 1150, -16, 1], [caught + 1400, 7, 1], [caught + 1620, -3, 1], [caught + 1900, 1, 1], [ignite, 0, 1], [end, 0, 1],
@@ -146,10 +146,6 @@ export function stageTube(el) {
   el.picture?.animate(raster.map(([ms, y, sy]) => ({
     offset: (ms - relay) / (end - relay), transform: `translateY(${y}%) scaleY(${sy})`, opacity: sy < 0.01 ? 0 : 1, easing: 'ease-out',
   })), { ...span(relay, end), easing: 'linear' });   // eased step by step: an eased whole would bend every beat out of place
-  el.picture?.animate([
-    { transform: 'translateX(0) skewX(0deg)' }, { transform: 'translateX(-.8%) skewX(-1.4deg)', offset: 0.3 },
-    { transform: 'translateX(.5%) skewX(.9deg)', offset: 0.6 }, { transform: 'translateX(0) skewX(0deg)' },
-  ], { delay: surge + 80, duration: 420, composite: 'add', easing: 'ease-in-out' });
   followSupply(el.picture, RESPONSE.picture);
   followSupply(el.grain, RESPONSE.static);           // a dead tube shows no snow: the static needs the supply too
 
@@ -170,8 +166,9 @@ export function stageTube(el) {
 
 /* ---------------- ignition: swept through the cabinet ---------------- */
 export function stageBulbs(bulbs) {
+  const climb = PULSE.lock.slice(0, 6);                 // from the foot of the arch up to its crown, a step on each beat of the lock
   bulbs.forEach(({ el, rise, standby }) => {
-    const on = ignite + 60 + Math.round(900 * rise);   // from the foot of the arch up to its crown
+    const on = Math.round(climb[Math.min(climb.length - 1, Math.floor(rise * climb.length))]);
     const points = [];
     for (let ms = relay - STEP_MS; ms < on; ms += STEP_MS) points.push([ms, standby ? ember(supplyAt(ms)) : 0]);
     points.push([on, standby ? 0.5 : 0], [on + 90, 1], [end, 1]);
