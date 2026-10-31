@@ -39,7 +39,7 @@ import { breathLevelAt, breathTroubles } from './lights.js';
 
 export const DRONE = {
   root: 38.89,         // E-flat 1
-  level: 1.2,          // the whole drone, before the Effects fader (measured: see tests/drone.test.js)
+  level: 0.34,         // the whole drone, before the Effects fader: about 17 dB under the opener at equal faders
   fadeInS: 3,          // barely there at first, then it rises (and the operator hears it has armed)
   fadeOutS: 1.6,
   stepS: 0.1,          // how finely the breath is drawn onto the audio parameters

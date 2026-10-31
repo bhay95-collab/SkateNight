@@ -323,7 +323,8 @@ record changer and the readouts carry the show; the world around it stays dim.
     phase, re-read every second, the sound a fifth of a second behind the
     light): brighter robot, more harmonics through the filter, less hiss;
     a falter sags its pitch and ticks a contact; a rolling band sweeps the
-    hiss. Measured dormant: about -29 LUFS, 15 dB under the lit machine.
+    hiss. Measured dormant: about 17 dB under the opener at equal faders
+    (about -42 LUFS at 70/70), 9 dB under the lit machine's lock.
     The operator arms it before the night (Alt+Shift+D, or open the site
     with ?hum and the first press arms it instead of the coin; remembered); unarmed
     the dormant screen is silent and stays so at the touch. At the press
@@ -503,10 +504,13 @@ in headless Chromium (one run): the cut to black lands with the last lock
 beat and the song's first hit came within 20 ms of the grid; the dark
 between is silent (-90 LUFS). The song starts through a media element, which
 is not sample-accurate, so the hand-over is checked by ear on the venue
-laptop; the reveal itself follows the song's clock, so it stays on bar 2. Level: the lock
-(about -15 LUFS) is about 10 dB above the song at the default faders (about
--26 LUFS), the same balance as the old lit hold (-16 LUFS); setting the
-film against the song is a venue decision for the faders or a later trim.
+laptop; the reveal itself follows the song's clock, so it stays on bar 2. Level, as Sketch A: the song is the payoff, so it is the loudest thing.
+Measured in Chromium at equal Music and Effects faders (70/70), against
+the opener (about -25 LUFS over its first 8 s from the reveal): dormant
+drone about -17 dB, the coin -20, the first try -15, the heartbeat -11,
+the lock -8 (`FILM_BOOST` in sound.js, `DRONE.level`). The heartbeat swells
+from 30% into the lock's full weight. Before this, the film ran 10 dB above
+the song and into the limiter.
 Next stages (not built): character and scale (the robot lights first, a
 small coin with a long fall, a low hero angle), then removing ornament.
 

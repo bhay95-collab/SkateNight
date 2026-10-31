@@ -73,11 +73,12 @@ const MIX = {
   power: { gain: 0.95, variation: 0 },
   tube: { gain: 0.70, variation: 0.05 },
 };
-/* The film's live models are drawn quietly (their partials stack), so they
-   are raised to sit at music level: measured at the 70% Effects fader they
-   were 18-20 dB under a typical track. A custom MP3 keeps its own level; the
-   Effects fader and the limiter still apply. */
-const FILM_BOOST = { lift: 12, contact: 12, chute: 10, relay: 7, power: 8, tube: 8 };
+/* The film's live models, set against the music (Sketch A): the song is the
+   payoff, so it is the loudest thing. Measured at equal Music and Effects
+   faders, against the opener: the coin about 20 dB under it, the first try
+   15, the heartbeat 12, the lock 8 (DESIGN.md). A custom MP3 keeps its own
+   level; the Effects fader and the limiter still apply. */
+const FILM_BOOST = { lift: 1.27, contact: 1.27, chute: 1.06, relay: 1.08, power: 1.09, tube: 0.55 };
 const activeVoices = new Map();
 const RELEASE_SECONDS = 0.014;
 
@@ -506,15 +507,15 @@ export const sfx = {
     thump(voice, { freq: 2400, dur: 0.006, peak: 0.035, at: tick });
     ring(voice, { freq: 1320, at: tick, peak: 0.006, decay: 0.25 });
     const relay2 = fromRelay(BEATS.catch);                                                                    // B: the deeper, heavier relay
-    thump(voice, { freq: 1100, dur: 0.02, peak: 0.15, at: relay2 });
-    thump(voice, { freq: 300, dur: 0.07, peak: 0.16, at: relay2 + 0.004 });
-    thump(voice, { freq: 55, dur: 0.5, peak: 0.28, at: relay2 + 0.01 });
-    tone(voice, { freq: 52, to: 36, dur: 0.5, peak: 0.16, at: relay2 });
+    thump(voice, { freq: 1100, dur: 0.02, peak: 0.1, at: relay2 });
+    thump(voice, { freq: 300, dur: 0.07, peak: 0.1, at: relay2 + 0.004 });
+    thump(voice, { freq: 55, dur: 0.5, peak: 0.2, at: relay2 + 0.01 });
+    tone(voice, { freq: 52, to: 36, dur: 0.5, peak: 0.11, at: relay2 });
     ring(voice, { freq: 160, at: relay2 + 0.01, peak: 0.028, decay: 1.6 });
     const degauss = fromRelay(BEATS.catch + 640);
-    held(voice, { freq: EB2, type: 'sawtooth', filterHz: 360, points: [[degauss, 0], [degauss + 0.06, 0.1], [degauss + 0.2, 0.03],
-      [degauss + 0.36, 0.08], [degauss + 0.56, 0.02], [degauss + 0.76, 0.045], [degauss + 1.3, 0]] });
-    thump(voice, { freq: 150, dur: 0.35, peak: 0.14, at: degauss + 0.02 });
+    held(voice, { freq: EB2, type: 'sawtooth', filterHz: 360, points: [[degauss, 0], [degauss + 0.06, 0.06], [degauss + 0.2, 0.018],
+      [degauss + 0.36, 0.048], [degauss + 0.56, 0.012], [degauss + 0.76, 0.027], [degauss + 1.3, 0]] });
+    thump(voice, { freq: 150, dur: 0.35, peak: 0.09, at: degauss + 0.02 });
     crackle(voice);
     held(voice, { freq: 7800, points: [[degauss, 0], [fromRelay(BEATS.catch + 900), 0.004], [CUT_S, 0.003], [CUT_S + 0.03, 0]] });
     // The heartbeat: a body that sags in pitch as it rings, a sub, a contact.
@@ -523,10 +524,10 @@ export const sfx = {
     const beats = [...PULSE.heartbeat, ...PULSE.lock];
     beats.forEach((ms, n) => {
       const at = fromRelay(ms);
-      const k = Math.min(1, n / PULSE.heartbeat.length);
-      tone(voice, { freq: EB2 * 1.55, to: EB2, at, dur: 0.16, peak: 0.05 + 0.04 * k });
-      tone(voice, { freq: EB1, to: EB1 * 0.92, at, dur: 0.32, peak: 0.06 + 0.05 * k });
-      thump(voice, { freq: 2200, dur: 0.006, peak: 0.015 + 0.02 * k, at });
+      const k = n < PULSE.heartbeat.length ? 0.3 + 0.4 * (n / PULSE.heartbeat.length) : 1;   // the heartbeat swells into the lock
+      tone(voice, { freq: EB2 * 1.55, to: EB2, at, dur: 0.16, peak: 0.09 * k });
+      tone(voice, { freq: EB1, to: EB1 * 0.92, at, dur: 0.32, peak: 0.11 * k });
+      thump(voice, { freq: 2200, dur: 0.006, peak: 0.035 * k, at });
     });
     const lock = fromRelay(BEATS.ignite);                                                                    // it locks: the first beat of the lock
     thump(voice, { freq: 60, dur: 0.45, peak: 0.26, at: lock });
