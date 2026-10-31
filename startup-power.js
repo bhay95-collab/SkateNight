@@ -81,18 +81,55 @@ export const RESPONSE = {
 /* The few bulbs still warm on standby: cold in the dark, an ember once the supply climbs past it. */
 const ember = (v) => STANDBY_EMBER * v * clamp((v - STANDBY) / 0.35);
 
+/* Sampled keyframes, thinned: every sample a straight line between the
+   kept samples either side already reproduces (to within 0.4%, below what
+   any projector shows) is dropped. The film is sampled every 30 ms; handed
+   to the browser whole, that was ~15,000 keyframes built in one go at the
+   press - the hitch as the coin came up. Samples whose CSS changes shape
+   (a filter gaining a drop-shadow) are always kept. */
+const NUMBERS = /-?\d*\.?\d+(?:e-?\d+)?/g;
+export function thin(frames, eps = 0.004) {
+  if (frames.length < 3) return frames;
+  const shape = (f) => Object.keys(f).filter((k) => k !== 'offset' && k !== 'easing').map((k) => `${k}:${String(f[k]).replace(NUMBERS, '#')}`).join(';');
+  const nums = frames.map((f) => Object.keys(f).filter((k) => k !== 'offset' && k !== 'easing').flatMap((k) => String(f[k]).match(NUMBERS)?.map(Number) ?? []));
+  const shapes = frames.map(shape);
+  const keep = new Uint8Array(frames.length);
+  keep[0] = keep[frames.length - 1] = 1;
+  const stack = [[0, frames.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    let worst = 0;
+    let at = -1;
+    const span = frames[b].offset - frames[a].offset || 1;
+    for (let i = a + 1; i < b; i++) {
+      let d = 0;
+      if (shapes[i] !== shapes[a] || shapes[i] !== shapes[b]) d = Infinity;
+      else {
+        const t = (frames[i].offset - frames[a].offset) / span;
+        for (let j = 0; j < nums[i].length; j++) {
+          const line = nums[a][j] + (nums[b][j] - nums[a][j]) * t;
+          d = Math.max(d, Math.abs(nums[i][j] - line) / (1 + Math.abs(line)));
+        }
+      }
+      if (d > worst) { worst = d; at = i; }
+    }
+    if (worst > eps) { keep[at] = 1; stack.push([a, at], [at, b]); }
+  }
+  return frames.filter((_, i) => keep[i]);
+}
+
 /* Keyframes that follow the supply through map(v, ms), from the relay on. */
 export function followSupply(target, map, from = relay - STEP_MS, to = end) {
   if (!target) return null;
   const frames = [];
   for (let ms = from; ms < to; ms += STEP_MS) frames.push({ offset: (ms - from) / (to - from), ...map(supplyAt(ms), ms) });
   frames.push({ offset: 1, ...map(supplyAt(to), to) });
-  return target.animate(frames, { ...span(from, to), easing: 'linear' });
+  return target.animate(thin(frames), { ...span(from, to), easing: 'linear' });
 }
 
 /* [ms, value] points -> keyframes over [from, to]. */
 function track(points, from, to, prop) {
-  return points.map(([ms, value]) => ({ offset: clamp((ms - from) / (to - from)), [prop]: value }));
+  return thin(points.map(([ms, value]) => ({ offset: clamp((ms - from) / (to - from)), [prop]: value })));
 }
 
 /* ---------------- the neon tubes ---------------- */

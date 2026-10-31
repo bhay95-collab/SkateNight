@@ -18,6 +18,7 @@
    once the robot has been drawn (styles.css).
    ============================================================ */
 import { BEATS, supplyAt } from './startup-timing.js';
+import { thin } from './startup-power.js';
 
 const { look, coinIn, gone, relay, attempt, fail, catch: caught, ignite, end } = BEATS;
 const STEP_MS = 30;
@@ -72,7 +73,7 @@ export function stageRobot(el, at) {
     frames.push({ offset: (ms - relay - 100) / (end - relay - 100), opacity: Math.min(1, l), filter: `brightness(${Math.max(1, l).toFixed(3)})` });
   }
   frames.push({ offset: 1, opacity: 1, filter: `brightness(${robotLevelAt(end).toFixed(3)})` });
-  holder.animate(frames, { ...span(relay + 100, end), easing: 'linear' });
+  holder.animate(thin(frames), { ...span(relay + 100, end), easing: 'linear' });
   at(relay + 100, () => {
     eyes.forEach((eye) => eye.remove());
     nod.cancel();

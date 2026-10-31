@@ -94,28 +94,41 @@ let hall = null;
 function interior(ctx, bus) {
   if (hall?.ctx === ctx) return hall.input;
   if (!ctx.createConvolver) return null;
-  const rate = ctx.sampleRate;
-  const n = Math.ceil(rate * HALL.seconds);
-  const ir = ctx.createBuffer(2, n, rate);
-  for (let c = 0; c < 2; c++) {
-    const d = ir.getChannelData(c);
-    let low = 0;
-    for (let i = 0; i < n; i++) {
-      const t = i / rate;
-      if (t < HALL.predelay) continue;
-      const k = 0.08 + 0.75 * Math.exp(-t / 0.5);             // brighter early, darker as it dies
-      low += k * (Math.random() * 2 - 1 - low);
-      d[i] = low * Math.exp((-6.9 * t) / HALL.rt60) * Math.min(1, (t - HALL.predelay) / 0.03);
-    }
-  }
   const input = ctx.createGain();
   const conv = ctx.createConvolver();
-  conv.buffer = ir;                                            // normalised by the browser
   const out = ctx.createGain();
   out.gain.value = HALL.level;
   input.connect(conv).connect(out).connect(bus);
   hall = { ctx, input };
+  // The first wet sound is over a second after the press (the coin's ring):
+  // fill the hall just after the press's own work, not during it.
+  setTimeout(() => { conv.buffer = impulse(ctx); }, 0);   // normalised by the browser
   return input;
+}
+
+function impulse(ctx) {
+  const rate = ctx.sampleRate;
+  const n = Math.ceil(rate * HALL.seconds);
+  const ir = ctx.createBuffer(2, n, rate);
+  // Kept cheap (it is built just after the press): the decays are carried
+  // sample to sample by multiplication rather than computed with exp() each time.
+  const start = Math.ceil(HALL.predelay * rate);
+  const ramp = 0.03 * rate;
+  const fade = Math.exp(-6.9 / HALL.rt60 / rate);
+  const darken = Math.exp(-1 / (0.5 * rate));
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    let low = 0;
+    let level = Math.exp((-6.9 * HALL.predelay) / HALL.rt60);
+    let bright = 0.75 * Math.exp(-HALL.predelay / 0.5);
+    for (let i = start; i < n; i++) {
+      low += (0.08 + bright) * (Math.random() * 2 - 1 - low);   // brighter early, darker as it dies
+      d[i] = low * level * Math.min(1, (i - start) / ramp);
+      level *= fade;
+      bright *= darken;
+    }
+  }
+  return ir;
 }
 
 /* One voice per action. Fast presses still respond immediately, but the old

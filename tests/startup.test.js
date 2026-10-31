@@ -181,3 +181,17 @@ test('the camera: still at the press, the low hero angle held still through the 
   assert.match(js, /const HERO = \{ scale: 1\.16, tubeAt: 0\.37, footAt: 0\.83, tilt: 6 \}/);
 });
 
+
+test('the press stays light: sampled keyframes are thinned to what the eye can see, shape changes kept', async () => {
+  const { thin } = await import('../startup-power.js');
+  const frames = Array.from({ length: 301 }, (_, i) => ({ offset: i / 300, opacity: Math.min(1, i / 150) }));
+  const kept = thin(frames);
+  assert.ok(kept.length <= 4, `a ramp and a hold need only their corners (${kept.length})`);
+  const at = (o) => { const i = kept.findIndex((f) => f.offset >= o); const a = kept[i - 1] ?? kept[0]; const b = kept[i]; return a === b ? a.opacity : a.opacity + (b.opacity - a.opacity) * (o - a.offset) / (b.offset - a.offset); };
+  assert.ok(frames.every((f) => Math.abs(at(f.offset) - f.opacity) < 0.005), 'and nothing visible is lost');
+  const curve = Array.from({ length: 201 }, (_, i) => ({ offset: i / 200, filter: `brightness(${(Math.sin(i / 20) * 0.5 + 0.6).toFixed(3)})` }));
+  const c = thin(curve);
+  assert.ok(c.length < curve.length / 2 && c.length > 10, `a curve keeps enough points (${c.length})`);
+  const shaped = [{ offset: 0, filter: 'brightness(1)' }, { offset: 0.5, filter: 'brightness(1) drop-shadow(2px 0 0 red)' }, { offset: 1, filter: 'brightness(1)' }];
+  assert.equal(thin(shaped).length, 3, 'a sample whose CSS changes shape is always kept');
+});

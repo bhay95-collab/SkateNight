@@ -29,6 +29,7 @@
    reduced motion.
    ============================================================ */
 import { BEATS, PULSE, supplyAt } from './startup-timing.js';
+import { thin } from './startup-power.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const STEP_MS = 30;
@@ -209,7 +210,7 @@ export function stageInside(inside) {
     const frames = [];
     for (let ms = from; ms < to; ms += STEP_MS) frames.push({ offset: (ms - from) / (to - from), ...map(ms) });
     frames.push({ offset: 1, ...map(to) });
-    return frames;
+    return thin(frames);
   };
 
   // the dive: black rises through the slit; out again through the screen
