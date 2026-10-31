@@ -76,6 +76,7 @@ export function stageRobot(el, at) {
   at(relay + 100, () => {
     eyes.forEach((eye) => eye.remove());
     nod.cancel();
+    holder.style.opacity = '0';                  // dark until its level takes over, even for a frame
     holder.parentElement?.after(holder);
     holder.classList.add('is-free');
   });

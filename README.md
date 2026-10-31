@@ -379,6 +379,11 @@ waiting screen is silent, as browsers require. Either way, when someone
 touches the machine the hum stops dead - it holds its breath - and the
 film's own power-up takes over. It follows the EFFECTS volume.
 
+To compare the opening with and without its old decoration (the coin's
+spin and shine, falling dust, chrome glints, flickering dead neon letters),
+open the site with **?ornament=all** on the end of the address; without it
+they are left out. You can combine it with the hum: `?hum&ornament=all`.
+
 ### Keyboard
 
 | Key | Does |

@@ -1,9 +1,9 @@
 /* ============================================================
    STARTUP COIN - the key, filmed small.
 
-   The coin is a real disc: two struck faces, a reeded edge of stacked
-   discs, a specular band that moves as it turns. It is never the hero: it
-   rises small into the slot lamp's light, turns its face to the light,
+   The coin is a struck, worn disc, face-on (its turn to the light, reeded
+   edge and moving shine are ornament, ornament.js). It is never the hero: it
+   rises small into the slot lamp's light,
    sinks to the door - its shadow tightening on the entry's top, the lamp
    warming its lower edge - meets the slit and catches; the gate gives a
    fraction; it wobbles on its edge; then gravity has it and the throat
@@ -19,6 +19,7 @@
    ============================================================ */
 import { BEATS, CHUTE_CLINKS_MS, STANDBY } from './startup-timing.js';
 import { RESPONSE } from './startup-power.js';
+import { ORNAMENT } from './ornament.js';
 
 const EDGE_LAYERS = 14;
 const AT_SLOT = 1 / 3;              // the coin is drawn at its biggest; this is its size at the door
@@ -83,12 +84,13 @@ function tumble() {
 export function stageCoin(el) {
   const total = { duration: gone, fill: 'forwards' };
   el.hero.animate(flight(), total);
-  el.spin.animate(tumble(), total);
-  // light crossing the face once, as it hangs in the lamp's light
-  const band = (x) => ({ transform: `translateX(${x}%)` });           // -100% before the face, 33.3% past it
-  el.shine.animate([
-    { offset: 0, ...band(-100) }, { offset: at(align - 100), ...band(-100) }, { offset: at(descend + 100), ...band(33.3) }, { offset: 1, ...band(33.3) },
-  ], { ...total, easing: 'ease-in-out' });
+  if (ORNAMENT.has('spin')) {          // ornament: the turn to the light, and light crossing the face once as it hangs
+    el.spin.animate(tumble(), total);
+    const band = (x) => ({ transform: `translateX(${x}%)` });         // -100% before the face, 33.3% past it
+    el.shine.animate([
+      { offset: 0, ...band(-100) }, { offset: at(align - 100), ...band(-100) }, { offset: at(descend + 100), ...band(33.3) }, { offset: 1, ...band(33.3) },
+    ], { ...total, easing: 'ease-in-out' });
+  }
   // the 25 faces the light from the start (the robot side never turns to us)
   el.spin.querySelector('.hero-front')?.animate([{ opacity: 1 }, { opacity: 1 }], total);
   el.spin.querySelector('.hero-back')?.animate([{ opacity: 0 }, { opacity: 0 }], total);

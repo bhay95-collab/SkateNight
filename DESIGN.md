@@ -394,10 +394,10 @@ record changer and the readouts carry the show; the world around it stays dim.
   1. the look and the coin (0.7-3.1 s, `lift`, `contact`): the robot's eyes
      brighten and drop toward the slot; the slot lamp stutters and catches,
      and the camera follows that look - a slow push down to the coin door,
-     settling a little past and back. A small coin (a struck, worn 3D disc,
+     settling a little past and back. A small coin (a struck, worn disc, face-on,
      about a tenth of the screen's short side at the slit) rises into the
-     lamp's light, turns its face to it - its rim rings, and the ring hangs in
-     the air as if the room were far bigger - sinks, catches on the slit, is
+     lamp's light - its rim rings, and the ring hangs in the air as if the
+     room were far bigger - sinks, catches on the slit, is
      pressed against it for a moment, and the gate gives. The entry clips
      everything below the slit, so it really goes IN;
   2. the fall (3.1-5.15 s, `chute`): the lamp dies as the coin passes; the
@@ -409,7 +409,7 @@ record changer and the readouts carry the show; the world around it stays dim.
      machine big (an interior: one generated hall in `sound.js` that the
      ring, the clinks, the coin box, the relays and the tick send into);
   3. the relay (5.45 s, `relay`, `power`): THUNK - the cabinet jolts, the sign
-     rattles on its brackets a beat later, dust shakes off the arch, and the
+     rattles on its brackets a beat later, and the
      standby supply drops out: dark. The collapsing picture takes the robot;
      it is lifted off the picture, still dark, to come back on its own;
   4. A, the first attempt (5.95-7.93 s): the transformer gathers itself (a low
@@ -431,7 +431,8 @@ record changer and the readouts carry the show; the world around it stays dim.
      low E-flat thump, a neon letter striking, a small kick through the
      relays. Its next beat is the lock;
   7. C, the lock (12.53 s): the supply locks with a bright accent and
-     overshoot; the robot flares and settles, the dead tubes catch, gold
+     overshoot; the robot flares and settles, the rest of the sign catches in
+     one quick ripple (60 ms a letter) so the name is whole, gold
      blooms round the coin door, and for two bars (`LOCK_BEATS`, 8 beats in
      tempo) the machine thumps in time while the bulbs climb the arch a group
      a beat. The camera is low and still: the machine towers, the arch's
@@ -527,8 +528,15 @@ the song and into the limiter.
 Character and scale (built): the hum stops at the press, the robot looks
 toward the slot and lights first on the second try, a small coin with a long
 fall into an interior, the tilt up the machine and the low hero angle.
-Next (not built): removing ornament - the coin's spin and shine, dust,
-glints and the surplus neon struggle, each A/B tested.
+Ornament removed (`ornament.js`): the coin's turn and moving shine (it
+stays face-on, its edge not even built), the dust shaken off the arch at
+the relay, the two glints across the chrome at the lock, and the surplus
+neon struggle (the letter that caught, dropped and caught again, and the two
+dead letters that waited for the lock). Each comes back for an A/B
+comparison from the address - `?ornament=all`, or a list such as
+`?ornament=spin,neon` (spin, dust, glints, neon); anything nobody misses
+stays out. The heartbeat's one letter a beat stays, and phase A's one weak
+letter, which is part of the failure.
 
 ## One window: the installed app
 

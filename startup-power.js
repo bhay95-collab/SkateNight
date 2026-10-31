@@ -15,12 +15,13 @@
    timeline, so nothing drifts from anything else.
    ============================================================ */
 import { BEATS, PULSE, ROBOT_FIRST_MS, STANDBY, supplyAt } from './startup-timing.js';
+import { ORNAMENT } from './ornament.js';
 
 const STEP_MS = 30;
 const STANDBY_EMBER = 0.25;                           // the few bulbs that warm first: an ember, not a glow
 const OFF = 0.12;                                     // an unlit neon tube: just the glass
 const STRIKE_ORDER = [0, 5, 2, 9, 3, 6, 1, 8, 4, 7];  // the order the letters catch in phase B
-const STRUGGLING = new Set([2]);                      // this one catches, drops, then holds
+const STRUGGLING = new Set(ORNAMENT.has('neon') ? [2] : []);   // ornament: this one catches, drops, then holds
 const { relay, attempt, almost, fail, catch: caught, ignite, end } = BEATS;
 
 const clamp = (v, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
@@ -102,14 +103,19 @@ function strikeSteps(t, struggle) {
 }
 
 /* When each tube catches: one live letter on each beat of the second try's
-   heartbeat, the rest on the first beats of the lock, the dead ones last, on
-   the lock itself. The first tube tries in phase A. */
+   heartbeat, then on the lock the rest of the sign catches in one quick
+   ripple (RIPPLE_MS apart), so the name is whole for the two bars; dead
+   letters (ornament) last. The first tube tries in phase A. */
+const RIPPLE_MS = 60;
 export function tubeSchedule(count, dead) {
   const live = STRIKE_ORDER.filter((i) => i < count && !dead.has(i));
-  const beats = [...PULSE.heartbeat, ...PULSE.lock.slice(1)];
+  const beat = PULSE.heartbeat.length;
   const times = new Map();
-  live.forEach((i, n) => times.set(i, { at: Math.round(beats[Math.min(n, beats.length - 1)]), struggle: STRUGGLING.has(i) }));
-  [...dead].forEach((i, n) => times.set(i, { at: ignite + 70 * n, struggle: false }));
+  live.forEach((i, n) => times.set(i, {
+    at: Math.round(n < beat ? PULSE.heartbeat[n] : ignite + RIPPLE_MS * (n - beat)), struggle: STRUGGLING.has(i),
+  }));
+  const after = Math.max(0, live.length - beat);
+  [...dead].forEach((i, n) => times.set(i, { at: ignite + RIPPLE_MS * (after + n), struggle: false }));
   return times;
 }
 
@@ -191,9 +197,11 @@ export function stageIgnition(el, at) {
   ], { delay: ignite, duration: 1500, easing: 'cubic-bezier(.23,1,.32,1)' });
   el.doorBloom?.animate([{ opacity: 0 }, { opacity: 1, offset: 0.25 }, { opacity: 0.55 }],
     { ...span(ignite + 200, ignite + 1100), easing: 'ease-out' });
-  const sweep = [{ transform: 'translateX(-120%) skewX(-18deg)' }, { transform: 'translateX(520%) skewX(-18deg)' }];
-  el.glint?.animate(sweep, { delay: ignite + 250, duration: 900, easing: 'cubic-bezier(.45,0,.25,1)' });
-  el.glint?.animate(sweep, { delay: ignite + 1350, duration: 1500, easing: 'cubic-bezier(.45,0,.25,1)' });   // the hero moment: light lingering on the chrome
+  if (ORNAMENT.has('glints')) {
+    const sweep = [{ transform: 'translateX(-120%) skewX(-18deg)' }, { transform: 'translateX(520%) skewX(-18deg)' }];
+    el.glint?.animate(sweep, { delay: ignite + 250, duration: 900, easing: 'cubic-bezier(.45,0,.25,1)' });
+    el.glint?.animate(sweep, { delay: ignite + 1350, duration: 1500, easing: 'cubic-bezier(.45,0,.25,1)' });   // the hero moment: light lingering on the chrome
+  }
   for (const [part, map] of [[el.sign, RESPONSE.sign], [el.door, RESPONSE.door], [el.arch, RESPONSE.chrome],
     [el.lamp, RESPONSE.lamp], [el.halo, RESPONSE.room], [el.floor, RESPONSE.room], [el.glow, RESPONSE.room],
     [el.body, RESPONSE.body], ...el.tubeCases.map((c) => [c, RESPONSE.body]), [el.spill, RESPONSE.spill]]) followSupply(part, map);

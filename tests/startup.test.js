@@ -4,16 +4,20 @@ import { readFileSync } from 'node:fs';
 import { BEATS, BEAT_MS, CHUTE_CLINKS_MS, LOCK_BEATS, PULSE, STANDBY, supplyAt } from '../startup-timing.js';
 import { RESPONSE, tubeSchedule } from '../startup-power.js';
 
-test('the neon letters strike on the pulse, one a beat, and the dead ones last, at the lock', () => {
-  const dead = new Set([3, 8]);
-  const plan = tubeSchedule(10, dead);
-  const beats = new Set([...PULSE.heartbeat, ...PULSE.lock.slice(1)].map(Math.round));
-  assert.equal(plan.size, 10, 'every tube strikes');
-  const live = [...plan].filter(([i]) => !dead.has(i)).map(([, { at }]) => at);
-  for (const at of live) assert.ok(beats.has(at), `a live letter strikes on a beat (${at})`);
-  assert.equal(new Set(live).size, live.length, 'one letter a beat, never two at once');
-  for (const i of dead) assert.ok(plan.get(i).at >= BEATS.ignite && plan.get(i).at < BEATS.cut, `dead tube ${i} catches only when the supply locks`);
+test('the neon letters strike on the heartbeat, one a beat; the lock completes the sign in one ripple', () => {
+  for (const dead of [new Set(), new Set([3, 8])]) {
+    const plan = tubeSchedule(10, dead);
+    assert.equal(plan.size, 10, 'every tube strikes');
+    const live = [...plan].filter(([i]) => !dead.has(i)).map(([, { at }]) => at).sort((a, b) => a - b);
+    const beats = PULSE.heartbeat.map(Math.round);
+    assert.deepEqual(live.slice(0, beats.length), beats, 'one letter on each heartbeat');
+    const rest = [...live.slice(beats.length), ...[...dead].map((i) => plan.get(i).at)];
+    assert.ok(rest.every((at) => at >= BEATS.ignite && at <= BEATS.ignite + 600), 'the rest catch as the lock lands');
+    assert.ok(Math.max(...plan.values().map(({ at }) => at)) < PULSE.lock[2], 'the name is whole before the lock is two beats old');
+    for (const i of dead) assert.ok(plan.get(i).at >= Math.max(...live), `dead tube ${i} catches last`);
+  }
 });
+
 
 /* brightness and saturate out of a CSS filter, e.g. "brightness(.55) saturate(.55)". */
 const levels = (filter) => ['brightness', 'saturate'].map((fn) => Number(filter.match(new RegExp(`${fn}\\(([\\d.]+)\\)`))?.[1] ?? 1));

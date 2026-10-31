@@ -20,7 +20,7 @@
                   (startup-coin.js)
      the fall     clinks falling far inside, the coin box, 1 CREDIT; the
                   camera tilts up the machine to the tube
-     the relay    THUNK - the cabinet jolts, dust shakes off the arch, and
+     the relay    THUNK - the cabinet jolts and
                   the standby supply drops out: dark
      A            the transformer gathers; a line creeps across the tube, one
                   tube weakly catches; it nearly holds - and dies
@@ -45,6 +45,7 @@ import { buildCoinEdge, stageCoin, stageMechanism } from './startup-coin.js';
 import { RESPONSE, stageBulbs, stageIgnition, stageTube, stageTubes } from './startup-power.js';
 import { gatherFault, stageFaults, startDormantFaults } from './startup-fault.js';
 import { addEyes, stageRobot } from './startup-robot.js';
+import { ORNAMENT } from './ornament.js';
 
 const MOTES = 16;
 const DEAD_TUBES = 2;
@@ -286,12 +287,12 @@ export function wakeAttract(attract) {
   attract.style.setProperty('--grain', grainTile());
   attract.style.setProperty('--grain-weak', grainTile(true));
   addMotes(el.room);
-  buildCoinEdge(el.spin);
+  if (ORNAMENT.has('spin')) buildCoinEdge(el.spin);   // face-on, the coin needs no edge
   el.bulbs = placeBulbs(el.cab);
-  el.dust = addDust(el.cab);
+  el.dust = ORNAMENT.has('dust') ? addDust(el.cab) : [];
   el.tubes = el.title ? wrapTubes(el.title) : [];
-  el.dead = new Set();
-  while (el.tubes.length && el.dead.size < Math.min(DEAD_TUBES, el.tubes.length)) el.dead.add(Math.floor(Math.random() * el.tubes.length));
+  el.dead = new Set();   // with the neon struggle retired, every letter is live
+  while (ORNAMENT.has('neon') && el.tubes.length && el.dead.size < Math.min(DEAD_TUBES, el.tubes.length)) el.dead.add(Math.floor(Math.random() * el.tubes.length));
   el.dead.forEach((i) => el.tubes[i].classList.add('is-dead'));
 
   el.robot = buildRobot(el);
