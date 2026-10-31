@@ -432,6 +432,58 @@ frames, 95th-percentile frame interval and long video-frame gaps beside the
 live renderer's missed-frame, long-task and GPU-time measurements. Run both
 cuts on the same display, Chrome profile and power mode.
 
+Reference smoke measurement (2026-10-31): offline playback on the M2 Pro Mac
+mini in Headless Chrome 156, 1280 x 800 at 1x, delivered 1,093 video-frame
+callbacks at 59.79 effective fps, with 0 dropped frames reported, a 16.7 ms
+95th-percentile interval, and one interval over 25 ms (129.2 ms maximum). The
+live Plunge run on the same setup missed 4 of 1,503 animation frames (0.3%),
+with 16.8 ms p95 and two long gaps (133 and 150 ms); its WebGL GPU timer
+reported 1.54 ms p95. This is a local harness comparison, not acceptance on
+the event MacBook Pro, projector, or PA.
+
+### Blender cinematic look-development (Mac mini)
+
+The production workstation is the confirmed Mac mini Mac14,12 (M2 Pro, 16-core
+GPU, 16 GB unified memory). Install Blender with Cycles/Metal and FFmpeg; the
+builder explicitly selects the Metal GPU and stops if Blender cannot find it.
+The editable scenes are generated without external assets, keep repeated
+mechanical detailing in combined geometry, and live under ignored `build/`:
+
+```sh
+"/Applications/Blender.app/Contents/MacOS/Blender" -b \
+  --python cinematic/build_cinematic.py -- --mode build
+"/Applications/Blender.app/Contents/MacOS/Blender" -b \
+  build/cinematic-development/skate-by-faith-lookdev.blend \
+  --python cinematic/build_cinematic.py -- --mode stills --shot stylus-contact \
+  --samples 24 --width 1920 --height 1080
+"/Applications/Blender.app/Contents/MacOS/Blender" -b \
+  build/cinematic-development/skate-by-faith-lookdev.blend \
+  --python cinematic/build_cinematic.py -- --mode preview --shot groove-journey \
+  --preview-seconds 5 --samples 8
+```
+
+The generated project separates the retro-industrial mechanism and the
+vinyl/stylus scene. A five-second motion preview is a look-development and
+workflow test, not the finished Awakening; its 24 fps source is duplicated by
+the package step when normalized to 60 fps. Package it with a versioned
+manifest, then import the MP4 and JSON together using **TOOLS** -> **Prepare
+for Show**:
+
+```sh
+npm run cinematic:package -- \
+  build/cinematic-development/motion/groove-journey-motion-preview.mp4 \
+  build/cinematic-development/skate-by-faith-groove-lookdev.mp4 \
+  --id skate-by-faith-groove-lookdev --title "Vinyl groove look-development" \
+  --audio-description "silent look-development preview; opening song remains in the jukebox"
+```
+
+Use **PREVIEW EXTERNAL FILM + SONG HANDOFF** to test OPFS import, local video
+playback, and the real jukebox opener without replacing the show film. Previews
+are stored separately and remain local. The Blender preview has a silent audio
+track; it does not demonstrate final cinematic sound design. The event MacBook
+Pro's exact configuration is still unknown, so playback, projector, and PA
+acceptance on that actual machine remains a separate milestone.
+
 The show plays the standard opening. An experimental **extended cut
 (Bigger on the Inside)** is under development and not approved for the
 show; to look at the current version, add `?cut=extended` to the address.

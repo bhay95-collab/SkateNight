@@ -5,21 +5,72 @@ export const AWAKENING_FILM_FPS = 60;
 export const AWAKENING_FILM_WIDTH = 1920;
 export const AWAKENING_FILM_HEIGHT = 1080;
 const FILE_PREFIX = 'awakening-film-';
+const PREVIEW_PREFIX = 'cinematic-preview-';
+const PREVIEW_CUES = [
+  'coinSequenceStartFrame',
+  'firstFailureFrame',
+  'recoveryFrame',
+  'stylusContactFrame',
+  'musicHandoffFrame',
+  'firstSongCueFrame',
+  'finalCinematicFrame',
+];
 const EXPECTED_DURATION_MS = timeline(true).BEATS.end;
 export const AWAKENING_FILM_FRAME_COUNT = Math.ceil((EXPECTED_DURATION_MS / 1000) * AWAKENING_FILM_FPS);
 
-export function validateAwakeningFilmManifest(manifest) {
-  if (!manifest || manifest.filmId !== AWAKENING_FILM_ID) throw new Error('This is not the current Awakening film.');
-  if (manifest.width !== AWAKENING_FILM_WIDTH || manifest.height !== AWAKENING_FILM_HEIGHT
-      || manifest.fps !== AWAKENING_FILM_FPS || manifest.frameCount !== AWAKENING_FILM_FRAME_COUNT
-      || manifest.videoCodec !== 'h264' || manifest.audioCodec !== 'aac') {
-    throw new Error('The film export does not match the required 1080p60 H.264/AAC format.');
+function prefixFor(kind) {
+  return kind === 'production-preview' ? PREVIEW_PREFIX : FILE_PREFIX;
+}
+
+export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakening') {
+  const kind = manifest?.filmKind || 'awakening';
+  if (!manifest || kind !== expectedKind) throw new Error(`This is not a ${expectedKind} cinematic asset.`);
+  if (expectedKind === 'awakening' && manifest.filmId !== AWAKENING_FILM_ID) {
+    throw new Error('This is not the current Awakening film.');
   }
-  if (!Number.isFinite(manifest.durationSec)
-      || Math.abs(manifest.durationSec - AWAKENING_FILM_FRAME_COUNT / AWAKENING_FILM_FPS) > 0.001
+  if (expectedKind === 'production-preview'
+      && (manifest.manifestVersion !== 1 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.filmId)
+          || !Number.isInteger(manifest.filmVersion) || manifest.filmVersion < 1)) {
+    throw new Error('The production preview manifest needs a versioned film identifier.');
+  }
+
+  const dimensionsMatch = expectedKind === 'awakening'
+    ? manifest.width === AWAKENING_FILM_WIDTH && manifest.height === AWAKENING_FILM_HEIGHT
+      && manifest.fps === AWAKENING_FILM_FPS && manifest.frameCount === AWAKENING_FILM_FRAME_COUNT
+    : Number.isInteger(manifest.width) && Number.isInteger(manifest.height)
+      && manifest.width > 0 && manifest.height > 0 && manifest.width * 9 === manifest.height * 16
+      && manifest.fps === AWAKENING_FILM_FPS && Number.isInteger(manifest.frameCount) && manifest.frameCount > 1;
+  if (!dimensionsMatch || manifest.videoCodec !== 'h264' || manifest.audioCodec !== 'aac') {
+    throw new Error('The film export must be 16:9 H.264/AAC at 60 fps.');
+  }
+  if (expectedKind === 'production-preview') {
+    if (manifest.width !== AWAKENING_FILM_WIDTH || manifest.height !== AWAKENING_FILM_HEIGHT
+        || manifest.audioSampleRate !== 48000 || manifest.audioChannels !== 2
+        || !manifest.cues || !manifest.handoff
+        || manifest.handoff.openerTrackId !== 'praise-lifted-on-high'
+        || manifest.handoff.interactiveState !== 'jukebox-playing:praise-lifted-on-high') {
+      throw new Error('The production preview must include the 1080p audio handoff contract.');
+    }
+    for (const cue of PREVIEW_CUES) {
+      const frame = manifest.cues[cue];
+      if (frame !== null && (!Number.isInteger(frame) || frame < 0 || frame >= manifest.frameCount)) {
+        throw new Error(`The production preview has an invalid ${cue}.`);
+      }
+    }
+    if (manifest.cues.finalCinematicFrame !== manifest.frameCount - 1
+        || manifest.handoff.videoFrame !== manifest.cues.musicHandoffFrame) {
+      throw new Error('The production preview final frame or handoff frame is inconsistent.');
+    }
+  }
+  if (!Number.isFinite(manifest.durationSec) || manifest.durationSec <= 0
+      || Math.abs(manifest.durationSec - manifest.frameCount / manifest.fps) > 0.001
       || manifest.sha256 !== manifest.sha256?.toLowerCase()
       || !/^[0-9a-f]{64}$/.test(manifest.sha256)) {
     throw new Error('The film manifest is incomplete or has invalid duration or checksum data.');
+  }
+  if (expectedKind === 'awakening'
+      && Math.abs(manifest.durationSec - AWAKENING_FILM_FRAME_COUNT / AWAKENING_FILM_FPS) > 0.001) {
+    throw new Error('The film manifest duration does not match the complete Awakening cut.');
   }
 }
 
@@ -83,7 +134,9 @@ async function openFilmDirectory() {
   return navigator.storage.getDirectory();
 }
 
-export function createAwakeningFilm(video) {
+export function createAwakeningFilm(video, kind = 'awakening') {
+  if (!['awakening', 'production-preview'].includes(kind)) throw new Error(`Unsupported film kind: ${kind}`);
+  const filePrefix = prefixFor(kind);
   let objectUrl = null;
   let selected = null;
 
@@ -104,10 +157,10 @@ export function createAwakeningFilm(video) {
 
     const candidates = [];
     for await (const [name, handle] of directory.entries()) {
-      if (handle.kind !== 'file' || !name.startsWith(FILE_PREFIX) || !name.endsWith('.json')) continue;
+      if (handle.kind !== 'file' || !name.startsWith(filePrefix) || !name.endsWith('.json')) continue;
       try {
         const manifest = JSON.parse(await (await handle.getFile()).text());
-        validateAwakeningFilmManifest(manifest);
+        validateAwakeningFilmManifest(manifest, kind);
         candidates.push({ name, manifest });
       } catch (error) {
         console.warn('[awakening film]', error);
@@ -116,7 +169,7 @@ export function createAwakeningFilm(video) {
     candidates.sort((a, b) => String(b.manifest.importedAt || '').localeCompare(String(a.manifest.importedAt || '')));
 
     for (const candidate of candidates) {
-      const fileName = `${FILE_PREFIX}${candidate.manifest.sha256}.mp4`;
+      const fileName = `${filePrefix}${candidate.manifest.sha256}.mp4`;
       try {
         const fileHandle = await directory.getFileHandle(fileName);
         const blob = await fileHandle.getFile();
@@ -150,7 +203,7 @@ export function createAwakeningFilm(video) {
   async function importFiles(videoFile, manifestFile) {
     if (!videoFile || !manifestFile) throw new Error('Choose both the MP4 film and its JSON manifest.');
     const manifest = JSON.parse(await manifestFile.text());
-    validateAwakeningFilmManifest(manifest);
+    validateAwakeningFilmManifest(manifest, kind);
     if (await digest(videoFile) !== manifest.sha256) throw new Error('The selected MP4 does not match the manifest checksum.');
     const url = URL.createObjectURL(videoFile);
     const verifier = document.createElement('video');
@@ -169,7 +222,7 @@ export function createAwakeningFilm(video) {
     const directory = await openFilmDirectory();
     const persistent = await navigator.storage.persist?.();
     const estimate = await navigator.storage.estimate?.();
-    const fileName = `${FILE_PREFIX}${manifest.sha256}.mp4`;
+    const fileName = `${filePrefix}${manifest.sha256}.mp4`;
     let replacedSize = 0;
     try {
       replacedSize = (await (await directory.getFileHandle(fileName)).getFile()).size;
@@ -190,7 +243,7 @@ export function createAwakeningFilm(video) {
       throw error;
     }
     const storedManifest = { ...manifest, importedAt: new Date().toISOString() };
-    const manifestName = `${FILE_PREFIX}${manifest.sha256}.json`;
+    const manifestName = `${filePrefix}${manifest.sha256}.json`;
     const manifestHandle = await directory.getFileHandle(manifestName, { create: true });
     const manifestWriter = await manifestHandle.createWritable();
     await manifestWriter.write(JSON.stringify(storedManifest));
@@ -199,7 +252,7 @@ export function createAwakeningFilm(video) {
     const result = await prepare();
     if (!result.available) throw new Error(`The imported film could not be verified after saving: ${result.message}`);
     for await (const [name, handle] of directory.entries()) {
-      if (handle.kind !== 'file' || !name.startsWith(FILE_PREFIX) || name.includes(manifest.sha256)) continue;
+      if (handle.kind !== 'file' || !name.startsWith(filePrefix) || name.includes(manifest.sha256)) continue;
       await directory.removeEntry(name);
     }
     return persistent === false

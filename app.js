@@ -107,10 +107,16 @@ async function main() {
   attractScreen.hidden = false;
   const cabinetStart = safely('attract', () => wakeAttract(attractScreen));
   const awakeningFilm = createAwakeningFilm($('awakening-film'));
+  const productionPreview = createAwakeningFilm($('production-preview-video'), 'production-preview');
   const filmStatus = $('film-status');
   const initialFilmStatus = await awakeningFilm.prepare();
   filmStatus.textContent = initialFilmStatus.message;
   filmStatus.dataset.state = initialFilmStatus.available ? 'ready' : 'bad';
+  const previewStatus = $('film-preview-status');
+  const initialPreviewStatus = await productionPreview.prepare();
+  previewStatus.textContent = initialPreviewStatus.available ? 'EXTERNAL PREVIEW VERIFIED - READY OFFLINE' : 'NO EXTERNAL PREVIEW IMPORTED';
+  previewStatus.dataset.state = initialPreviewStatus.available ? 'ready' : 'bad';
+  $('btn-film-preview').disabled = !initialPreviewStatus.available;
   // The offline shell registers once the first picture is up, while the
   // cabinet waits, so Chrome can offer to install the app from the dark screen.
   const swRegistration = new Promise((resolve) => {
@@ -922,22 +928,49 @@ async function main() {
     const files = [...filmFiles.files];
     const videoFile = files.find((file) => file.name.toLowerCase().endsWith('.mp4') || file.type === 'video/mp4');
     const manifestFile = files.find((file) => file.name.toLowerCase().endsWith('.json') || file.type === 'application/json');
+    let targetFilm = awakeningFilm;
+    let targetStatus = filmStatus;
+    if (manifestFile) {
+      try {
+        const manifest = JSON.parse(await manifestFile.text());
+        if (manifest.filmKind === 'production-preview') {
+          targetFilm = productionPreview;
+          targetStatus = previewStatus;
+        }
+      } catch {
+        // importFiles reports malformed JSON to the operator below.
+      }
+    }
     filmImportButton.disabled = true;
-    filmStatus.textContent = 'VERIFYING AND SAVING FILM...';
-    filmStatus.dataset.state = 'checking';
+    targetStatus.textContent = 'VERIFYING AND SAVING FILM...';
+    targetStatus.dataset.state = 'checking';
     try {
-      const result = await awakeningFilm.importFiles(videoFile, manifestFile);
-      filmStatus.textContent = result.message;
-      filmStatus.dataset.state = 'ready';
-      ui.toast('AWAKENING FILM VERIFIED - READY FOR SHOW');
+      const result = await targetFilm.importFiles(videoFile, manifestFile);
+      targetStatus.textContent = result.message;
+      targetStatus.dataset.state = result.available ? 'ready' : 'bad';
+      if (targetFilm === productionPreview) {
+        $('btn-film-preview').disabled = !result.available;
+        ui.toast('EXTERNAL PREVIEW VERIFIED - READY TO TEST');
+      } else {
+        ui.toast('AWAKENING FILM VERIFIED - READY FOR SHOW');
+      }
     } catch (err) {
       console.error('[awakening film import]', err);
-      filmStatus.textContent = err.message || 'FILM IMPORT FAILED';
-      filmStatus.dataset.state = 'bad';
+      targetStatus.textContent = err.message || 'FILM IMPORT FAILED';
+      targetStatus.dataset.state = 'bad';
+      if (targetFilm === productionPreview) $('btn-film-preview').disabled = true;
       ui.toast('FILM IMPORT FAILED - SEE TOOLS FOR DETAILS');
     } finally {
       filmImportButton.disabled = false;
     }
+  });
+  $('btn-film-preview').addEventListener('click', () => {
+    noteInput();
+    if (started || !productionPreview.ready) return;
+    startNight({ previewFilm: true }).catch((err) => {
+      console.error('[cinematic preview]', err);
+      ui.toast('CINEMATIC PREVIEW FAILED - SEE TOOLS FOR DETAILS');
+    });
   });
 
   /* ---------------- find out which songs exist, and how long they are ---------------- */
@@ -993,7 +1026,7 @@ async function main() {
     rig.classList.remove('is-powering', ...POWER_UP.map((_, k) => `power-${k + 1}`));
   }
 
-  async function powerOn() {
+  async function powerOn({ previewFilm = false } = {}) {
     benchMark('press');
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
     const firstBoot = !hasBooted();
@@ -1011,15 +1044,16 @@ async function main() {
     let playedFilm = false;
     try {
       const forceLiveCut = new URLSearchParams(location.search).has('live');
-      if (awakeningFilm.ready && !matchMedia('(prefers-reduced-motion: reduce)').matches && !forceLiveCut) {
+      const film = previewFilm ? productionPreview : awakeningFilm;
+      if (film.ready && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!forceLiveCut || previewFilm)) {
         try {
           safely('drone', wakeDrone);
-          await awakeningFilm.play((Number($('vol-sfx').value) / 100) ** 2);
+          await film.play((Number($('vol-sfx').value) / 100) ** 2);
           playedFilm = true;
         } catch (err) {
           console.warn('[awakening film]', err);
           ui.toast('FILM PLAYBACK FAILED - USING THE LIVE CUT');
-          awakeningFilm.stop();
+          film.stop();
           await cabinetStart?.insert(filmSound);
         }
       } else {
@@ -1032,7 +1066,7 @@ async function main() {
     }
     if (playedFilm) {
       attractScreen.classList.add('is-dark');
-      awakeningFilm.stop();
+      (previewFilm ? productionPreview : awakeningFilm).stop();
     }
     const retire = () => {
       attractScreen.hidden = true;
@@ -1075,7 +1109,7 @@ async function main() {
     }
   }
 
-  async function startNight() {
+  async function startNight({ previewFilm = false } = {}) {
     if (started) return;
     started = true;
     const engine = unlockAudio();                      // the click is the browser's required gesture
@@ -1097,7 +1131,7 @@ async function main() {
     credits = 1;
     renderCredits();
     ensureHouseNext();
-    await powerOn();
+    await powerOn({ previewFilm });
     keepAwake();
     ticker.start();
     if (matchMedia('(pointer:fine)').matches && innerWidth >= 1000) showLegend();

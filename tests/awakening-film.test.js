@@ -22,6 +22,36 @@ const validManifest = () => ({
   audioCodec: 'aac',
   sha256: 'a'.repeat(64),
 });
+const validPreviewManifest = () => ({
+  manifestVersion: 1,
+  filmKind: 'production-preview',
+  filmId: 'skate-by-faith-groove-lookdev',
+  filmVersion: 1,
+  width: 1920,
+  height: 1080,
+  fps: 60,
+  frameCount: 300,
+  durationSec: 5,
+  videoCodec: 'h264',
+  audioCodec: 'aac',
+  audioSampleRate: 48000,
+  audioChannels: 2,
+  sha256: 'b'.repeat(64),
+  cues: {
+    coinSequenceStartFrame: 0,
+    firstFailureFrame: null,
+    recoveryFrame: null,
+    stylusContactFrame: 270,
+    musicHandoffFrame: 299,
+    firstSongCueFrame: 299,
+    finalCinematicFrame: 299,
+  },
+  handoff: {
+    videoFrame: 299,
+    openerTrackId: 'praise-lifted-on-high',
+    interactiveState: 'jukebox-playing:praise-lifted-on-high',
+  },
+});
 
 test('accepts only the complete current 1080p60 H.264/AAC Awakening export', () => {
   assert.doesNotThrow(() => validateAwakeningFilmManifest(validManifest()));
@@ -40,6 +70,23 @@ test('accepts only the complete current 1080p60 H.264/AAC Awakening export', () 
   }
 });
 
+test('validates versioned production previews and their explicit jukebox handoff', () => {
+  const manifest = validPreviewManifest();
+  assert.doesNotThrow(() => validateAwakeningFilmManifest(manifest, 'production-preview'));
+  assert.throws(() => validateAwakeningFilmManifest(manifest), /not a awakening/);
+  for (const change of [
+    { manifestVersion: 2 },
+    { filmId: 'unversioned_preview' },
+    { filmVersion: 0 },
+    { audioSampleRate: 44100 },
+    { cues: { ...manifest.cues, finalCinematicFrame: 298 } },
+    { handoff: { ...manifest.handoff, videoFrame: 298 } },
+    { handoff: { ...manifest.handoff, openerTrackId: 'wrong-song' } },
+  ]) {
+    assert.throws(() => validateAwakeningFilmManifest({ ...manifest, ...change }, 'production-preview'));
+  }
+});
+
 test('the film is local PWA data and never added to the service-worker shell cache', () => {
   const sw = read('sw.js');
   assert.match(sw, /'awakening-film\.js'/, 'the importer module is cached offline');
@@ -48,7 +95,7 @@ test('the film is local PWA data and never added to the service-worker shell cac
   assert.match(app, /await awakeningFilm\.prepare\(\)/, 'film readiness is checked before the coin handler is installed');
   assert.ok(app.indexOf('await awakeningFilm.prepare()') < app.indexOf("attractScreen.addEventListener('click'"),
     'the video is verified before a coin press can start the night');
-  assert.match(app, /await awakeningFilm\.play/, 'coin playback uses the verified local film');
+  assert.match(app, /await film\.play/, 'coin playback uses the verified local film');
   assert.match(app, /await cabinetStart\?\.insert\(filmSound\)/, 'the existing live cut remains the fallback');
   assert.match(app, /prefers-reduced-motion: reduce/, 'reduced motion keeps the live gentle cut');
 });
@@ -65,6 +112,9 @@ test('operator import UI is available from TOOLS and uses OPFS-backed verificati
   assert.match(module, /navigator\.storage\.getDirectory/);
   assert.match(module, /SHA-256/);
   assert.match(module, /createWritable/);
+  assert.match(module, /const FILE_PREFIX = 'awakening-film-'/);
+  assert.match(module, /const PREVIEW_PREFIX = 'cinematic-preview-'/);
+  assert.match(read('app.js'), /startNight\(\{ previewFilm: true \}\)/);
 });
 
 test('export and on-device benchmarks use fixed film frames and compare live/video delivery', () => {

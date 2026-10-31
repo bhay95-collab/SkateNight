@@ -113,6 +113,7 @@
   </span>
 </button>
 <video class="awakening-film" id="awakening-film" playsinline preload="auto" aria-hidden="true"></video>
+<video class="awakening-film" id="production-preview-video" playsinline preload="auto" aria-hidden="true"></video>
 
 <!-- ============ BACKGROUND WORLD ============ -->
 <div class="cab-glow" id="cab-glow" aria-hidden="true"></div>
@@ -284,9 +285,11 @@
           <div class="film-tools">
             <strong>Prepare for Show</strong>
             <output id="film-status" class="film-status" data-state="checking" role="status" aria-live="polite">CHECKING LOCAL FILM...</output>
-            <button type="button" class="btn btn-deck" id="btn-film-import">IMPORT AWAKENING FILM</button>
+            <output id="film-preview-status" class="film-status" data-state="checking" role="status" aria-live="polite">CHECKING PRODUCTION PREVIEW...</output>
+            <button type="button" class="btn btn-deck" id="btn-film-import">IMPORT FILM + MANIFEST</button>
             <input id="film-files" type="file" accept=".mp4,.json,video/mp4,application/json" multiple hidden>
-            <small>Choose the exported MP4 and its matching JSON manifest. The verified film is stored on this Mac for offline playback.</small>
+            <button type="button" class="btn btn-deck" id="btn-film-preview" disabled>PREVIEW EXTERNAL FILM + SONG HANDOFF</button>
+            <small>Import the MP4 and matching manifest together. Show films and development previews are stored separately on this Mac; previews never replace the show film.</small>
           </div>
           <button type="button" class="btn btn-deck" id="btn-keys">KEYBOARD SHORTCUTS</button>
           <label class="tool-setting" for="vol-vinyl"><span>Vinyl texture <output id="vinyl-value" for="vol-vinyl">100%</output></span><input type="range" id="vol-vinyl" min="0" max="100" value="100" aria-label="Vinyl texture level" aria-describedby="vinyl-help"></label>

@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
-import { dirname, extname, join, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
@@ -163,9 +163,18 @@ async function main() {
     await page.waitForFunction(() => typeof globalThis.__plungeDraw === 'function', { timeout: 30000 });
 
     const timing = await page.evaluate(async () => {
-      const { BEATS } = await import('./startup-timing.js');
+      const { timeline } = await import('./startup-timing.js');
+      const { OPENER } = await import('./rotation.js');
+      const { BEATS } = timeline(true);
       const frames = Math.ceil((BEATS.end / 1000) * 60);
-      return { durationMs: BEATS.end, frames };
+      return {
+        durationMs: BEATS.end,
+        frames,
+        failureMs: BEATS.fail,
+        recoveryMs: BEATS.catch,
+        openerTrackId: OPENER.id,
+        openerLeadMs: (5 * OPENER.beat - OPENER.bar1) * 1000,
+      };
     });
     const count = timing.frames;
     const render = spawn(ffmpeg, [
@@ -212,13 +221,39 @@ async function main() {
     const hash = createHash('sha256');
     for await (const chunk of createReadStream(output)) hash.update(chunk);
     const manifest = {
+      manifestVersion: 1,
+      filmKind: 'awakening',
       filmId: 'skate-by-faith-awakening-plunge-1080p60-v1',
+      filmVersion: 1,
+      title: 'The Awakening - browser production source',
+      videoFile: basename(output),
       width, height, fps, frameCount: count, durationSec: count / fps,
       videoCodec: 'h264', audioCodec: 'aac', audioSampleRate: Number(audio.sample_rate),
       audioChannels: Number(audio.channels), sha256: hash.digest('hex'),
       sequence: 'Plunge extended cinematic source',
       sequenceEndMs: timing.durationMs,
-      handoff: { filmEndsOn: 'cut', openerLeadMs: 434.5 },
+      audioDescription: 'Awakening cinematic sound effects only; opener remains in the jukebox audio engine',
+      audioOwnership: {
+        film: 'cinematic sound effects and atmosphere',
+        openingSong: 'Praise Lifted On High remains in the jukebox audio engine',
+        trackId: timing.openerTrackId,
+      },
+      cues: {
+        coinSequenceStartFrame: 0,
+        firstFailureFrame: Math.round(timing.failureMs * fps / 1000),
+        recoveryFrame: Math.round(timing.recoveryMs * fps / 1000),
+        stylusContactFrame: null,
+        musicHandoffFrame: count - 1,
+        firstSongCueFrame: count - 1,
+        finalCinematicFrame: count - 1,
+      },
+      handoff: {
+        filmEndsOn: 'cut',
+        videoFrame: count - 1,
+        openerTrackId: timing.openerTrackId,
+        openerLeadMs: timing.openerLeadMs,
+        interactiveState: `jukebox-playing:${timing.openerTrackId}`,
+      },
       generatedAt: new Date().toISOString(),
     };
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
