@@ -2,6 +2,7 @@
 """Reproducibly build the Skate by Faith cinematic look-dev scenes in Blender."""
 
 import argparse
+import json
 import math
 import os
 import shutil
@@ -15,7 +16,14 @@ from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "build" / "cinematic-development"
-FPS = 24
+FPS = 60
+LEGACY_FPS = 24
+VINYL_RPM = 45
+CONTACT_FRAME = 1 + round((116 - 1) * FPS / LEGACY_FPS)
+
+
+def frame_from_legacy(frame):
+    return 1 + round((frame - 1) * FPS / LEGACY_FPS)
 
 
 def cli():
@@ -139,6 +147,27 @@ def camera(scene, name, location, target, lens=42):
     obj.location = location
     point_at(obj, target)
     return obj
+
+
+def animated_camera(scene, name, start, end, frame_end):
+    camera_obj = camera(scene, name, start[0], start[1], start[2])
+    camera_obj.data.clip_end = 1000
+    camera_obj.data.dof.use_dof = True
+    camera_obj.data.dof.aperture_fstop = 5.6
+    focus = bpy.data.objects.new(f"{name} focus", None)
+    scene.collection.objects.link(focus)
+    camera_obj.data.dof.focus_object = focus
+    for frame, shot in ((1, start), (frame_end, end)):
+        location, target, lens, focus_location = shot
+        camera_obj.location = location
+        point_at(camera_obj, target)
+        camera_obj.data.lens = lens
+        camera_obj.keyframe_insert(data_path="location", frame=frame)
+        camera_obj.keyframe_insert(data_path="rotation_euler", frame=frame)
+        camera_obj.data.keyframe_insert(data_path="lens", frame=frame)
+        focus.location = focus_location
+        focus.keyframe_insert(data_path="location", frame=frame)
+    return camera_obj
 
 
 def box(name, location, dimensions, mat, bevel=0.08, rotation=(0, 0, 0), parent=None):
@@ -325,7 +354,12 @@ def build_megastructure(scene):
 
     center_z = 10.8
     floor = box("Lower service deck", (0, 1, -1.05), (40, 35, 1.8), dark_iron, 0.18)
-    box("Rear bulkhead", (0, 7.5, 11), (30, 1.2, 26), steel, 0.25)
+    for x in (-15.5, 15.5):
+        box(f"Deep chamber tower {x}", (x, 8.5, 12), (1.25, 1.8, 29), steel, 0.18)
+        for z in (2, 8, 14, 20, 26):
+            box(f"Tower cross tie {x}-{z}", (x * 0.55, 8.2, z), (18, 0.9, 0.48), dark_iron, 0.08)
+        curve_tube(f"Tower copper riser {x}", [(x, 7.4, 0), (x, 7.4, 8), (x * 0.82, 7.4, 16),
+                                                 (x * 0.82, 7.4, 28)], 0.075, copper, 3)
     box("Left machine spine", (-12.3, 1, 10), (1.15, 2.0, 24), brushed, 0.18)
     box("Right machine spine", (12.3, 1, 10), (1.15, 2.0, 24), brushed, 0.18)
     box("Overhead service gantry", (0, 0.8, 21.3), (29, 4.5, 0.85), steel, 0.18)
@@ -338,6 +372,7 @@ def build_megastructure(scene):
         (6.2, 0.28, 0.8, copper),
         (8.05, 0.18, 0.05, brushed),
         (9.65, 0.36, 0.88, brass),
+        (12.55, 0.32, 0.32, steel),
     ]
     rotors = []
     for idx, (radius, thickness, y, ring_mat) in enumerate(ring_specs):
@@ -355,7 +390,7 @@ def build_megastructure(scene):
             angle = 2 * math.pi * index / count
             bolts.append((radius, angle, y - 0.21, 0.15, 0.19, 0.15))
         combined_radial_boxes(f"R{idx + 1} captive fasteners", 0, bolts, brushed, parent=rotor, bevel=0.025)
-        if idx in (2, 4):
+        if idx in (2, 4, 5):
             teeth = []
             tooth_count = int(radius * 14)
             for index in range(tooth_count):
@@ -400,6 +435,9 @@ def build_megastructure(scene):
     ):
         cylinder(f"Axial drive bearing {y}", (0, y, center_z), radius, depth, mat, axis="Y")
     cylinder("Central shaft core", (0, -2.85, center_z), 0.3, 2.2, brushed, axis="Y")
+    torus("Central thrust bearing race", 2.15, 0.24, (0, -2.63, center_z), brass, plane="XZ")
+    torus("Central thrust seal", 1.78, 0.095, (0, -2.91, center_z), dark_iron, plane="XZ")
+    cylinder("Central flywheel face", (0, -2.55, center_z), 1.52, 0.24, ceramic, axis="Y")
     for index in range(8):
         angle = math.tau * index / 8
         cylinder(f"Hub locking dog {index:02d}",
@@ -453,7 +491,7 @@ def build_megastructure(scene):
                  (108, 0.10), (121, 0.17), (160, 0.48), (210, 1.16), (260, 2.1))
     for frame, angle in keyframes:
         rotor.rotation_euler.y = angle
-        rotor.keyframe_insert(data_path="rotation_euler", index=1, frame=frame)
+        rotor.keyframe_insert(data_path="rotation_euler", index=1, frame=frame_from_legacy(frame))
     for name, location, target, color, power, size in (
         ("Warm rake left", (-13, -12, 14), (0, 0, 10), (1.0, 0.28, 0.09), 3600, 9),
         ("Cool key right", (10, -9, 17), (0, 0, 11), (0.12, 0.57, 0.9), 4200, 8),
@@ -464,13 +502,13 @@ def build_megastructure(scene):
         area_light(scene, name, location, target, color, power, size)
     add_volume(scene)
 
-    scene.camera = camera(scene, "CAM - Establishing low hero", (1.5, -28, 4.7), (0, 0, 10.8), 36)
+    scene.camera = camera(scene, "CAM - Establishing low hero", (-7, -25, -0.2), (0, 0.5, 10.8), 27)
     detail = camera(scene, "CAM - Gear train close detail", (6.4, -18.5, 13.8), (4.2, 0.5, 10.5), 54)
     detail.data.dof.use_dof = True
     detail.data.dof.focus_distance = 17
     detail.data.dof.aperture_fstop = 3.5
     scene.frame_start = 1
-    scene.frame_end = 260
+    scene.frame_end = frame_from_legacy(260)
     scene.frame_set(1)
 
 
@@ -517,16 +555,19 @@ def groove_ridges():
     data = bpy.data.curves.new("Concentric pressed groove crests", "CURVE")
     data.dimensions = "3D"
     data.resolution_u = 1
-    data.bevel_depth = 0.009
+    data.bevel_depth = 0.007
     data.bevel_resolution = 1
-    for index in range(260):
-        radius = 5.1 + index * 0.048
-        spline = data.splines.new("POLY")
-        spline.points.add(383)
-        for point_index, point in enumerate(spline.points):
-            angle = math.tau * point_index / 384
-            point.co = (radius * math.cos(angle), radius * math.sin(angle), 0.222, 1)
-        spline.use_cyclic_u = True
+    start_radius = 4.5
+    groove_pitch = 0.048
+    turns = round((17.7 - start_radius) / groove_pitch)
+    steps = turns * 512
+    spline = data.splines.new("POLY")
+    spline.points.add(steps)
+    for index, point in enumerate(spline.points):
+        progress = index / steps
+        angle = math.tau * turns * progress
+        radius = start_radius + groove_pitch * turns * progress
+        point.co = (radius * math.cos(angle), radius * math.sin(angle), 0.222, 1)
     obj = bpy.data.objects.new("Pressed groove crests - concentric geometry", data)
     bpy.context.scene.collection.objects.link(obj)
     return obj
@@ -556,14 +597,14 @@ def build_groove(scene):
     bevel.width = 0.12
     bevel.segments = 3
     disc.modifiers.new("Record edge normals", "WEIGHTED_NORMAL")
-    record_axis = bpy.data.objects.new("Platter - 33 and one third RPM", None)
+    record_axis = bpy.data.objects.new(f"Platter - {VINYL_RPM} RPM", None)
     scene.collection.objects.link(record_axis)
     record_axis.empty_display_type = "CIRCLE"
     record_axis.empty_display_size = 0.8
     parent_preserving_world(disc, record_axis)
     record_axis.rotation_euler.z = 0
     spin = record_axis.driver_add("rotation_euler", 2)
-    spin.driver.expression = f"(frame - 1) * {math.tau * FPS / 43.2:.12f}"
+    spin.driver.expression = f"(frame - 1) * {math.tau * VINYL_RPM / (60 * FPS):.12f}"
     record_parts = [disc]
     record_parts.append(torus("Outer record rim", 17.88, 0.08, (0, 0, 0.14), steel, plane="XY", major_segments=384))
     record_parts.append(torus("Lead-in groove highlight", 16.8, 0.022, (0, 0, 0.22), brass, plane="XY", major_segments=384))
@@ -635,11 +676,11 @@ def build_groove(scene):
     pivot.keyframe_insert(data_path="rotation_euler", index=0, frame=1)
     pivot.keyframe_insert(data_path="rotation_euler", index=2, frame=1)
     pivot.rotation_euler.x = 0.006
-    pivot.keyframe_insert(data_path="rotation_euler", index=0, frame=116)
+    pivot.keyframe_insert(data_path="rotation_euler", index=0, frame=frame_from_legacy(116))
     pivot.rotation_euler.z = -0.19
-    pivot.keyframe_insert(data_path="rotation_euler", index=2, frame=96)
+    pivot.keyframe_insert(data_path="rotation_euler", index=2, frame=frame_from_legacy(96))
     pivot.rotation_euler.z = -0.33
-    pivot.keyframe_insert(data_path="rotation_euler", index=2, frame=120)
+    pivot.keyframe_insert(data_path="rotation_euler", index=2, frame=frame_from_legacy(120))
 
     # A distant gantry, maintenance trusses and sparse amber/cyan markers sell scale.
     box("Far maintenance deck", (0, 18, 3.8), (42, 1.0, 0.65), dark_iron, 0.1)
@@ -672,11 +713,33 @@ def build_groove(scene):
     moving.location = (9.8, -5.0, 3.2)
     point_at(moving, (4.14, 2.62, 0.23))
     moving.data.lens = 48
-    moving.data.keyframe_insert(data_path="lens", frame=120)
-    moving.keyframe_insert(data_path="location", frame=120)
-    moving.keyframe_insert(data_path="rotation_euler", frame=120)
+    moving.data.keyframe_insert(data_path="lens", frame=frame_from_legacy(120))
+    moving.data.dof.use_dof = True
+    moving.data.dof.aperture_fstop = 5.6
+    focus = bpy.data.objects.new("CAM focus - drifting toward the stylus", None)
+    scene.collection.objects.link(focus)
+    focus.location = (0, 0, 0.22)
+    focus.keyframe_insert(data_path="location", frame=1)
+    focus.location = (5.83, -0.05, 0.22)
+    focus.keyframe_insert(data_path="location", frame=frame_from_legacy(120))
+    moving.data.dof.focus_object = focus
+    moving.keyframe_insert(data_path="location", frame=frame_from_legacy(120))
+    moving.keyframe_insert(data_path="rotation_euler", frame=frame_from_legacy(120))
+    end_frame = frame_from_legacy(120)
+    animated_camera(
+        scene, "CAM - Impossible pullback",
+        ((9.8, -5.0, 3.2), (5.83, -0.05, 0.23), 48, (5.83, -0.05, 0.22)),
+        ((25, -36, 23), (0, 0, 0), 39, (0, 0, 0.22)),
+        end_frame,
+    )
+    animated_camera(
+        scene, "CAM - Precision match cut",
+        ((9.8, -5.0, 3.2), (5.83, -0.05, 0.23), 48, (5.83, -0.05, 0.22)),
+        ((-17, -280, 755), (-17, 0, -45), 131, (0, 0, 0.22)),
+        end_frame,
+    )
     scene.frame_start = 1
-    scene.frame_end = 120
+    scene.frame_end = frame_from_legacy(120)
     scene.frame_set(1)
 
 
@@ -701,6 +764,8 @@ def render_stills(output, args):
         "groove-low": ("02 - World Within the Groove", "CAM - Riding the groove"),
         "stylus-precontact": ("02 - World Within the Groove", "CAM - Stylus before contact"),
         "stylus-contact": ("02 - World Within the Groove", "CAM - Stylus before contact"),
+        "giant-pullback-end": ("02 - World Within the Groove", "CAM - Impossible pullback"),
+        "precision-match-cut-end": ("02 - World Within the Groove", "CAM - Precision match cut"),
     }
     selected = shots if args.shot == "all" else {args.shot: shots[args.shot]}
     for name, (scene_name, camera_name) in selected.items():
@@ -711,7 +776,11 @@ def render_stills(output, args):
         scene.render.resolution_x = args.width
         scene.render.resolution_y = args.height
         scene.render.resolution_percentage = 100
-        frame = args.frame if args.frame is not None else (116 if name == "stylus-contact" else 1)
+        frame = args.frame if args.frame is not None else (
+            CONTACT_FRAME if name == "stylus-contact"
+            else scene.frame_end if name.endswith("-end")
+            else 1
+        )
         if not scene.frame_start <= frame <= scene.frame_end:
             raise ValueError(f"Frame {frame} is outside the scene range.")
         scene.frame_set(frame)
@@ -725,6 +794,8 @@ def render_preview(output, args):
     previews = {
         "mega-hero": ("01 - Retro-Industrial Megastructure", "CAM - Establishing low hero", "megavolt"),
         "groove-journey": ("02 - World Within the Groove", "CAM - Groove journey", "groove-journey"),
+        "giant-pullback": ("02 - World Within the Groove", "CAM - Impossible pullback", "giant-pullback"),
+        "precision-match-cut": ("02 - World Within the Groove", "CAM - Precision match cut", "precision-match-cut"),
     }
     preview_shot = "mega-hero" if args.shot == "all" else args.shot
     if preview_shot not in previews:
@@ -737,14 +808,14 @@ def render_preview(output, args):
     scene.render.resolution_x = min(args.width, 768)
     scene.render.resolution_y = min(args.height, 432)
     scene.render.resolution_percentage = 100
-    scene.render.fps = FPS
     scene.frame_start = 1
     scene.frame_end = max(2, int(args.preview_seconds * FPS))
     frames = output / "motion" / preview_name
     frames.mkdir(parents=True, exist_ok=True)
     scene.render.image_settings.file_format = "PNG"
     scene.render.filepath = str(frames / "frame_")
-    print(f"Rendering {scene.frame_end} frames at {scene.render.resolution_x}x{scene.render.resolution_y}, "
+    print(f"Rendering {scene.frame_end} native {FPS} fps frames at "
+          f"{scene.render.resolution_x}x{scene.render.resolution_y}, "
           f"{scene.cycles.samples} samples, Cycles/Metal", flush=True)
     bpy.ops.render.render(animation=True, scene=scene.name)
     ffmpeg = shutil.which("ffmpeg")
@@ -759,6 +830,16 @@ def render_preview(output, args):
         "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(FPS), "-c:a", "aac",
         "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(movie),
     ], check=True)
+    probe = subprocess.run([
+        shutil.which("ffprobe") or "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=codec_name,width,height,r_frame_rate,nb_frames",
+        "-of", "json", str(movie),
+    ], check=True, capture_output=True, text=True)
+    stream = json.loads(probe.stdout)["streams"][0]
+    if (stream["codec_name"] != "h264" or stream["width"] != scene.render.resolution_x
+            or stream["height"] != scene.render.resolution_y or stream["r_frame_rate"] != f"{FPS}/1"
+            or int(stream["nb_frames"]) != scene.frame_end):
+        raise RuntimeError(f"Native-rate preview failed verification: {stream}")
     print(f"Motion preview: {movie}", flush=True)
 
 

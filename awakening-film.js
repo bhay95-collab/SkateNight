@@ -4,6 +4,8 @@ export const AWAKENING_FILM_ID = 'skate-by-faith-awakening-plunge-1080p60-v1';
 export const AWAKENING_FILM_FPS = 60;
 export const AWAKENING_FILM_WIDTH = 1920;
 export const AWAKENING_FILM_HEIGHT = 1080;
+export const HOSTED_AWAKENING_MANIFEST = 'films/manifest.json';
+export const MAX_HOSTED_FILM_BYTES = 90 * 1024 * 1024;
 const FILE_PREFIX = 'awakening-film-';
 const PREVIEW_PREFIX = 'cinematic-preview-';
 const PREVIEW_CUES = [
@@ -27,6 +29,12 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
   if (!manifest || kind !== expectedKind) throw new Error(`This is not a ${expectedKind} cinematic asset.`);
   if (expectedKind === 'awakening' && manifest.filmId !== AWAKENING_FILM_ID) {
     throw new Error('This is not the current Awakening film.');
+  }
+  if (expectedKind === 'awakening'
+      && (manifest.manifestVersion !== 1 || !Number.isInteger(manifest.filmVersion)
+          || manifest.filmVersion < 1 || manifest.audioSampleRate !== 48000
+          || manifest.audioChannels !== 2 || !manifest.cues || !manifest.handoff)) {
+    throw new Error('The Awakening manifest needs a versioned 1080p audio handoff contract.');
   }
   if (expectedKind === 'production-preview'
       && (manifest.manifestVersion !== 1 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.filmId)
@@ -72,6 +80,40 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
       && Math.abs(manifest.durationSec - AWAKENING_FILM_FRAME_COUNT / AWAKENING_FILM_FPS) > 0.001) {
     throw new Error('The film manifest duration does not match the complete Awakening cut.');
   }
+  if (expectedKind === 'awakening') {
+    for (const cue of ['coinSequenceStartFrame', 'firstFailureFrame', 'recoveryFrame',
+      'stylusContactFrame', 'musicHandoffFrame', 'firstSongCueFrame', 'finalCinematicFrame']) {
+      const frame = manifest.cues[cue];
+      if (frame !== null && (!Number.isInteger(frame) || frame < 0 || frame >= manifest.frameCount)) {
+        throw new Error(`The Awakening manifest has an invalid ${cue}.`);
+      }
+    }
+    if (manifest.cues.coinSequenceStartFrame !== 0
+        || manifest.cues.finalCinematicFrame !== manifest.frameCount - 1
+        || manifest.cues.musicHandoffFrame !== manifest.frameCount - 1
+        || manifest.handoff.videoFrame !== manifest.cues.musicHandoffFrame
+        || manifest.handoff.openerTrackId !== 'praise-lifted-on-high'
+        || manifest.handoff.interactiveState !== 'jukebox-playing:praise-lifted-on-high') {
+      throw new Error('The Awakening manifest final frame or jukebox handoff is inconsistent.');
+    }
+  }
+}
+
+export function validateHostedAwakeningManifest(manifest, manifestUrl) {
+  validateAwakeningFilmManifest(manifest, 'awakening');
+  if (!manifest.productionApproval || manifest.productionApproval.status !== 'approved'
+      || !manifest.productionApproval.approvedBy
+      || !Number.isFinite(Date.parse(manifest.productionApproval.approvedAt))) {
+    throw new Error('This film has not been approved for the website production slot.');
+  }
+  const base = new URL(manifestUrl);
+  const videoUrl = new URL(manifest.videoFile, base);
+  const filmsPath = new URL('.', base).pathname;
+  if (videoUrl.origin !== base.origin || !videoUrl.pathname.startsWith(filmsPath)
+      || !videoUrl.pathname.endsWith('.mp4') || videoUrl.search || videoUrl.hash) {
+    throw new Error('The hosted film must be an MP4 served from this site films directory.');
+  }
+  return videoUrl;
 }
 
 async function digest(blob) {
@@ -198,6 +240,42 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     video.removeAttribute('src');
     video.load();
     return { available: false, message: 'NO VERIFIED FILM - LIVE CUT READY' };
+  }
+
+  async function prepareHosted(manifestUrl = new URL(HOSTED_AWAKENING_MANIFEST, location.href).href) {
+    const unavailable = (reason) => ({
+      available: Boolean(selected && objectUrl),
+      message: selected && objectUrl
+        ? `LOCAL FILM READY - WEBSITE UPDATE UNAVAILABLE (${reason})`
+        : `NO VERIFIED FILM - LIVE CUT READY (${reason})`,
+      manifest: selected?.manifest,
+    });
+    try {
+      const manifestResponse = await fetch(manifestUrl, { cache: 'no-cache' });
+      if (!manifestResponse.ok) return unavailable(`WEBSITE FILM NOT FOUND: HTTP ${manifestResponse.status}`);
+      const manifest = await manifestResponse.json();
+      const videoUrl = validateHostedAwakeningManifest(manifest, manifestUrl);
+      if (selected?.manifest.sha256 === manifest.sha256 && objectUrl) {
+        return { available: true, message: 'WEBSITE FILM VERIFIED - READY OFFLINE', manifest };
+      }
+      const response = await fetch(videoUrl.href, { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`The website film download failed: HTTP ${response.status}.`);
+      const contentLength = Number(response.headers.get('content-length'));
+      if (Number.isFinite(contentLength) && contentLength > MAX_HOSTED_FILM_BYTES) {
+        throw new Error('The website film exceeds the 90 MiB Git-compatible delivery limit.');
+      }
+      const blob = await response.blob();
+      if (blob.size > MAX_HOSTED_FILM_BYTES) {
+        throw new Error('The website film exceeds the 90 MiB Git-compatible delivery limit.');
+      }
+      const manifestFile = new File([JSON.stringify(manifest)], 'awakening-v1.json', { type: 'application/json' });
+      const videoFile = new File([blob], 'awakening-v1.mp4', { type: 'video/mp4' });
+      const result = await importFiles(videoFile, manifestFile);
+      return { ...result, message: result.available ? 'WEBSITE FILM DOWNLOADED - VERIFIED - READY OFFLINE' : result.message };
+    } catch (error) {
+      console.warn('[hosted Awakening film]', error);
+      return unavailable(error.message || 'WEBSITE FILM DOWNLOAD FAILED');
+    }
   }
 
   async function importFiles(videoFile, manifestFile) {
@@ -328,5 +406,13 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     video.volume = Math.min(1, Math.max(0, value));
   }
 
-  return { prepare, importFiles, play, stop, setVolume, get ready() { return Boolean(selected && objectUrl); } };
+  return {
+    prepare,
+    prepareHosted,
+    importFiles,
+    play,
+    stop,
+    setVolume,
+    get ready() { return Boolean(selected && objectUrl); },
+  };
 }

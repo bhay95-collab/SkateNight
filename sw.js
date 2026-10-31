@@ -20,7 +20,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v42';
+const SHELL_CACHE = 'skatenight-shell-v43';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -94,6 +94,6 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   const rel = relPath(url);
-  if (rel.startsWith('audio/')) return;            // songs: the page handles them (see top of file)
+  if (rel.startsWith('audio/') || rel.startsWith('films/')) return;
   event.respondWith(isCover(rel) ? coverFetch(request) : shellFetch(request));
 });

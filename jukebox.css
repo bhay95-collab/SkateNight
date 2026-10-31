@@ -632,6 +632,8 @@ body.on-attract .rig{ visibility:hidden; }
   border-radius:.7rem;
   box-shadow:0 .35rem .8rem rgba(0,0,0,.7), 0 0 0 1px #050307, inset 0 1px 0 rgba(236,228,244,.14), inset 0 -.15rem .3rem rgba(0,0,0,.4);
 }
+body.on-attract .rig:has(.utility-drawer[open]){ visibility:visible; z-index:95; }
+body.on-attract .rig:has(.utility-drawer[open]) > :not(.deck){ visibility:hidden; }
 .deck-group{ display:flex; align-items:center; gap:.5rem; }
 .deck-faders{ gap:.85rem; padding:0 .85rem; border-left:1px solid #050307; box-shadow:-1px 0 0 rgba(236,228,244,.06); }
 .deck-tools{ gap:.4rem; margin-left:auto; }

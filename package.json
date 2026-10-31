@@ -6,7 +6,8 @@
     "test": "node --test",
     "test:motion": "node scripts/check-animations.mjs",
     "render:awakening": "node scripts/render-awakening.mjs",
-    "cinematic:package": "node scripts/package-cinematic.mjs"
+    "cinematic:package": "node scripts/package-cinematic.mjs",
+    "cinematic:promote": "node scripts/promote-awakening.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.59.1"

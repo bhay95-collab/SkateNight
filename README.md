@@ -415,9 +415,10 @@ re-verifies and preloads the local copy before enabling the coin interaction.
 Reload the normal PWA address after preparation to return to INSERT COIN.
 If the film is missing, invalid, cannot play, or reduced motion is enabled, the
 existing live standard cut runs instead. The Effects fader also controls the
-film's sound-effects track. The existing opener song still starts after the
-film's cut, on its established musical lead-in, and remains normal jukebox
-playback under the existing transport and Music controls.
+film's sound-effects track. At the film's cut, the opener starts on its first
+grid beat; the cabinet is revealed on the opener's first accent. The song is
+normal jukebox playback under the existing transport and Music controls. Live
+cuts retain their existing reveal timing.
 
 This is a proof of concept: render and test on the actual show Mac, projector
 and PA before choosing it as the event default. The exporter requires an
@@ -432,14 +433,19 @@ frames, 95th-percentile frame interval and long video-frame gaps beside the
 live renderer's missed-frame, long-task and GPU-time measurements. Run both
 cuts on the same display, Chrome profile and power mode.
 
-Reference smoke measurement (2026-10-31): offline playback on the M2 Pro Mac
-mini in Headless Chrome 156, 1280 x 800 at 1x, delivered 1,093 video-frame
-callbacks at 59.79 effective fps, with 0 dropped frames reported, a 16.7 ms
-95th-percentile interval, and one interval over 25 ms (129.2 ms maximum). The
-live Plunge run on the same setup missed 4 of 1,503 animation frames (0.3%),
-with 16.8 ms p95 and two long gaps (133 and 150 ms); its WebGL GPU timer
-reported 1.54 ms p95. This is a local harness comparison, not acceptance on
-the event MacBook Pro, projector, or PA.
+Reference measurement (2026-10-31): on the M2 Pro Mac mini, visible Chrome
+156/ANGLE Metal at device scale 1, the full offline run at 1440 x 900 delivered
+1,051 video-frame callbacks over 18.282 seconds (57.49 effective fps), with
+1,089 of 1,093 media frames and 0 dropped frames reported. In the direct
+visible `?bench` comparison at 1200 x 1146, the film delivered 1,062 callbacks
+(58.10 effective fps; 0 dropped); the page missed 2 of 1,636 animation
+intervals (0.1%, 15.2 ms p95). The live Plunge run on the same Chrome window
+missed 4 of 1,619 intervals (0.2%, 15.0 ms p95), with one 85 ms long task and
+1.74 ms p95 WebGL GPU time. The measured song hit was 43 ms behind the opener
+grid, and the jukebox reveal was 17 ms after the song accent. Headless Chrome
+produced inconsistent video callback counts, so these comparison figures use
+the visible browser; this still is not acceptance on the event MacBook Pro,
+projector, or PA, and the event laptop is unconfirmed.
 
 ### Blender cinematic look-development (Mac mini)
 
@@ -463,11 +469,29 @@ mechanical detailing in combined geometry, and live under ignored `build/`:
 ```
 
 The generated project separates the retro-industrial mechanism and the
-vinyl/stylus scene. A five-second motion preview is a look-development and
-workflow test, not the finished Awakening; its 24 fps source is duplicated by
-the package step when normalized to 60 fps. Package it with a versioned
-manifest, then import the MP4 and JSON together using **TOOLS** -> **Prepare
-for Show**:
+vinyl/stylus scene. The platter now turns at 45 RPM to match the real PWA
+jukebox. Alongside the groove journey, the scene has two competing camera
+paths: **giant-pullback** ends on the world-sized record; **precision-match-cut**
+ends with the record framed at the live UI platter's approximate position and
+scale. Render native-rate comparison clips with:
+
+```sh
+"/Applications/Blender.app/Contents/MacOS/Blender" -b \
+  build/cinematic-development/skate-by-faith-lookdev.blend \
+  --python cinematic/build_cinematic.py -- --mode preview \
+  --shot giant-pullback --preview-seconds 5 --samples 4 --width 384 --height 216
+"/Applications/Blender.app/Contents/MacOS/Blender" -b \
+  build/cinematic-development/skate-by-faith-lookdev.blend \
+  --python cinematic/build_cinematic.py -- --mode preview \
+  --shot precision-match-cut --preview-seconds 5 --samples 4 --width 384 --height 216
+```
+
+Animation curves preserve their authored timing while rendering at a native
+60 fps. Each five-second preview is 300 distinct frames and is checked with
+FFprobe; no 24 fps frames are duplicated. These are look-development
+comparisons, not the finished Awakening. Package a selected preview with a
+versioned manifest, then import the MP4 and JSON together using **TOOLS** ->
+**Prepare for Show**:
 
 ```sh
 npm run cinematic:package -- \
@@ -483,6 +507,49 @@ are stored separately and remain local. The Blender preview has a silent audio
 track; it does not demonstrate final cinematic sound design. The event MacBook
 Pro's exact configuration is still unknown, so playback, projector, and PA
 acceptance on that actual machine remains a separate milestone.
+
+### Website-hosted approved film
+
+The PWA checks `films/manifest.json` at launch. Only a film marked with explicit
+`productionApproval` metadata may be downloaded; the browser validates its
+versioned manifest, dimensions, 60 fps timing, H.264/AAC codecs, checksum,
+decodability, and seeks before reporting **READY OFFLINE**. It stores verified
+bytes in OPFS and rechecks them on later launches. The operator can retry the
+website download or import a local MP4 + manifest. Experimental previews use
+their separate namespace and cannot replace the show film.
+
+No approved cinematic is currently published in `films/`: the 18.22-second
+Plunge export is a technical regression fixture, and the five-second Blender
+movie is look-development only. The live standard cut therefore remains the
+default and fallback. Never publish either prototype by simply renaming it.
+After final creative, audio, transition, and hardware review, add an approval
+record to the final render manifest:
+
+```json
+"productionApproval": {
+  "status": "approved",
+  "approvedBy": "reviewer name",
+  "approvedAt": "2026-10-31T12:00:00.000Z"
+}
+```
+
+Then run `npm run cinematic:promote -- approved-awakening.mp4
+approved-awakening.mp4.json --confirm-approved`. Promotion validates the
+complete film, measured stylus-contact frame, handoff, stream metadata and
+SHA-256, and writes an immutable `films/awakening-vN.mp4` plus the current
+`films/manifest.json`. Review before committing; only those website delivery
+files should enter Git. The MP4 limit is 50 MiB to avoid GitHub's large-file
+warning (GitHub warns above 50 MiB and blocks files above 100 MiB). GitHub Pages
+limits a published site to 1 GiB and has a soft 100 GB/month bandwidth limit;
+keep the full repository and deployed site comfortably below those limits.
+
+The application downloads the complete MP4 with a same-origin `fetch`, checks
+its SHA-256, and writes it to OPFS before enabling film playback. Playback is
+from the verified local Blob, so pause/seek and offline playback do not depend
+on the server implementing HTTP byte ranges. Direct `/films/*.mp4` requests
+are left untouched by the service worker, preserving normal static-server
+range semantics. Test the deployment server's range behavior separately if a
+future player streams the remote URL directly.
 
 The show plays the standard opening. An experimental **extended cut
 (Bigger on the Inside)** is under development and not approved for the

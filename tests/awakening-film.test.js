@@ -8,6 +8,7 @@ import {
   AWAKENING_FILM_ID,
   AWAKENING_FILM_WIDTH,
   validateAwakeningFilmManifest,
+  validateHostedAwakeningManifest,
 } from '../awakening-film.js';
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
@@ -20,7 +21,25 @@ const validManifest = () => ({
   durationSec: AWAKENING_FILM_FRAME_COUNT / AWAKENING_FILM_FPS,
   videoCodec: 'h264',
   audioCodec: 'aac',
+  manifestVersion: 1,
+  filmVersion: 1,
+  audioSampleRate: 48000,
+  audioChannels: 2,
   sha256: 'a'.repeat(64),
+  cues: {
+    coinSequenceStartFrame: 0,
+    firstFailureFrame: 558,
+    recoveryFrame: 689,
+    stylusContactFrame: null,
+    musicHandoffFrame: AWAKENING_FILM_FRAME_COUNT - 1,
+    firstSongCueFrame: AWAKENING_FILM_FRAME_COUNT - 1,
+    finalCinematicFrame: AWAKENING_FILM_FRAME_COUNT - 1,
+  },
+  handoff: {
+    videoFrame: AWAKENING_FILM_FRAME_COUNT - 1,
+    openerTrackId: 'praise-lifted-on-high',
+    interactiveState: 'jukebox-playing:praise-lifted-on-high',
+  },
 });
 const validPreviewManifest = () => ({
   manifestVersion: 1,
@@ -87,15 +106,55 @@ test('validates versioned production previews and their explicit jukebox handoff
   }
 });
 
+test('hosted delivery is versioned, same-origin and gated by explicit approval', () => {
+  const manifest = {
+    ...validManifest(),
+    videoFile: 'awakening-v1.mp4',
+    productionApproval: {
+      status: 'approved',
+      approvedBy: 'Production review',
+      approvedAt: '2026-10-31T12:00:00.000Z',
+    },
+  };
+  assert.equal(
+    validateHostedAwakeningManifest(manifest, 'https://skate.example/films/manifest.json').href,
+    'https://skate.example/films/awakening-v1.mp4',
+  );
+  assert.equal(
+    validateHostedAwakeningManifest(manifest, 'https://example.github.io/SkateNight/films/manifest.json').href,
+    'https://example.github.io/SkateNight/films/awakening-v1.mp4',
+  );
+  assert.throws(() => validateHostedAwakeningManifest(
+    { ...manifest, productionApproval: undefined },
+    'https://skate.example/films/manifest.json',
+  ), /not been approved/);
+  for (const videoFile of [
+    'https://attacker.example/film.mp4',
+    '../outside.mp4',
+    'awakening-v1.json',
+  ]) {
+    assert.throws(() => validateHostedAwakeningManifest(
+      { ...manifest, videoFile },
+      'https://skate.example/films/manifest.json',
+    ));
+  }
+});
+
 test('the film is local PWA data and never added to the service-worker shell cache', () => {
   const sw = read('sw.js');
   assert.match(sw, /'awakening-film\.js'/, 'the importer module is cached offline');
   assert.doesNotMatch(sw, /awakening-film-.*\.mp4/, 'the cinematic asset is not a Git or service-worker asset');
+  assert.match(sw, /rel\.startsWith\('films\/'\)/, 'hosted MP4 range requests bypass the service worker');
   const app = read('app.js');
   assert.match(app, /await awakeningFilm\.prepare\(\)/, 'film readiness is checked before the coin handler is installed');
   assert.ok(app.indexOf('await awakeningFilm.prepare()') < app.indexOf("attractScreen.addEventListener('click'"),
     'the video is verified before a coin press can start the night');
   assert.match(app, /await film\.play/, 'coin playback uses the verified local film');
+  assert.match(app, /playedFilm && !new URLSearchParams\(location\.search\)\.has\('reveal'\)\s*\?\s*REVEALS\.a/,
+    'the film handoff uses the first song accent unless explicitly overridden');
+  assert.match(app, /async function landOpener\(leadMs = 0, reveal = REVEAL\)/);
+  assert.match(app, /const at = reveal\.at \+ \(getEngine\(\)\?\.ctx\.outputLatency \|\| 0\)/,
+    'the selected film handoff reveal time is applied to the music clock');
   assert.match(app, /await cabinetStart\?\.insert\(filmSound\)/, 'the existing live cut remains the fallback');
   assert.match(app, /prefers-reduced-motion: reduce/, 'reduced motion keeps the live gentle cut');
 });
@@ -115,6 +174,13 @@ test('operator import UI is available from TOOLS and uses OPFS-backed verificati
   assert.match(module, /const FILE_PREFIX = 'awakening-film-'/);
   assert.match(module, /const PREVIEW_PREFIX = 'cinematic-preview-'/);
   assert.match(read('app.js'), /startNight\(\{ previewFilm: true \}\)/);
+  assert.match(read('app.js'), /prepareHosted/);
+  assert.match(read('jukebox.css'), /body\.on-attract \.rig:has\(\.utility-drawer\[open\]\)\{\s*visibility:visible; z-index:95;/,
+    'the operator tools drawer remains reachable above the opening screen');
+  const promotion = read('scripts/promote-awakening.mjs');
+  assert.match(promotion, /--confirm-approved/);
+  assert.match(promotion, /stylusContactFrame == null/);
+  assert.match(promotion, /productionApproval\?\.status !== 'approved'/);
 });
 
 test('export and on-device benchmarks use fixed film frames and compare live/video delivery', () => {
@@ -127,4 +193,9 @@ test('export and on-device benchmarks use fixed film frames and compare live/vid
   const bench = read('bench.js');
   assert.match(bench, /video: film \|\| 'no pre-rendered film played'/);
   assert.ok(read('README.md').includes('`?bench&cut=plunge&live=1`'));
+  const blender = read('cinematic/build_cinematic.py');
+  assert.match(blender, /^FPS = 60$/m);
+  assert.match(blender, /^VINYL_RPM = 45$/m);
+  assert.match(blender, /CAM - Impossible pullback/);
+  assert.match(blender, /CAM - Precision match cut/);
 });

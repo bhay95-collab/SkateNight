@@ -290,11 +290,11 @@ check(guard.after.width > guard.during.width, 'the sleeve reports its full width
 
 section('[9] nothing threw, and nothing unexpected went missing');
 check(pageErrors.length === 0, 'no page or console errors', pageErrors.join(' | '));
-// sound.js probes sfx/<name>.mp3 first and falls back to the bundled .wav, so
-// those 404s are the design working. Anything else 404ing is a real break.
-const unexpected = [...new Set(missing)].filter((p) => !/^\/sfx\/[a-z]+\.mp3$/.test(p));
-check(unexpected.length === 0, 'the only 404s are the optional sfx overrides',
-  unexpected.length ? unexpected.join(' | ') : `${new Set(missing).size} optional sfx probes`);
+// MP3 overrides and the not-yet-published hosted film are optional.
+const unexpected = [...new Set(missing)].filter((p) =>
+  !/^\/sfx\/[a-z]+\.mp3$/.test(p) && p !== '/films/manifest.json');
+check(unexpected.length === 0, 'only optional media requests return 404',
+  unexpected.length ? unexpected.join(' | ') : `${new Set(missing).size} optional requests`);
 
 await browser.close();
 console.log(`\n${failures === 0 ? 'ALL MOTION CHECKS PASSED' : `${failures} MOTION CHECK(S) FAILED`}`);

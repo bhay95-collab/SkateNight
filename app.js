@@ -29,7 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { createAwakeningFilm } from './awakening-film.js';
+import { createAwakeningFilm, HOSTED_AWAKENING_MANIFEST } from './awakening-film.js';
 import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
@@ -109,7 +109,11 @@ async function main() {
   const awakeningFilm = createAwakeningFilm($('awakening-film'));
   const productionPreview = createAwakeningFilm($('production-preview-video'), 'production-preview');
   const filmStatus = $('film-status');
-  const initialFilmStatus = await awakeningFilm.prepare();
+  const localFilmStatus = await awakeningFilm.prepare();
+  filmStatus.textContent = localFilmStatus.message;
+  filmStatus.dataset.state = localFilmStatus.available ? 'ready' : 'checking';
+  if (!localFilmStatus.available) filmStatus.textContent = 'CHECKING APPROVED WEBSITE FILM...';
+  const initialFilmStatus = await awakeningFilm.prepareHosted(new URL(HOSTED_AWAKENING_MANIFEST, location.href).href);
   filmStatus.textContent = initialFilmStatus.message;
   filmStatus.dataset.state = initialFilmStatus.available ? 'ready' : 'bad';
   const previewStatus = $('film-preview-status');
@@ -390,7 +394,7 @@ async function main() {
      jukebox appears when the song's own clock reaches bar 2: the picture
      follows the sound, never a timer. Resolves at that moment, or after a
      fail-safe if the song cannot get going. */
-  async function landOpener(leadMs = 0) {
+  async function landOpener(leadMs = 0, reveal = REVEAL) {
     const id = dequeueNext();
     if (!id) return;
     const token = ++changeToken;
@@ -405,11 +409,11 @@ async function main() {
     if (token !== changeToken) return;
     startAudio(id, token, { leadInMs: 0, fadeInMs: 0, needle: false });
     // output latency: the clock reads what is sent, the room hears it this much later
-    const at = REVEAL.at + (getEngine()?.ctx.outputLatency || 0) + REVEAL_OFFSET_MS / 1000;
+    const at = reveal.at + (getEngine()?.ctx.outputLatency || 0) + REVEAL_OFFSET_MS / 1000;
     await new Promise((resolve) => {
       let done = false;
       const finish = () => { if (!done) { done = true; clearTimeout(failSafe); resolve(); } };
-      const failSafe = setTimeout(finish, (REVEAL.at + 2.5) * 1000);
+      const failSafe = setTimeout(finish, (reveal.at + 2.5) * 1000);
       // Reveal on the frame nearest the downbeat, not the first one after it:
       // within half a frame of the target is close enough (8 ms at 60 Hz).
       let last = 0;
@@ -418,7 +422,7 @@ async function main() {
         const frame = last ? now - last : 1000 / 60;
         last = now;
         if (BENCH && player.currentTrackId === id && player.currentTime > 0) benchMark('songZero', now - player.currentTime * 1000);
-        if (REVEAL.power && player.currentTrackId === id) powerTo(player.currentTime - (getEngine()?.ctx.outputLatency || 0));
+        if (reveal.power && player.currentTrackId === id) powerTo(player.currentTime - (getEngine()?.ctx.outputLatency || 0));
         if (player.currentTrackId === id && player.currentTime >= at - frame / 2000) finish();
         else requestAnimationFrame(watch);
       };
@@ -919,6 +923,24 @@ async function main() {
 
   const filmImportButton = $('btn-film-import');
   const filmFiles = $('film-files');
+  const hostedFilmButton = $('btn-film-hosted');
+  hostedFilmButton.addEventListener('click', async () => {
+    hostedFilmButton.disabled = true;
+    filmStatus.textContent = 'CHECKING AND DOWNLOADING APPROVED WEBSITE FILM...';
+    filmStatus.dataset.state = 'checking';
+    try {
+      const result = await awakeningFilm.prepareHosted(new URL(HOSTED_AWAKENING_MANIFEST, location.href).href);
+      filmStatus.textContent = result.message;
+      filmStatus.dataset.state = result.available ? 'ready' : 'bad';
+      if (!result.available) ui.toast('WEBSITE FILM NOT READY - LIVE CUT REMAINS AVAILABLE');
+    } catch (error) {
+      console.error('[hosted Awakening film]', error);
+      filmStatus.textContent = error.message || 'WEBSITE FILM CHECK FAILED';
+      filmStatus.dataset.state = 'bad';
+    } finally {
+      hostedFilmButton.disabled = false;
+    }
+  });
   filmImportButton.addEventListener('click', () => {
     noteInput();
     filmFiles.value = '';
@@ -1073,22 +1095,25 @@ async function main() {
       attractScreen.getAnimations({ subtree: true }).forEach((anim) => anim.cancel());   // the film is over: let it go
     };
     if (toDark) {
-      // Cut to black on the last beat: black and silence, a held breath. Then
-      // the opener begins in the dark and the jukebox is there on its bar 2.
+      // The film cut gives the opener's first beat a short dark landing; live
+      // cuts keep their selected reveal timing.
+      const reveal = playedFilm && !new URLSearchParams(location.search).has('reveal')
+        ? REVEALS.a
+        : REVEAL;
       attractScreen.classList.add('is-dark');
       benchMark('cut');
-      if (REVEAL.power && plan.music === 'opener') powerDown();
+      if (reveal.power && plan.music === 'opener') powerDown();
       try {
         if (plan.music === 'opener') {
-          await landOpener(REVEAL.leadMs);
+          await landOpener(reveal.leadMs, reveal);
         } else await delay(OPENER_LEAD_MS + OPENER.firstHit * 1000);
       } catch (err) {
         console.warn('[opener]', err);
       }
       document.body.classList.remove('on-attract');
-      if (REVEAL.power) powerFull();
+      if (reveal.power) powerFull();
       benchMark('reveal');
-      if (BENCH) setTimeout(() => { benchMark('done'); showReport(benchReport({ beatMs: OPENER.beat * 1000, gridLeadMs: OPENER.grid * 1000, revealAtS: REVEAL.at, outputLatencyS: getEngine()?.ctx.outputLatency || 0 })); }, 3000);
+      if (BENCH) setTimeout(() => { benchMark('done'); showReport(benchReport({ beatMs: OPENER.beat * 1000, gridLeadMs: OPENER.grid * 1000, revealAtS: reveal.at, outputLatencyS: getEngine()?.ctx.outputLatency || 0 })); }, 3000);
       attractScreen.classList.add('is-revealed');
       releaseInput();
       setTimeout(retire, 120);
