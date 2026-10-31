@@ -72,6 +72,7 @@ test('the film hands over on the grid: it ends on the cut, the song\'s bar 1 fiv
   assert.ok(lead > 0, 'the song starts after the cut, in the dark');
   assert.ok(Math.abs(BEATS.cut + lead + OPENER.bar1 * 1000 - (BEATS.cut + 5 * BEAT_MS)) < 1e-6, 'bar 1 is the fifth beat after the cut');
   const power = app.slice(app.indexOf('async function powerOn'), app.indexOf('async function startNight'));
-  assert.match(power, /await delay\(REVEAL\.leadMs\);/, 'the opener waits out the lead in the dark');
+  assert.match(power, /await landOpener\(REVEAL\.leadMs\);/, 'the opener waits out the lead in the dark');
+  assert.match(app, /await delay\(leadMs\);\s+\/\/ the record is on the platter from the cut/, 'with the record already on the platter');
   assert.match(app, /long: \{ leadMs: OPENER_LEAD_MS, at: OPENER\.revealAt \}/, 'the long reveal is still there to compare');
 });

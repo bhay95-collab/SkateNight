@@ -119,6 +119,14 @@ body{
 }
 /* While INSERT COIN is showing, the machine waits behind it unseen */
 body.on-attract .rig{ visibility:hidden; }
+/* Reveal c (app.js): the song powers the machine, one part on each accent -
+   the record changer first, then the side panels, the sign, the arch. Only
+   ever brighter; the drop clears it all to full power. */
+.rig.is-powering :is(.arch, .marquee, .ticker, .panel, .deck){ filter:brightness(.06) saturate(.5); transition:filter 90ms ease-out; }
+.rig.is-powering.power-1 .now-panel,
+.rig.is-powering.power-2 :is(.choose, .queue-panel),
+.rig.is-powering.power-3 :is(.marquee, .ticker),
+.rig.is-powering.power-4 .arch{ filter:none; }   /* the classes accumulate: power-1 stays as power-2 joins */
 .cabinet{
   display:grid; min-height:0;
   /* tube | the archive | the heart | the register and selector | tube */
