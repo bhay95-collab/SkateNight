@@ -29,7 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { createAwakeningFilm, HOSTED_AWAKENING_MANIFEST } from './awakening-film.js';
+import { createAwakeningFilm, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord } from './awakening-film.js';
 import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
@@ -405,7 +405,8 @@ async function main() {
     mech.showPlaying(volumeById.get(track.volume), { trackId: id });
     openerPlayed = true;
     try { sessionStorage.setItem(OPENER_FLAG, '1'); } catch { /* a reload may play it again */ }
-    await delay(leadMs);                         // the record is on the platter from the cut; the song starts on the grid
+    if (leadMs instanceof Promise) await leadMs;   // an overlap film: the song starts when the film's frame says so
+    else await delay(leadMs);                         // the record is on the platter from the cut; the song starts on the grid
     if (token !== changeToken) return;
     startAudio(id, token, { leadInMs: 0, fadeInMs: 0, needle: false });
     // output latency: the clock reads what is sent, the room hears it this much later
@@ -1048,6 +1049,101 @@ async function main() {
     rig.classList.remove('is-powering', ...POWER_UP.map((_, k) => `power-${k + 1}`));
   }
 
+  /* A film that keeps running into the song (handoff.mode "overlap"). The
+     jukebox starts the opener on the film's own clock at the song cue - the
+     film carries no music, so nothing doubles - and the reveal still lands on
+     the song's clock. Over the last second the film is carried onto the live
+     #record wherever this screen has put it, and everything outside the record
+     fades to the live jukebox coming up behind it; the record's spin phase is
+     set to the film's, so only the disc itself crossfades. Resolves when the
+     jukebox is showing; throws only before the song has started. */
+  async function playOverlapFilm(film, plan, volume) {
+    const video = film.element;
+    const stats = { songStartSec: plan.songStartSec, endSec: plan.endSec };
+    globalThis.__overlapStats = stats;
+    let landing = null;
+    let frameId = 0;
+    let syncId = 0;
+    const follow = () => {                                   // the picture follows the sound, as everywhere else
+      if (player?.currentTrackId === OPENER.id && player.currentTime > 0.05 && !video.paused) {
+        const drift = (video.currentTime - plan.songStartSec) - player.currentTime;
+        // inside a frame the film plays untouched; a slip is eased out, a stall is jumped over
+        if (Math.abs(drift) > 0.1) video.currentTime -= drift;
+        else video.playbackRate = Math.abs(drift) > 1 / 60 ? Math.min(1.1, Math.max(0.9, 1 - drift * 4)) : 1;
+        stats.maxDriftMs = Math.max(stats.maxDriftMs || 0, Math.abs(drift * 1000));
+        if (Math.abs(drift) > 1 / 60 && stats.firstSlip == null) {
+          stats.firstSlip = { songTime: player.currentTime, driftMs: Math.round(drift * 1000) };
+        }
+      }
+      syncId = requestAnimationFrame(follow);
+    };
+    // The changer's DOM work happens well before the song, so the frame the song
+    // starts on is not the frame the page is busy laying out.
+    let openGate = () => {};
+    const gate = new Promise((resolve) => { openGate = resolve; });
+    const prepareSong = () => { landing = landOpener(gate, { leadMs: 0, at: OPENER.revealAt }); };
+    const startSong = (mediaTime) => {
+      stats.songCueMediaTime = mediaTime;
+      stats.songLeadMs = Math.max(0, (plan.songStartSec - mediaTime) * 1000);
+      setTimeout(openGate, stats.songLeadMs);
+      syncId = requestAnimationFrame(follow);
+    };
+    const register = (mediaTime) => {
+      stats.registerMediaTime = mediaTime;
+      document.body.classList.remove('on-attract');
+      attractScreen.classList.add('is-revealed');            // the live jukebox comes up behind the film
+      const fit = registerRecord(plan.record, { width: innerWidth, height: innerHeight },
+        $('record-mover').getBoundingClientRect());
+      stats.fit = fit;
+      const span = plan.endSec - plan.registrationStartSec;
+      video.style.transformOrigin = '0 0';
+      const step = () => {
+        const u = Math.min(1, Math.max(0, (video.currentTime - plan.registrationStartSec) / span));
+        const e = u * u * (3 - 2 * u);
+        const scale = 1 + (fit.scale - 1) * e;
+        const tx = fit.tx * e;
+        const ty = fit.ty * e;
+        video.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        // the mask lives in the element's own (untransformed) space
+        const r = (fit.mask.r * 1.04) / scale;
+        const mask = `radial-gradient(circle at ${(fit.mask.cx - tx) / scale}px ${(fit.mask.cy - ty) / scale}px, `
+          + `#000 ${r}px, rgba(0,0,0,${(1 - e).toFixed(3)}) ${r * 1.08}px)`;
+        video.style.maskImage = mask;
+        video.style.webkitMaskImage = mask;
+        if (u < 1) frameId = requestAnimationFrame(step);
+      };
+      step();
+    };
+    try {
+      await film.play(volume, { onTime: [
+        { at: plan.songStartSec - 0.75, run: prepareSong },
+        { at: plan.songStartSec - 2 / 60, run: startSong },
+        { at: plan.registrationStartSec, run: register },
+      ] });
+    } catch (err) {
+      if (!landing) throw err;                                // the song is already playing: finish the landing
+      console.warn('[awakening film]', err);
+    }
+    cancelAnimationFrame(frameId);
+    cancelAnimationFrame(syncId);
+    video.playbackRate = 1;
+    stats.filmEndedMs = performance.now();
+    const spin = $('record').getAnimations().find((a) => a.animationName === 'record-spin');
+    if (spin) {                                              // the live record picks up the film's label angle
+      spin.currentTime = (plan.record.cssAngleDeg / 360) * (60000 / plan.record.rpm);
+      stats.cssAngleDeg = plan.record.cssAngleDeg;
+    }
+    video.style.transition = 'opacity 100ms linear';
+    video.style.opacity = '0';
+    await landing;
+    stats.revealMs = performance.now();
+    await delay(120);
+    film.stop();
+    for (const prop of ['transform', 'transformOrigin', 'maskImage', 'webkitMaskImage', 'transition', 'opacity']) {
+      video.style[prop] = '';
+    }
+  }
+
   async function powerOn({ previewFilm = false } = {}) {
     benchMark('press');
     const sfxReady = engineReady ? Promise.race([decodeSfxFiles().catch(() => {}), delay(400)]) : Promise.resolve();
@@ -1064,13 +1160,22 @@ async function main() {
       power: later('power'), tube: later('tube'),
     };
     let playedFilm = false;
+    let overlapLanded = false;
     try {
       const forceLiveCut = new URLSearchParams(location.search).has('live');
       const film = previewFilm ? productionPreview : awakeningFilm;
+      let overlap = null;
+      try { overlap = plan.music === 'opener' ? overlapPlan(film.manifest) : null; } catch (err) { console.warn('[overlap]', err); }
       if (film.ready && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!forceLiveCut || previewFilm)) {
         try {
           safely('drone', wakeDrone);
-          await film.play((Number($('vol-sfx').value) / 100) ** 2);
+          const volume = (Number($('vol-sfx').value) / 100) ** 2;
+          if (overlap) {
+            await playOverlapFilm(film, overlap, volume);
+            overlapLanded = true;
+          } else {
+            await film.play(volume);
+          }
           playedFilm = true;
         } catch (err) {
           console.warn('[awakening film]', err);
@@ -1086,14 +1191,20 @@ async function main() {
     } finally {
       if (!toDark) releaseInput();
     }
-    if (playedFilm) {
-      attractScreen.classList.add('is-dark');
-      (previewFilm ? productionPreview : awakeningFilm).stop();
-    }
     const retire = () => {
       attractScreen.hidden = true;
       attractScreen.getAnimations({ subtree: true }).forEach((anim) => anim.cancel());   // the film is over: let it go
     };
+    if (overlapLanded) {                    // the film already carried the night onto the playing jukebox
+      benchMark('reveal');
+      if (toDark) releaseInput();           // otherwise the finally above already released it
+      setTimeout(retire, 120);
+      return;
+    }
+    if (playedFilm) {
+      attractScreen.classList.add('is-dark');
+      (previewFilm ? productionPreview : awakeningFilm).stop();
+    }
     if (toDark) {
       // The film cut gives the opener's first beat a short dark landing; live
       // cuts keep their selected reveal timing.

@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bpy  # noqa: E402
 from mathutils import Matrix, Vector  # noqa: E402
 
+import drive_detail  # noqa: E402
 import kit  # noqa: E402
 from kit import Batch  # noqa: E402
 
@@ -34,7 +35,12 @@ def materials():
         "lacquer": kit.worn_metal("Black lacquer steel", (0.012, 0.014, 0.018), 0.35, 0.32, wear=0.22,
                                   wear_color=(0.42, 0.40, 0.38), coat=0.4, scale=0.4),
         "iron": kit.worn_metal("Cast iron", (0.035, 0.034, 0.033), 0.85, 0.55, wear=0.15, scale=0.6),
-        "steel": kit.worn_metal("Machined steel", (0.5, 0.51, 0.52), 1.0, 0.17, wear=0.0, grime=0.35),
+        "steel": machined_steel(),
+        "blued": kit.worn_metal("Blued steel", (0.05, 0.07, 0.1), 1.0, 0.26, wear=0.12, wear_color=(0.5, 0.5, 0.52),
+                                grime=0.5),
+        "chrome": kit.worn_metal("Chrome shafting", (0.78, 0.79, 0.8), 1.0, 0.07, wear=0.0, grime=0.2),
+        "gunmetal": kit.worn_metal("Gunmetal housings", (0.1, 0.105, 0.11), 1.0, 0.36, wear=0.18,
+                                   wear_color=(0.5, 0.5, 0.5), grime=0.75, scale=0.7),
         "teal": kit.worn_metal("Teal enamel", (0.012, 0.045, 0.05), 0.2, 0.38, wear=0.3, scale=0.5),
         "brass": kit.worn_metal("Worn brass", (0.55, 0.36, 0.12), 1.0, 0.28, wear=0.15,
                                 wear_color=(0.8, 0.62, 0.3)),
@@ -42,11 +48,30 @@ def materials():
         "ceramic": kit.worn_metal("Glazed insulator", (0.45, 0.33, 0.24), 0.0, 0.18, wear=0.0, grime=0.5),
         "grate": kit.worn_metal("Deck grating", (0.05, 0.05, 0.048), 0.8, 0.5, wear=0.35, scale=2.0),
         "amber": kit.glow("Amber pilot lamp", AMBER, 40),
-        "cyan": kit.glow("Cyan phosphor", CYAN, 1.3),
-        "magenta": kit.glow("Magenta neon", MAGENTA, 30),
+        "cyan": kit.glow("Cyan bearing glow", CYAN, 0.9),
+        "dial": kit.glow("Phosphor dial", CYAN, 0.16),
+        "gauge": kit.glow("Gauge face", (1.0, 0.75, 0.45), 1.2),
+        "magenta": kit.glow("Magenta neon", MAGENTA, 9),
         "tube": kit.glow("Cold fluorescent", (0.6, 0.85, 1.0), 3),
         "warm": kit.glow("Sodium lamp", (1.0, 0.7, 0.4), 20),
     }
+
+
+def machined_steel():
+    """Bright turned steel: lathe rings, clean faces, oil in the corners only."""
+    mat = kit.worn_metal("Machined steel", (0.7, 0.71, 0.73), 1.0, 0.27, wear=0.0, grime=0.12)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    nodes["Map Range"].inputs["To Min"].default_value = 0.25      # satin and even: catches the key, not the haze
+    nodes["Map Range"].inputs["To Max"].default_value = 0.3
+    rings = nodes.new("ShaderNodeTexWave")
+    rings.wave_type = "RINGS"
+    rings.rings_direction = "Z"
+    rings.inputs["Scale"].default_value = 2.2
+    bump = nodes["Bump"]
+    bump.inputs["Strength"].default_value = 0.07
+    links.new(nodes["Texture Coordinate"].outputs["Object"], rings.inputs["Vector"])
+    links.new(rings.outputs["Fac"], bump.inputs["Height"])
+    return mat
 
 
 def copper_windings():
@@ -68,18 +93,20 @@ def copper_windings():
 
 def build_drive(M):
     root = kit.empty("Platter drive", C, (math.radians(90), 0, 0))   # local +Z faces the camera
+    drive = kit.empty("Drive angle (sun gear)")                        # every gear follows this one angle
+    kit.spin(drive, SUN_SPEED)
     tip_on_zero = lambda n: -math.tau * 0.375 / n
     tooth_ring = tip_on_zero(N_RING) + PLANET_ANGLES[0]
     tooth_sun = tip_on_zero(N_SUN) + PLANET_ANGLES[0]
 
     sun = Batch().ring(9.0, 17.3, 3.0, z=1.5, teeth=N_SUN, tooth=1.0)
     sun.ring(5.0, 9.0, 2.2, z=1.6).cyl((0, 0, 2.5), 3.0, 3.0, segs=48)
-    kit.spin(sun.emit("Sun gear 128T", M["steel"], root, bevel=0.06), SUN_SPEED, phase=tooth_sun)
+    kit.follow(sun.emit("Sun gear 128T", M["steel"], root, bevel=0.06), drive, 1.0, phase=tooth_sun)
     races = Batch()
     for r in (11.0, 14.0):
         races.ring(r - 0.25, r + 0.25, 0.5, z=3.25, segs=160)
     races.radial(48, 12.5, lambda m, a: races.cyl((0, 0, 3.3), 0.22, 0.5, segs=6, matrix=m))
-    kit.spin(races.emit("Sun bearing races", M["brass"], root, bevel=0.03), SUN_SPEED, phase=tooth_sun)
+    kit.follow(races.emit("Sun bearing races", M["brass"], root, bevel=0.03), drive, 1.0, phase=tooth_sun)
 
     for i, a in enumerate(PLANET_ANGLES):
         loc = (PLANET_R * math.cos(a), PLANET_R * math.sin(a), 0)
@@ -88,9 +115,9 @@ def build_drive(M):
         for k in range(6):
             b = math.tau * k / 6
             p.cyl((3.6 * math.cos(b), 3.6 * math.sin(b), 1.5), 0.55, 3.2, segs=16)
-        planet = p.emit(f"Planet {i + 1} 36T", M["iron"], root, bevel=0.05)
+        planet = p.emit(f"Planet {i + 1} 36T", M["blued"], root, bevel=0.05)
         planet.location = loc
-        kit.spin(planet, -SUN_SPEED * N_SUN / N_PLANET, phase=a - math.tau * 0.875 / N_PLANET)
+        kit.follow(planet, drive, -N_SUN / N_PLANET, phase=a - math.tau * 0.875 / N_PLANET)
         Batch().cyl((0, 0, 3.4), 1.05, 0.5, segs=40).emit(f"Planet {i + 1} bearing glow", M["cyan"], root).location = loc
         hub = Batch().ring(1.05, 1.9, 1.4, z=3.6, segs=48)
         hub.radial(10, 1.5, lambda m, _a: hub.cyl((0, 0, 4.4), 0.14, 0.3, segs=6, matrix=m))
@@ -104,8 +131,8 @@ def build_drive(M):
                  h=2.0, w=1.4, t=0.25)
     rg.cyl((0, 0, -3.0), 8.5, 2.4, segs=64)
     rg.radial(100, 31.0, lambda m, _a: rg.cyl((0, 0, 3.35), 0.3, 0.45, segs=6, matrix=m))
-    kit.spin(rg.emit("Ring gear 200T + platter flywheel", M["lacquer"], root, bevel=0.07),
-             -SUN_SPEED * N_SUN / N_RING, phase=tooth_ring)
+    kit.follow(rg.emit("Ring gear 200T + platter flywheel", M["lacquer"], root, bevel=0.07),
+               drive, -N_SUN / N_RING, phase=tooth_ring)
 
     frame = Batch().ring(34.0, 37.5, 4.0, z=0.5, segs=220).ring(38.0, 50.5, 2.0, z=-4.5, segs=220)
     frame.radial(120, 35.75, lambda m, _a: frame.cyl((0, 0, 2.6), 0.32, 0.4, segs=6, matrix=m))
@@ -128,11 +155,12 @@ def build_drive(M):
     cores.emit("Stator cores", M["iron"], root, bevel=0.08)
 
     build_auxiliaries(M, root)
+    drive_detail.build_drivetrain(M, root, drive, PLANET_ANGLES, -N_SUN / N_PLANET)
+    drive_detail.build_brake_linkage(M, root)
+    drive_detail.build_neon(M, root)
     lamps = Batch()
     lamps.radial(96, 51.6, lambda m, _a: lamps.sphere((0, 0, -3.4), 0.32, matrix=m))
     lamps.emit("Pilot lamp chain", M["amber"], root, smooth=True)
-    Batch().ring(37.6, 38.0, 0.35, z=2.4, segs=256).ring(25.4, 25.7, 0.3, z=-1.9, segs=256).emit(
-        "Neon races", M["magenta"], root)
 
     motor = Batch().cyl((0, 0, 10.0), 8.2, 13.0, segs=96)
     for k in range(16):
@@ -140,14 +168,18 @@ def build_drive(M):
     motor.ring(6.4, 9.0, 1.4, z=16.8, segs=96)
     motor.radial(32, 7.7, lambda m, _a: motor.cyl((0, 0, 17.6), 0.26, 0.5, segs=6, matrix=m))
     motor.emit("Drive motor housing", M["lacquer"], root, bevel=0.05)
-    Batch().cyl((0, 0, 17.0), 6.4, 0.6, segs=96).emit("Phosphor dial", M["cyan"], root)
+    Batch().cyl((0, 0, 17.0), 6.4, 0.6, segs=96).emit("Phosphor dial", M["dial"], root)
+    needle = Batch().box((0, 2.4, 0), (0.22, 4.8, 0.12)).cyl((0, 0, 0), 0.5, 0.3, segs=24)
+    needle = needle.emit("Dial needle", M["warm"], root)
+    needle.location = (0, 0, 17.65)
+    needle.rotation_euler = (0, 0, math.radians(120))
     ticks = Batch()
     ticks.radial(60, 5.7, lambda m, a: ticks.box(
         (0, 0, 17.4), (0.9 if round(a / (math.tau / 60)) % 5 == 0 else 0.45, 0.12, 0.2), matrix=m))
     ticks.cyl((0, 0, 17.5), 1.2, 0.5, segs=32).emit("Dial graduations", M["iron"], root)
     kit.text("Drive plate", "PLATTER DRIVE  08", (0, 41.2, 3.0), (0, 0, 0), 3.2, M["brass"], 0.15, root)
     kit.text("Drive warning", "HIGH INERTIA  ·  KEEP CLEAR", (0, -42.4, 3.0), (0, 0, math.pi), 1.6, M["brass"], 0.1, root)
-    return root
+    return root, drive
 
 
 def build_auxiliaries(M, root):
@@ -281,32 +313,44 @@ def build_hall(M):
 
 def build_lights(variant):
     lit = variant != "dormant"
-    kit.light("SPOT", "Backlight through the drive", (0, 120, 70), (0.25, 0.6, 1.0), 2.2e6 if lit else 0,
+    lights = {}
+    lights["back"] = kit.light("SPOT", "Backlight through the drive", (0, 120, 70), (0.25, 0.6, 1.0), 9.0e5 if lit else 0,
               target=(0, 0, 18), size=6, spot=55, blend=0.6)
-    kit.light("AREA", "Drive rim cyan", (0, 78, 30), (0.2, 0.7, 1.0), 2.5e4 if lit else 0, target=(0, 40, 26), size=80)
-    kit.light("SPOT", "Magenta kicker", (40, 22, 46), MAGENTA, 2.5e4 if lit else 3e3, target=C,
+    lights["rim"] = kit.light("AREA", "Drive rim cyan", (0, 78, 30), (0.2, 0.7, 1.0), 2.5e4 if lit else 0, target=(0, 40, 26), size=80)
+    lights["kicker"] = kit.light("SPOT", "Magenta kicker", (40, 22, 46), MAGENTA, 2.5e4 if lit else 3e3, target=C,
               size=1.5, spot=30, blend=0.4)
-    kit.light("AREA", "Warm raking key", (-42, 6, 3), (1.0, 0.76, 0.52), 1.6e4 if lit else 0,
+    lights["key"] = kit.light("AREA", "Warm raking key", (-42, 6, 3), (1.0, 0.76, 0.52), 1.6e4 if lit else 0,
               target=(0, 44, 26), size=16)
-    kit.light("SPOT", "Amber uplight on the motor", (0, 26, 0.6), AMBER, 3.0e4 if lit else 2.0e4,
-              target=(0, 40, 30), size=0.6, spot=46, blend=0.5)
+    for side in (-1, 1):                                  # work floods on the gantries, raking the drive face
+        lights[f"flood{side}"] = kit.light("AREA", f"Gantry flood {side:+d}", (side * 21, 12, 34), (1.0, 0.86, 0.7),
+                                           3.2e4 if lit else 0, target=(side * -6, 46, 24), size=4)
+    lights["up"] = kit.light("SPOT", "Amber uplight on the motor", (0, 26, 0.6), AMBER, 3.0e4 if lit else 2.0e4,
+                             target=(0, 40, 30), size=0.6, spot=46, blend=0.5)
+    return lights
 
 
 def cameras():
     return {
-        "hero": kit.camera("A1 Establishing", (-9.5, -40, 2.4), (2.5, 48, 30), 24, fstop=8, focus=92),
+        "hero": kit.camera("A1 Establishing", (-9.0, -57, 2.2), (2.0, 48, 30), 22, fstop=8, focus=108),
         "detail": kit.camera("A2 Gear mesh detail", (-1.5, 29.5, 5.0), (-13.2, 46.0, 13.6), 35, fstop=2.8, focus=21.2),
         "alt": kit.camera("A3 Gantry three-quarter", (-21.5, -3, 49.1), (6, 46, 22), 24, fstop=8, focus=60),
     }
 
 
-def animate_push(cam):
-    """Five-second push along the walkway with a slow crane; Bezier keys ease in and out."""
-    for frame, loc, tgt in ((1, (-0.7, -52, 1.75), (0, 48, 30)), (300, (-0.4, -38, 3.2), (0, 48, 31))):
+PUSH = ((1, (-11.0, -70.0, 1.4), (-2.0, 40.0, 18.0), 28),     # low, behind the valve stands
+        (150, (-4.0, -47.0, 5.2), (0.0, 46.0, 25.0), 24),       # under the pipe bridge
+        (300, (6.5, -14.0, 13.0), (-1.0, 48.0, 33.0), 18))     # up and across: the drive towers overhead
+
+
+def animate_push(cam, keys=PUSH, offset=0):
+    """A crane push that moves past near layers so parallax reveals the depth of the drive."""
+    for frame, loc, tgt, lens in keys:
         cam.location = loc
         kit.aim(cam, tgt)
-        cam.keyframe_insert("location", frame=frame)
-        cam.keyframe_insert("rotation_euler", frame=frame)
+        cam.data.lens = lens
+        cam.keyframe_insert("location", frame=frame + offset)
+        cam.keyframe_insert("rotation_euler", frame=frame + offset)
+        cam.data.keyframe_insert("lens", frame=frame + offset)
 
 
 def main():
@@ -324,12 +368,14 @@ def main():
     scene.cycles.volume_step_rate = 2.0
     M = materials()
     if args.shot == "dormant":                       # before the pulse: only the pilot lamps have power
-        for k in ("magenta", "cyan", "tube", "warm"):
+        for k in ("magenta", "cyan", "dial", "gauge", "tube", "warm"):
             M[k].node_tree.nodes["Emission"].inputs["Strength"].default_value = 0.0
-    build_drive(M)
+    _root, drive = build_drive(M)
     build_hall(M)
+    drive_detail.build_background(M, drive)
+    drive_detail.build_foreground(M)
     build_lights("dormant" if args.shot == "dormant" else "lit")
-    kit.fog(scene, (130, 260, 140), (0, 0, 14), 0.0024, anisotropy=0.7)
+    kit.fog(scene, (130, 260, 140), (0, 0, 14), 0.0016, anisotropy=0.7)
     cams = cameras()
     scene.frame_start, scene.frame_end = 1, 300
     out = kit.OUT / "megastructure"
@@ -352,4 +398,5 @@ def main():
         print(f"WROTE {out / f'A-{shot}.png'}", flush=True)
 
 
-main()
+if __name__ == "__main__":
+    main()

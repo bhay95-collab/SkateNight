@@ -1,3 +1,4 @@
+import { OPENER } from './rotation.js';
 import { timeline } from './startup-timing.js';
 
 export const AWAKENING_FILM_ID = 'skate-by-faith-awakening-plunge-1080p60-v1';
@@ -69,6 +70,7 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
         || manifest.handoff.videoFrame !== manifest.cues.musicHandoffFrame) {
       throw new Error('The production preview final frame or handoff frame is inconsistent.');
     }
+    overlapPlan(manifest);
   }
   if (!Number.isFinite(manifest.durationSec) || manifest.durationSec <= 0
       || Math.abs(manifest.durationSec - manifest.frameCount / manifest.fps) > 0.001
@@ -97,6 +99,64 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
       throw new Error('The Awakening manifest final frame or jukebox handoff is inconsistent.');
     }
   }
+}
+
+/* A film that keeps running while the jukebox plays the opener (handoff.mode
+   "overlap"): the song starts at handoff.songStartSec on the film clock, the
+   stylus touches the groove on the song's first hit, and the film's last frame
+   lands on the opener's reveal. The record block says where the record sits in
+   the last frame (fractions of the 16:9 frame) and the CSS angle of its label,
+   so the app can register the film onto the live #record on any screen.
+   Returns null for a film that ends on the cut. Throws if the timing is off by
+   more than a frame: these are the cues the music is locked to. */
+export function overlapPlan(manifest) {
+  const handoff = manifest?.handoff;
+  if (handoff?.mode !== 'overlap') return null;
+  const { fps, cues, frameCount } = manifest;
+  const frame = 1 / fps;
+  const songStartSec = handoff.songStartSec;
+  if (!Number.isFinite(songStartSec) || songStartSec <= 0 || songStartSec >= frameCount / fps) {
+    throw new Error('The overlap film needs a song start inside the film.');
+  }
+  if (cues.musicHandoffFrame !== Math.floor(songStartSec * fps) || handoff.videoFrame !== cues.musicHandoffFrame) {
+    throw new Error('The overlap film\'s handoff frame must be the frame the song starts in.');
+  }
+  const contactSec = cues.stylusContactFrame / fps;
+  if (cues.firstSongCueFrame !== cues.stylusContactFrame
+      || Math.abs(contactSec - (songStartSec + OPENER.firstHit)) > frame / 2) {
+    throw new Error('The stylus must touch the groove on the song\'s first hit.');
+  }
+  const endSec = cues.finalCinematicFrame / fps;
+  if (cues.finalCinematicFrame !== frameCount - 1 || Math.abs(endSec - (songStartSec + OPENER.revealAt)) > frame) {
+    throw new Error('The overlap film\'s last frame must land on the opener\'s reveal.');
+  }
+  const start = cues.registrationStartFrame;
+  if (!Number.isInteger(start) || start <= cues.stylusContactFrame || start >= cues.finalCinematicFrame) {
+    throw new Error('The overlap film needs a registration start between contact and the last frame.');
+  }
+  const record = handoff.record || {};
+  const inFrame = (v) => Number.isFinite(v) && v > 0 && v < 1;
+  if (!inFrame(record.cx) || !inFrame(record.cy) || !(record.r > 0 && record.r < 0.5)
+      || !Number.isFinite(record.cssAngleDeg) || !(record.rpm > 0)) {
+    throw new Error('The overlap film must say where its record lands.');
+  }
+  return { songStartSec, contactSec, endSec, registrationStartSec: start / fps, record: { ...record } };
+}
+
+/* Where the film's record lands on this screen, and the transform that puts it
+   on the live record. The film is shown object-fit: cover; the result is a CSS
+   transform (origin 0 0: scale, then translate tx/ty in px) and the live record
+   circle in viewport px, for masking the film down to the record. */
+export function registerRecord(record, viewport, live) {
+  const cover = Math.max(viewport.width / 1920, viewport.height / 1080);
+  const offsetX = (viewport.width - 1920 * cover) / 2;
+  const offsetY = (viewport.height - 1080 * cover) / 2;
+  const filmX = offsetX + record.cx * 1920 * cover;
+  const filmY = offsetY + record.cy * 1080 * cover;
+  const filmR = record.r * 1920 * cover;
+  const mask = { cx: live.x + live.width / 2, cy: live.y + live.height / 2, r: live.width / 2 };
+  const scale = mask.r / filmR;
+  return { scale, tx: mask.cx - filmX * scale, ty: mask.cy - filmY * scale, mask };
 }
 
 export function validateHostedAwakeningManifest(manifest, manifestUrl) {
@@ -338,7 +398,9 @@ export function createAwakeningFilm(video, kind = 'awakening') {
       : result;
   }
 
-  async function play(volume = 1) {
+  /* onTime: [{ at: film seconds, run(mediaTime) }], each run once, on the
+     first presented frame at or after `at` (the film's own clock, not a timer). */
+  async function play(volume = 1, { onTime = [] } = {}) {
     if (!selected || !objectUrl) throw new Error('No verified Awakening film is ready.');
     video.volume = Math.min(1, Math.max(0, volume));
     video.currentTime = 0;
@@ -349,7 +411,17 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     let previousFrame = null;
     let callbackId = null;
     const startedAt = performance.now();
+    const pending = onTime.slice().sort((a, b) => a.at - b.at);
+    const fire = (mediaTime) => {
+      while (pending.length && mediaTime >= pending[0].at - 0.5 / AWAKENING_FILM_FPS) {
+        const cue = pending.shift();
+        try { cue.run(mediaTime); } catch (error) { console.warn('[awakening film cue]', error); }
+      }
+    };
+    const onTimeUpdate = () => fire(video.currentTime);
+    if (pending.length) video.addEventListener('timeupdate', onTimeUpdate);
     const onVideoFrame = (now, metadata) => {
+      fire(metadata.mediaTime);
       const displayedAt = metadata.expectedDisplayTime ?? now;
       if (previousFrame != null) intervals.push(displayedAt - previousFrame);
       previousFrame = displayedAt;
@@ -377,6 +449,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
       throw error;
     } finally {
       removePlaybackListeners();
+      video.removeEventListener('timeupdate', onTimeUpdate);
       if (callbackId != null) video.cancelVideoFrameCallback?.(callbackId);
       const qualityEnd = video.getVideoPlaybackQuality?.();
       const ordered = intervals.slice().sort((a, b) => a - b);
@@ -414,5 +487,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     stop,
     setVolume,
     get ready() { return Boolean(selected && objectUrl); },
+    get manifest() { return selected?.manifest || null; },
+    get element() { return video; },
   };
 }

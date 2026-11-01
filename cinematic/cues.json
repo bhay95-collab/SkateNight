@@ -1,0 +1,128 @@
+{
+  "about": "Authoritative timing for the director's cut Awakening. Film frames at 60 fps, zero-based. Beats follow startup-timing.js (standard cut) and the opener's measured clock in rotation.js. Song times are the opener's own clock.",
+  "fps": 60,
+  "opener": {
+    "trackId": "praise-lifted-on-high",
+    "firstHitSec": 0.207,
+    "beatSec": 0.4465,
+    "revealAtSec": 3.584
+  },
+  "frames": {
+    "coinStart": 0,
+    "coinGone": 186,
+    "relay": 327,
+    "attempt": 357,
+    "almost": 426,
+    "failure": 453,
+    "tick": 530,
+    "catch": 584,
+    "heartbeats": [
+      608,
+      656,
+      694,
+      725
+    ],
+    "ignite": 752,
+    "lockBeats": [
+      752,
+      779,
+      806,
+      832,
+      859,
+      886,
+      913,
+      939
+    ],
+    "toRecord": 859,
+    "stylusApproach": 886,
+    "stylusContact": 951,
+    "registrationStart": 1110,
+    "final": 1154
+  },
+  "song": {
+    "startSec": 15.643,
+    "note": "stylusContact / fps - firstHitSec: the diamond touches the groove on the song's first hit"
+  },
+  "groove": {
+    "contactFrame": 240,
+    "endFrame": 443,
+    "note": "hero_groove.py frame g plays at film frame g + (stylusContact - contactFrame)"
+  },
+  "supply": {
+    "note": "startup-timing.js SUPPLY (standard cut), ms converted to film frames: the machine's power level",
+    "points": [
+      [
+        0,
+        0.2
+      ],
+      [
+        327,
+        0.2
+      ],
+      [
+        330,
+        0.03
+      ],
+      [
+        357,
+        0.03
+      ],
+      [
+        387,
+        0.2
+      ],
+      [
+        408,
+        0.38
+      ],
+      [
+        426,
+        0.55
+      ],
+      [
+        438,
+        0.34
+      ],
+      [
+        446,
+        0.47
+      ],
+      [
+        453,
+        0.42
+      ],
+      [
+        476,
+        0
+      ],
+      [
+        584,
+        0
+      ],
+      [
+        591,
+        0.3
+      ],
+      [
+        638,
+        0.5
+      ],
+      [
+        692,
+        0.7
+      ],
+      [
+        747,
+        0.86
+      ],
+      [
+        752,
+        1.14
+      ],
+      [
+        777,
+        1
+      ]
+    ]
+  }
+}

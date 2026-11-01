@@ -20,8 +20,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bmesh  # noqa: E402
 import bpy  # noqa: E402
 import numpy as np  # noqa: E402
-from mathutils import Euler, Matrix, Vector  # noqa: E402
+import json  # noqa: E402
+from mathutils import Euler, Matrix, Quaternion, Vector  # noqa: E402
 
+import groove_detail  # noqa: E402
 import kit  # noqa: E402
 from kit import Batch  # noqa: E402
 
@@ -36,6 +38,10 @@ PITCH, DEPTH, GROOVE_W = 0.4, 0.13, 0.26
 LEADIN_PITCH, LEADIN_R = 1.5, 562.0
 OMEGA_45 = math.tau * 45 / 60                 # rad/s
 OMEGA_GIANT = 0.012                           # rad/s: 6.6 m/s of groove past the stylus
+_ARM = (TIP - PIVOT).normalized()
+MACRO_FORWARD = Vector((_ARM.y, -_ARM.x, 0))   # perpendicular to the arm, looking inward: the cantilever in profile
+MACRO_LENS = 35.0
+UI_KEY_POWER = 2.0e7
 # Musical lock (rotation.js OPENER): contact lands on the song's first hit (0.207 s) and the
 # pullback lands on the jukebox reveal, revealAt = bar1 + 4 beats = 3.584 s: 3.377 s later.
 F_CONTACT = 240
@@ -108,6 +114,7 @@ def materials():
     return {
         "vinyl": vinyl("Pressed vinyl"),
         "vinyl_patch": vinyl("Pressed vinyl - groove geometry", rings=False),
+        "satin": kit.worn_metal("Brushed aluminium", (0.72, 0.72, 0.74), 1.0, 0.24, wear=0.0, grime=0.2, scale=0.05),
         "chrome": kit.worn_metal("Satin chrome", (0.62, 0.63, 0.66), 1.0, 0.16, wear=0.0, grime=0.25, scale=0.05),
         "black": kit.worn_metal("Black anodised", (0.01, 0.01, 0.012), 0.6, 0.3, wear=0.1, scale=0.05, coat=0.3),
         "brass": kit.worn_metal("Worn brass", (0.55, 0.36, 0.12), 1.0, 0.25, wear=0.1, scale=0.05),
@@ -187,22 +194,7 @@ def build_changer(M):
     plat.emit("Platter", M["iron"], bevel=0.4)
     Batch().ring(1.02 * R, 1.035 * R, 0.8, z=-5.6, segs=720).emit("Platter neon rim", M["neon_rim"])
     Batch().cyl((0, 0, 22), 0.024 * R, 56, segs=96).emit("Spindle", M["chrome"], smooth=True, bevel=0.6)
-    # The carousel: the magazine of records standing in cradles around the platter
-    cols = [(0.1, 0.85, 1.0), (1.0, 0.15, 0.55), (1.0, 0.6, 0.12), (0.35, 0.45, 1.0), (0.45, 1.0, 0.5)]
-    discs, lamps, cradle = Batch(), Batch(), Batch()
-    labels = [Batch() for _ in cols]
-    for k in range(60):
-        m = (Matrix.Rotation(math.tau * k / 60, 4, "Z") @ Matrix.Translation((1.22 * R, 0, 0.1 * R - 8))
-             @ Matrix.Rotation(math.pi / 2, 4, "X"))
-        discs.cyl((0, 0, 0), 0.1 * R, 4.0, segs=96, matrix=m)
-        labels[k % len(cols)].cyl((0, 0, 0), 0.04 * R, 4.6, segs=48, matrix=m)
-        cradle.box((0, -0.1 * R + 6, 0), (0.2 * R, 12, 10), matrix=m)
-        lamps.sphere((0, 0.1 * R + 6, 0), 2.2, segs=10, matrix=m)
-    discs.emit("Carousel records", M["vinyl"], smooth=True)
-    for b, c in zip(labels, cols):
-        b.emit("Carousel labels", kit.glow(f"Label glow {c}", c, 3.0))
-    cradle.emit("Carousel cradles", M["iron"], bevel=0.5)
-    lamps.emit("Carousel pilot lamps", M["amber"], smooth=True)
+    groove_detail.build_carousel(M, R)
 
 
 def build_arm(M):
@@ -218,27 +210,7 @@ def build_arm(M):
     arm.cyl((-70, 0, 0), 48, 70, rot=(0, math.pi / 2, 0), segs=96)            # counterweight
     arm.cyl((0, 0, 0), 34, 60, segs=96)                                        # bearing yoke
     arm.emit("Tonearm tube", M["chrome"], lift, smooth=True, bevel=0.8)
-    head = Batch()
-    head.box((L - 52, 0, -10), (150, 96, 26))                                  # headshell
-    head.box((L - 30, 0, -53), (110, 72, 60))                                  # cartridge body: underside 17 m up
-    head.box((L - 30, 0, -24), (60, 40, 8))                                    # mounting block
-    head.box((L + 22, 0, -66), (22, 40, 30))                                   # stylus housing nose
-    head.emit("Headshell + cartridge", M["black"], lift, bevel=1.5)
-    screws = Batch()
-    for y in (-26, 26):
-        screws.cyl((L - 52, y, 4), 6, 4, segs=24).cyl((L - 52, y, -40), 3, 90, segs=12)
-    screws.emit("Headshell screws", M["brass"], lift, smooth=True)
-    Batch().box((L - 30, 36.6, -53), (70, 1.5, 30)).emit("Cartridge plate", M["brass"], lift)
-    tip_local = Vector((L, 0, -100))               # lift origin is 100 m up, so this lands on z=0
-    root = Vector((L - 24, 0, -80))
-    end = tip_local + Vector((0, 0, 1.9))                    # the diamond hangs under the cantilever end
-    v = end - root
-    Batch().cyl(tuple((root + end) / 2), 1.1, v.length, rot=v.to_track_quat("Z", "Y").to_euler(),
-                segs=24).emit("Cantilever", M["chrome"], lift, smooth=True)
-    stylus = Batch().cyl(tuple(tip_local + Vector((0, 0, 1.45))), 0.3, 0.9, segs=6)         # shank
-    stylus.cyl(tuple(tip_local + Vector((0, 0, 0.5))), 0.3, 1.0, r2=0.0, segs=6,
-               rot=(math.pi, 0, 0))                                              # conical diamond, tip down
-    stylus.emit("Diamond", M["diamond"], lift, smooth=True)
+    groove_detail.build_cartridge(M, lift, L)          # lift origin is 100 m up: the tip lands on z=0
     return lift, L
 
 
@@ -263,13 +235,38 @@ def build_environment(M):
     tubes = tubes.emit("Mechanism lamp tubes", M["tube"])
     kit.light("SPOT", "Mechanism lamp on the stylus", (260, -560, 420), (1.0, 0.7, 0.42), 1.1e8,
               target=tuple(TIP), size=20, spot=16, blend=0.6)
-    kit.light("SPOT", "Stylus key", tuple(TIP * 0.86 + Vector((0, 0, 55))), (0.75, 0.9, 1.0), 1.2e6,
-              target=tuple(TIP + Vector((0, 0, 3))), size=3, spot=7, blend=0.7)
+    kit.light("SPOT", "Stylus key", tuple(TIP - MACRO_FORWARD * 14 + Vector((0, 0, 10))), (0.8, 0.9, 1.0), 6.0e4,
+              target=tuple(TIP + Vector((0, 0, 3))), size=2, spot=16, blend=0.7)
+    rake_from = (MACRO_FORWARD + Vector((-MACRO_FORWARD.y, MACRO_FORWARD.x, 0)) * 0.55).normalized()
+    kit.light("SPOT", "Groove rake behind the tip", tuple(TIP + rake_from * 40 + Vector((0, 0, 2.2))),
+              (1.0, 0.82, 0.62), 4.5e5, target=tuple(TIP - MACRO_FORWARD * 4), size=0.6, spot=10, blend=0.5)
     kit.light("AREA", "Magenta grazing from the rim", tuple(TIP * 1.25 + Vector((0, 0, 2))), MAGENTA, 6.0e5,
               target=tuple(TIP * 0.92), size=120)
     kit.light("AREA", "Cyan haze behind the pivot", tuple(PIVOT * 2.2 + Vector((0, 0, 300))), CYAN, 3.0e7,
               target=(0, 0, 0), size=600)
     return haze, tubes
+
+
+def ui_match_light(start, end):
+    """A soft overhead key that makes the landed record read like the CSS record."""
+    key = kit.light("AREA", "UI match key", (0, 0, 1500), (1.0, 0.97, 0.93), 0.0, target=(0, 0, 0), size=2400)
+    for f, power in ((start, 0.0), (end, UI_KEY_POWER)):
+        key.data.energy = power
+        key.data.keyframe_insert("energy", frame=f)
+
+
+def match_css_record(M, start, end, vinyl_albedo=0.019, label_glow=6.0):
+    """Over the landing, the vinyl and the carousel labels settle to the CSS record's measured values."""
+    paint = M["vinyl"].node_tree.nodes["Mix"].inputs[6]
+    for f, v in ((start, paint.default_value[0]), (end, vinyl_albedo)):
+        paint.default_value = (v, v, v * 1.1, 1)
+        paint.keyframe_insert("default_value", frame=f)
+    for mat in bpy.data.materials:
+        if mat.name.startswith("Label paper"):
+            glow = mat.node_tree.nodes["Emission"].inputs["Strength"]
+            for f, v in ((start, glow.default_value), (end, label_glow)):
+                glow.default_value = v
+                glow.keyframe_insert("default_value", frame=f)
 
 
 def build_plate():
@@ -289,11 +286,15 @@ def build_plate():
 
 # ----------------------------------------------------------------- the pinned pullback
 
-def pinned_camera(cam, frame_range, d0, d1, lens0, lens1, pitch0, pitch1=0.0, settle=1.0):
-    """Keep the stylus tip on the UI head pixel while the camera moves; pitch 0 is top-down."""
+def macro_orientation(down_deg=7.0):
+    """Side-on to the cantilever, looking inward across the record, tilted down a little."""
+    f = (MACRO_FORWARD + Vector((0, 0, -math.tan(math.radians(down_deg))))).normalized()
+    return f.to_track_quat("-Z", "Y")
+
+
+def pinned_camera(cam, frame_range, d0, d1, lens0, lens1, q0, q1=Quaternion(), settle=1.0):
+    """Keep the stylus tip on the UI head pixel while the camera moves; identity q is top-down."""
     f0, f1 = frame_range
-    q0 = Euler((math.radians(pitch0), 0, 0)).to_quaternion()
-    q1 = Euler((math.radians(pitch1), 0, 0)).to_quaternion()
     for f in range(f0, f1 + 1):
         u = (f - f0) / (f1 - f0)
         e = u * u * u * (u * (u * 6 - 15) + 10)                 # smootherstep
@@ -318,6 +319,7 @@ def final_distance(lens):
 def bake_record(rec, dists):
     """Giant-world speed until contact, then speed scales with camera distance, capped at 45 rpm."""
     angle, d_contact = 0.0, None
+    angles = {}
     for f in range(1, F_END + 1):
         w = OMEGA_GIANT
         if f >= F_CONTACT:
@@ -326,6 +328,8 @@ def bake_record(rec, dists):
         angle -= w / kit.FPS                                     # clockwise from above
         rec.rotation_euler = (0, 0, angle)
         rec.keyframe_insert("rotation_euler", frame=f)
+        angles[f] = angle
+    return angles
 
 
 def leave_the_giant_world(haze, tubes, dists):
@@ -340,11 +344,23 @@ def leave_the_giant_world(haze, tubes, dists):
         tubes.keyframe_insert("hide_render", frame=f)
 
 
+def write_handoff(final_angle):
+    """Where and how the record lands, for the app to register the film onto the live #record."""
+    data = {
+        "frame": F_END,
+        "record": {"cx": SPINDLE_PX.x / 1920, "cy": SPINDLE_PX.y / 1080, "r": 90.5 / 1920},
+        "cssAngleDeg": round(math.degrees(-final_angle) % 360, 3),     # CSS rotate() is clockwise on screen
+        "rpm": 45,
+    }
+    (kit.OUT / "groove").mkdir(parents=True, exist_ok=True)
+    (kit.OUT / "groove" / "handoff.json").write_text(json.dumps(data, indent=2))
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     ap = argparse.ArgumentParser()
     ap.add_argument("--shot", default="wide",
-                    choices=("wide", "low", "approach", "contact", "final", "pullback", "glide", "stills"))
+                    choices=("wide", "low", "approach", "contact", "cartridge", "final", "pullback", "glide", "wideseq", "stills"))
     ap.add_argument("--w", type=int, default=960)
     ap.add_argument("--h", type=int, default=540)
     ap.add_argument("--samples", type=int, default=48)
@@ -359,12 +375,10 @@ def main():
     rec = build_record(M)
     build_changer(M)
     lift, L = build_arm(M)
-    lower_arm(lift, L, ((1, 46.0), (150, 14.0), (205, 2.2), (F_CONTACT, 0.0)))
+    lower_arm(lift, L, ((1, 46.0), (150, 14.0), (175, 7.5), (215, 1.3), (232, 0.25), (F_CONTACT, 0.0)))
     haze, tubes = build_environment(M)
-    plate = build_plate()
-    for f, s in ((1, 0.0), (int(F_CONTACT + 0.62 * (F_END - F_CONTACT)), 0.0), (F_END - 24, 1.0)):
-        plate.inputs["Strength"].default_value = s
-        plate.inputs["Strength"].keyframe_insert("default_value", frame=f)
+    ui_match_light(F_END - 70, F_END)
+    match_css_record(M, F_END - 70, F_END)
 
     th_c = math.atan2(TIP.y, TIP.x)
     cams = {
@@ -374,28 +388,42 @@ def main():
     }
     pin = kit.camera("C Pinned pullback", (0, 0, 10), (0, 0, 0), 18)
     pin.data.clip_end = 400000
-    dists = dict(pinned_camera(pin, (1, F_CONTACT), 46, 30, 18, 18, 86.5, 84))
-    dists.update(pinned_camera(pin, (F_CONTACT, F_END), 30, final_distance(600), 18, 600, 84, settle=0.85))
-    bake_record(rec, dists)
+    q_macro = macro_orientation()
+    dists = dict(pinned_camera(pin, (1, F_CONTACT), 21.0, 16.0, MACRO_LENS, MACRO_LENS, q_macro, q_macro))
+    dists.update(pinned_camera(pin, (F_CONTACT, F_END), 16.0, final_distance(600), MACRO_LENS, 600, q_macro,
+                               settle=0.85))
+    pin.data.dof.use_dof = True
+    pin.data.dof.aperture_fstop = 4.0
+    for f in range(1, F_END + 1):
+        pin.data.dof.focus_distance = dists[f]
+        pin.data.dof.keyframe_insert("focus_distance", frame=f)
+    angles = bake_record(rec, dists)
+    write_handoff(angles[F_END])
     leave_the_giant_world(haze, tubes, dists)
     rim = M["neon_rim"].node_tree.nodes["Emission"].inputs["Strength"]
     for f, v in ((F_CONTACT + 60, 24.0), (F_CONTACT + 150, 0.0)):    # the UI has no neon here
         rim.default_value = v
         rim.keyframe_insert("default_value", frame=f)
-    perp = Vector((-(TIP - PIVOT).normalized().y, (TIP - PIVOT).normalized().x, 0))
-    side = perp if perp.dot(-TIP) > 0 else -perp                 # look inward across the dark record
-    cam_at = TIP - side * 8.0 + Vector((0, 0, 1.7))
-    look = TIP + Vector((0, 0, 0.9))
-    cams["approach"] = kit.camera("B3 Stylus approach", tuple(cam_at), tuple(look), 50,
-                                  fstop=2.8, focus=(look - cam_at).length)
-    cams.update(contact=pin, final=pin)
+    cams.update(approach=pin, contact=pin, final=pin)
+    head = TIP - _ARM * 40 + Vector((0, 0, 48))                 # the cartridge body, seen three-quarter
+    cams["cartridge"] = kit.camera("B5 The cartridge", tuple(TIP - MACRO_FORWARD * 150 + _ARM * 80 + Vector((0, 0, 26))),
+                                   tuple(head - Vector((0, 0, 24))), 40, fstop=5.6, focus=150)
 
     out = kit.OUT / "groove"
     out.mkdir(parents=True, exist_ok=True)
     if args.save:
         bpy.ops.wm.save_as_mainfile(filepath=str(out / "hero-groove.blend"))
-    frames = {"wide": 120, "low": 120, "approach": 222, "contact": F_CONTACT + 4, "final": F_END}
-    for shot in (("wide", "low", "approach", "contact", "final") if args.shot == "stills" else (args.shot,)):
+    frames = {"wide": 120, "low": 120, "approach": 224, "contact": F_CONTACT + 2, "cartridge": 205, "final": F_END}
+    stills = ("wide", "low", "approach", "contact", "cartridge", "final")
+    for shot in (stills if args.shot == "stills" else (args.shot,)):
+        if shot == "wideseq":                                    # the record world for the animatic's lock beats
+            scene.camera = cams["wide"]
+            scene.frame_start, scene.frame_end = 120, 120 + 26
+            scene.render.resolution_x, scene.render.resolution_y = args.w, args.h
+            scene.cycles.samples = args.samples
+            scene.render.filepath = str(out / "wideseq" / "frame_")
+            bpy.ops.render.render(animation=True)
+            continue
         if shot in ("pullback", "glide"):
             scene.camera = pin
             scene.frame_start = args.frame or (1 if shot == "glide" else F_CONTACT - 60)

@@ -319,6 +319,18 @@ def spin(obj, rad_per_frame, axis=2, phase=0.0):
     return obj
 
 
+def follow(obj, source, ratio, phase=0.0, axis=2):
+    """Turn obj at ratio x the source's Z rotation (gear trains share one drive angle)."""
+    fc = obj.driver_add("rotation_euler", axis)
+    fc.driver.type = "SCRIPTED"
+    var = fc.driver.variables.new()
+    var.name, var.type = "a", "SINGLE_PROP"
+    var.targets[0].id = source
+    var.targets[0].data_path = "rotation_euler[2]"
+    fc.driver.expression = f"{phase} + {ratio} * a"
+    return obj
+
+
 def text(name, body, loc, rot, size, mat, extrude=0.05, parent=None):
     data = bpy.data.curves.new(name, "FONT")
     data.body = body

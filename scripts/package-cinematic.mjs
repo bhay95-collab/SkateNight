@@ -5,6 +5,7 @@ import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs
 import { basename, dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseArgs } from 'node:util';
+import { validateAwakeningFilmManifest } from '../awakening-film.js';
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -21,6 +22,10 @@ const { values, positionals } = parseArgs({
     'handoff-frame': { type: 'string' },
     'song-frame': { type: 'string' },
     'opener-lead-ms': { type: 'string', default: '434.5' },
+    // the director's cut: the film keeps running into the song (see cinematic/cues.json)
+    'song-start': { type: 'string' },
+    'registration-frame': { type: 'string' },
+    'record': { type: 'string' },
   },
 });
 
@@ -155,6 +160,21 @@ try {
     sha256,
     generatedAt: new Date().toISOString(),
   };
+  if (values['song-start'] != null) {
+    // --song-start S --registration-frame N --record handoff.json: hero_groove.py writes handoff.json
+    const songStartSec = Number(values['song-start']);
+    const landing = JSON.parse(await readFile(resolve(values.record), 'utf8'));
+    manifest.cues.musicHandoffFrame = Math.floor(songStartSec * fps);
+    manifest.cues.registrationStartFrame = Number(values['registration-frame']);
+    Object.assign(manifest.handoff, {
+      mode: 'overlap',
+      videoFrame: manifest.cues.musicHandoffFrame,
+      songStartSec,
+      record: { ...landing.record, cssAngleDeg: landing.cssAngleDeg, rpm: landing.rpm },
+    });
+    delete manifest.handoff.openerLeadMs;
+    validateAwakeningFilmManifest(manifest, 'production-preview');      // throws if the music would not lock
+  }
 
   await writeFile(resolve(stagingDir, basename(manifestPath)), `${JSON.stringify(manifest, null, 2)}\n`);
   await rename(stagedMovie, output);
