@@ -14,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "cinematic"))
 from assemble_animatic import build_video_graph
 from frame_io import png_dimensions, render_frame_sequence
+from render_production import validate_coin_movie_info
 
 
 def png_chunk(kind, payload):
@@ -83,6 +84,26 @@ class RenderPipelineTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             build_video_graph((8, 8), 1920, 1080, 12)
+
+    def test_preflight_rejects_incompatible_coin_source_media(self):
+        valid = {
+            "streams": [
+                {"codec_type": "video", "width": 1920, "height": 1080,
+                 "r_frame_rate": "60/1", "nb_frames": "1093"},
+                {"codec_type": "audio"},
+            ],
+        }
+        video = validate_coin_movie_info(valid, "coin.mp4")
+        self.assertEqual(video["width"], 1920)
+        for invalid in (
+            {**valid, "streams": [dict(valid["streams"][0], width=1280), valid["streams"][1]]},
+            {**valid, "streams": [dict(valid["streams"][0], r_frame_rate="30/1"), valid["streams"][1]]},
+            {**valid, "streams": [dict(valid["streams"][0], nb_frames="100"), valid["streams"][1]]},
+            {**valid, "streams": [dict(valid["streams"][0], nb_frames=None), valid["streams"][1]]},
+            {**valid, "streams": valid["streams"][:1]},
+        ):
+            with self.subTest(streams=invalid["streams"]), self.assertRaises(RuntimeError):
+                validate_coin_movie_info(invalid, "coin.mp4")
 
     @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg/FFprobe are required")
     def test_ffmpeg_crossfades_retain_every_source_frame(self):

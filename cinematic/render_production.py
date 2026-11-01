@@ -14,10 +14,102 @@ F = CUES["frames"]
 DEFAULT_OUTPUT = ROOT / "build" / "awakening-final-render"
 BLENDER = shutil.which("blender")
 FFMPEG = shutil.which("ffmpeg")
+FFPROBE = shutil.which("ffprobe")
 
 
 def run(command, args, env=None):
     subprocess.run([str(command), *map(str, args)], check=True, env=env)
+
+
+def probe_media(path):
+    result = subprocess.run(
+        [
+            FFPROBE, "-v", "error", "-show_entries",
+            "stream=codec_type,width,height,r_frame_rate,nb_frames",
+            "-of", "json", str(path),
+        ],
+        check=True, capture_output=True, text=True,
+    )
+    return json.loads(result.stdout)
+
+
+def validate_coin_movie_info(info, path):
+    streams = info.get("streams", [])
+    video = next((stream for stream in streams if stream.get("codec_type") == "video"), None)
+    audio = next((stream for stream in streams if stream.get("codec_type") == "audio"), None)
+    try:
+        frame_count = int(video.get("nb_frames", 0)) if video is not None else 0
+    except (TypeError, ValueError):
+        frame_count = 0
+    if (video is None or video.get("width") != 1920 or video.get("height") != 1080
+            or video.get("r_frame_rate") != "60/1"
+            or frame_count < F["coinGone"] or audio is None):
+        raise RuntimeError(
+            f"The coin source must contain 1920x1080/60 fps video, at least "
+            f"{F['coinGone']} frames, and an audio track: {path}"
+        )
+    return video
+
+
+def verify_blender_metal():
+    script = (
+        "import bpy; "
+        "addon = bpy.context.preferences.addons.get('cycles'); "
+        "prefs = addon.preferences if addon else None; "
+        "prefs.get_devices() if prefs else None; "
+        "devices = list(prefs.devices) if prefs else []; "
+        "metal = [d for d in devices if d.type == 'METAL']; "
+        "print('BLENDER_VERSION=' + bpy.app.version_string); "
+        "print('CYCLES_METAL_DEVICES=' + ','.join(d.name for d in metal)); "
+        "raise SystemExit(0 if metal else 2)"
+    )
+    result = subprocess.run(
+        [BLENDER, "-b", "--python-expr", script],
+        capture_output=True, text=True,
+    )
+    if result.returncode:
+        detail = "\n".join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
+        raise RuntimeError(f"Blender Cycles Metal preflight failed:\n{detail}")
+    print(result.stdout.strip())
+
+
+def verify_ffmpeg_encoders():
+    result = subprocess.run(
+        [FFMPEG, "-hide_banner", "-encoders"],
+        check=True, capture_output=True, text=True,
+    )
+    encoders = {
+        field
+        for line in result.stdout.splitlines()
+        for field in line.split()
+        if field in {"libx264", "aac"}
+    }
+    missing = {"libx264", "aac"} - encoders
+    if missing:
+        raise RuntimeError("FFmpeg is missing required encoder(s): " + ", ".join(sorted(missing)))
+
+
+def production_preflight(coin_movie, output, check_metal=True):
+    info = probe_media(coin_movie)
+    video = validate_coin_movie_info(info, coin_movie)
+    ui_plate = ROOT / "build" / "cinematic-phase4" / "ui-plate.png"
+    from frame_io import png_dimensions
+
+    if png_dimensions(ui_plate) != (1920, 1080):
+        raise RuntimeError(f"The jukebox UI plate must be a valid 1920x1080 PNG: {ui_plate}")
+    verify_ffmpeg_encoders()
+    if check_metal:
+        verify_blender_metal()
+
+    disk_path = output
+    while not disk_path.exists():
+        disk_path = disk_path.parent
+    free_bytes = shutil.disk_usage(disk_path).free
+    print(
+        f"COIN SOURCE: {video['width']}x{video['height']} at {video['r_frame_rate']} fps, "
+        f"{video['nb_frames']} frames; audio present"
+    )
+    print(f"OUTPUT STORAGE: {disk_path} has {free_bytes / (1024 ** 3):.1f} GiB free")
 
 
 def verify_frames(directory, start, end, width, height):
@@ -60,7 +152,7 @@ def require_sources():
     missing = [path for path in required if not path.is_file()]
     if missing:
         raise FileNotFoundError("Required production source(s) are missing: " + ", ".join(map(str, missing)))
-    if not BLENDER or not FFMPEG or not shutil.which("ffprobe") or not shutil.which("node"):
+    if not BLENDER or not FFMPEG or not FFPROBE or not shutil.which("node"):
         raise RuntimeError("Blender, FFmpeg, FFprobe, and Node.js are required for the production workflow.")
     return required[0]
 
@@ -246,8 +338,9 @@ def main():
 
     coin_movie = require_sources()
     output = args.output_dir.resolve()
+    production_preflight(coin_movie, output, check_metal=not args.assemble_only or args.check)
     if args.check:
-        print(f"READY: Blender={BLENDER}; FFmpeg={FFMPEG}; coin source={coin_movie}")
+        print(f"READY: Blender={BLENDER}; FFmpeg={FFMPEG}; FFprobe={FFPROBE}; coin source={coin_movie}")
         print(f"Output directory: {output}")
         return
     if args.preview_coin_journey:
