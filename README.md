@@ -525,6 +525,39 @@ blender -b --python cinematic/hero_megastructure.py -- --shot motion --w 1280 --
 python3 cinematic/assemble_review.py
 ```
 
+### The director's cut: one cue manifest, film and song overlapping
+
+`cinematic/cues.json` is the timing for everything: Blender's story beats, the
+effects bed and the film manifest. The stylus touches the groove on the opener's
+first hit (frame 951), the song starts 0.207 s before that (15.643 s), and the
+film's last frame is the opener's reveal (frame 1154). The machine's power curve
+is the live cut's `SUPPLY`, so film and live cut fail and recover identically.
+
+```sh
+blender -b --python cinematic/story_megastructure.py -- --w 480 --h 270 --samples 8
+blender -b --python cinematic/hero_groove.py -- --shot wideseq --w 480 --h 270 --samples 8
+blender -b --python cinematic/hero_groove.py -- --shot pullback --frame 175 --w 1280 --h 720 --samples 20
+python3 cinematic/sound_bed.py && python3 cinematic/assemble_animatic.py
+node scripts/package-cinematic.mjs build/cinematic-phase4/animatic/animatic.mp4 \
+  build/cinematic-phase4/animatic/director-cut-animatic.mp4 \
+  --id skate-by-faith-directors-cut-animatic --title "Director's cut animatic" \
+  --coin-frame 0 --failure-frame 453 --recovery-frame 584 --stylus-frame 951 --song-frame 951 \
+  --song-start 15.643 --registration-frame 1110 --record build/cinematic-phase4/groove/handoff.json
+node scripts/check-film-overlap.mjs build/cinematic-phase4/animatic/director-cut-animatic.mp4 \
+  build/cinematic-phase4/animatic/director-cut-animatic.mp4.json [--headed]
+```
+
+A film whose manifest says `handoff.mode: "overlap"` keeps running while the
+jukebox plays the opener. The song starts from the film's own frame clock; the
+film carries effects only, so nothing doubles. Over the last 44 frames the film
+is carried onto the live `#record` wherever this screen has laid it out, the
+interface fades up around it, and the CSS spin takes the film's label angle.
+This works only through the production-preview slot (TOOLS -> IMPORT FILM +
+MANIFEST, then PREVIEW EXTERNAL FILM + SONG HANDOFF); the show default is
+unchanged. `OVERLAP_SONG_OFFSET_MS` in `app.js` is the measured one-frame cost of
+starting the song in Chrome on the Mac mini: re-measure it on the event MacBook
+with the check above, as with `REVEAL_OFFSET_MS`.
+
 ### Website-hosted approved film
 
 The PWA checks `films/manifest.json` at launch. Only a film marked with explicit
