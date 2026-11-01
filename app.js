@@ -75,6 +75,11 @@ const REVEAL = (() => {
   try { return REVEALS[new URLSearchParams(location.search).get('reveal')] || REVEALS.long; } catch { return REVEALS.long; }
 })();
 const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venue: calibrate on the real projector and PA (README)            // the operator armed the dormant drone (Alt+Shift+D)
+/* An overlap film's song start, against its picture. On the M2 Pro Mac mini in
+   Chrome, starting the song costs the film one presented frame, so the song led
+   the picture by 17-19 ms at every screen size; it starts that much later.
+   Re-measure on the event machine: node scripts/check-film-overlap.mjs (README). */
+const OVERLAP_SONG_OFFSET_MS = 17;
 const PREPARE_ON_LAUNCH = (() => {
   try { return new URLSearchParams(location.search).has('prepare'); } catch { return false; }
 })();
@@ -1064,12 +1069,14 @@ async function main() {
     let landing = null;
     let frameId = 0;
     let syncId = 0;
-    const follow = () => {                                   // the picture follows the sound, as everywhere else
+    /* Watched, not steered: both clocks run from the same wall clock for 3.6 s,
+       and in Chrome changing a playing video's rate stalls it (measured: a
+       ±10% servo turned a 3 ms offset into 60 ms). Only a stall the size of a
+       real hang (a quarter second) is jumped over. */
+    const follow = () => {
       if (player?.currentTrackId === OPENER.id && player.currentTime > 0.05 && !video.paused) {
         const drift = (video.currentTime - plan.songStartSec) - player.currentTime;
-        // inside a frame the film plays untouched; a slip is eased out, a stall is jumped over
-        if (Math.abs(drift) > 0.1) video.currentTime -= drift;
-        else video.playbackRate = Math.abs(drift) > 1 / 60 ? Math.min(1.1, Math.max(0.9, 1 - drift * 4)) : 1;
+        if (Math.abs(drift) > 0.25) video.currentTime -= drift;
         stats.maxDriftMs = Math.max(stats.maxDriftMs || 0, Math.abs(drift * 1000));
         if (Math.abs(drift) > 1 / 60 && stats.firstSlip == null) {
           stats.firstSlip = { songTime: player.currentTime, driftMs: Math.round(drift * 1000) };
@@ -1085,7 +1092,7 @@ async function main() {
     const startSong = (mediaTime) => {
       stats.songCueMediaTime = mediaTime;
       stats.songLeadMs = Math.max(0, (plan.songStartSec - mediaTime) * 1000);
-      setTimeout(openGate, stats.songLeadMs);
+      setTimeout(openGate, stats.songLeadMs + OVERLAP_SONG_OFFSET_MS);
       syncId = requestAnimationFrame(follow);
     };
     const register = (mediaTime) => {

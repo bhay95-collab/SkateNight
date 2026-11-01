@@ -406,8 +406,8 @@ def main():
         rim.keyframe_insert("default_value", frame=f)
     cams.update(approach=pin, contact=pin, final=pin)
     head = TIP - _ARM * 40 + Vector((0, 0, 48))                 # the cartridge body, seen three-quarter
-    cams["cartridge"] = kit.camera("B5 The cartridge", tuple(TIP - MACRO_FORWARD * 150 + _ARM * 80 + Vector((0, 0, 26))),
-                                   tuple(head - Vector((0, 0, 24))), 40, fstop=5.6, focus=150)
+    cams["cartridge"] = kit.camera("B5 The cartridge", tuple(TIP - MACRO_FORWARD * 125 + _ARM * 70 + Vector((0, 0, 150))),
+                                   tuple(head - Vector((0, 0, 30))), 35, fstop=5.6, focus=165)
 
     out = kit.OUT / "groove"
     out.mkdir(parents=True, exist_ok=True)
