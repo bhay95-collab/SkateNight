@@ -508,6 +508,23 @@ track; it does not demonstrate final cinematic sound design. The event MacBook
 Pro's exact configuration is still unknown, so playback, projector, and PA
 acceptance on that actual machine remains a separate milestone.
 
+### Phase 4 hero shots
+
+`cinematic/hero_megastructure.py` (the platter drive: a planetary gearbox whose
+teeth mesh in motion) and `cinematic/hero_groove.py` (the record at x4000,
+groove pitch 0.4 m, laid out from the live changer's measured geometry) build
+their scenes from scratch and render to `build/cinematic-phase4/`. The groove
+scene needs `build/cinematic-phase4/ui-plate.png`, a 1920x1080 screenshot of the
+jukebox playing; its pullback pins the stylus tip to the UI's arm-head pixel.
+
+```sh
+blender -b --python cinematic/hero_megastructure.py -- --shot all --w 1920 --h 1080 --samples 192
+blender -b --python cinematic/hero_groove.py -- --shot stills --w 1920 --h 1080 --samples 128
+blender -b --python cinematic/hero_groove.py -- --shot pullback --frame 1 --w 1280 --h 720 --samples 20
+blender -b --python cinematic/hero_megastructure.py -- --shot motion --w 1280 --h 720 --samples 16
+python3 cinematic/assemble_review.py
+```
+
 ### Website-hosted approved film
 
 The PWA checks `films/manifest.json` at launch. Only a film marked with explicit
