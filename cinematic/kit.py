@@ -4,6 +4,7 @@ Geometry is batched into a few bmesh objects per material so a 100 m chamber
 stays light enough for the 16 GB M2 Pro.
 """
 import math
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -14,7 +15,7 @@ from mathutils import Euler, Matrix, Vector
 
 FPS = 60
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "build" / "cinematic-phase4"
+OUT = Path(os.environ.get("SKATENIGHT_CINEMATIC_OUT", ROOT / "build" / "cinematic-phase4")).resolve()
 
 
 # ---------------------------------------------------------------- scene / render

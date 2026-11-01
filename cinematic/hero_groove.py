@@ -13,6 +13,7 @@ Needs build/cinematic-phase4/ui-plate.png: a 1920x1080 screenshot of the jukebox
 """
 import argparse
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from mathutils import Euler, Matrix, Quaternion, Vector  # noqa: E402
 
 import groove_detail  # noqa: E402
 import kit  # noqa: E402
+from frame_io import render_frame_sequence  # noqa: E402
 from kit import Batch  # noqa: E402
 
 R = 600.0                                     # vinyl radius (m)
@@ -47,17 +49,20 @@ UI_KEY_POWER = 2.0e7
 F_CONTACT = 240
 F_END = F_CONTACT + round((1.798 + 4 * 0.4465 - 0.207) * 60)        # 443
 LABEL_ART = kit.ROOT / "covers" / "vol-iv.jpg"
-UI_PLATE = kit.OUT / "ui-plate.png"
+UI_PLATE = Path(os.environ.get(
+    "SKATENIGHT_UI_PLATE",
+    kit.ROOT / "build" / "cinematic-phase4" / "ui-plate.png",
+))
 AMBER, CYAN, MAGENTA = (1.0, 0.52, 0.12), (0.3, 0.85, 1.0), (1.0, 0.12, 0.55)
 
 
 # ----------------------------------------------------------------- materials
 
 def vinyl(name, rings=True):
-    mat = kit.worn_metal(name, (0.0018, 0.0018, 0.0022), 0.0, 0.05, wear=0.0, grime=0.0, scale=0.05, coat=0.25)
+    mat = kit.worn_metal(name, (0.0018, 0.0018, 0.0022), 0.0, 0.05, wear=0.0, grime=0.0, scale=0.05, coat=0.12)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes["Principled BSDF"]
-    bsdf.inputs["Specular IOR Level"].default_value = 0.55
+    bsdf.inputs["Specular IOR Level"].default_value = 0.4
     nodes["Bump"].inputs["Strength"].default_value = 0.03          # pressed vinyl is smooth, not cast
     if rings:
         wave = nodes.new("ShaderNodeTexWave")
@@ -67,7 +72,7 @@ def vinyl(name, rings=True):
         wave.inputs["Distortion"].default_value = 0.0
         links.new(nodes["Texture Coordinate"].outputs["Object"], wave.inputs["Vector"])
         bump = nodes.new("ShaderNodeBump")
-        bump.inputs["Strength"].default_value = 0.35
+        bump.inputs["Strength"].default_value = 0.18
         links.new(wave.outputs["Fac"], bump.inputs["Height"])
         links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
     return mat
@@ -222,6 +227,36 @@ def lower_arm(lift, L, heights):
         lift.keyframe_insert("rotation_euler", frame=f)
 
 
+def fade_tonearm(lift, start, end):
+    """Fade only the arm assembly as the rendered UI plate completes the handoff."""
+    for obj in (lift, *lift.children_recursive):
+        if obj.type != "MESH":
+            continue
+        obj.data = obj.data.copy()
+        for index, material in enumerate(obj.data.materials):
+            if material is None:
+                continue
+            faded = material.copy()
+            obj.data.materials[index] = faded
+            nodes, links = faded.node_tree.nodes, faded.node_tree.links
+            output = next((node for node in nodes if node.type == "OUTPUT_MATERIAL"), None)
+            if output is None:
+                raise RuntimeError(f"Tonearm material {material.name} has no material output.")
+            surface_links = [link for link in links if link.to_socket == output.inputs["Surface"]]
+            if len(surface_links) != 1:
+                raise RuntimeError(f"Tonearm material {material.name} needs one connected surface shader.")
+            source = surface_links[0].from_socket
+            links.remove(surface_links[0])
+            transparent = nodes.new("ShaderNodeBsdfTransparent")
+            mix = nodes.new("ShaderNodeMixShader")
+            links.new(source, mix.inputs[1])
+            links.new(transparent.outputs[0], mix.inputs[2])
+            links.new(mix.outputs[0], output.inputs["Surface"])
+            for frame, value in ((start, 0.0), (end, 1.0)):
+                mix.inputs[0].default_value = value
+                mix.inputs[0].keyframe_insert("default_value", frame=frame)
+
+
 # ----------------------------------------------------------------- environment
 
 def build_environment(M):
@@ -235,12 +270,12 @@ def build_environment(M):
     tubes = tubes.emit("Mechanism lamp tubes", M["tube"])
     kit.light("SPOT", "Mechanism lamp on the stylus", (260, -560, 420), (1.0, 0.7, 0.42), 1.1e8,
               target=tuple(TIP), size=20, spot=16, blend=0.6)
-    kit.light("SPOT", "Stylus key", tuple(TIP - MACRO_FORWARD * 14 + Vector((0, 0, 10))), (0.8, 0.9, 1.0), 6.0e4,
+    kit.light("SPOT", "Stylus key", tuple(TIP - MACRO_FORWARD * 14 + Vector((0, 0, 10))), (0.8, 0.9, 1.0), 8.0e4,
               target=tuple(TIP + Vector((0, 0, 3))), size=2, spot=16, blend=0.7)
     rake_from = (MACRO_FORWARD + Vector((-MACRO_FORWARD.y, MACRO_FORWARD.x, 0)) * 0.55).normalized()
     kit.light("SPOT", "Groove rake behind the tip", tuple(TIP + rake_from * 40 + Vector((0, 0, 2.2))),
-              (1.0, 0.82, 0.62), 4.5e5, target=tuple(TIP - MACRO_FORWARD * 4), size=0.6, spot=10, blend=0.5)
-    kit.light("AREA", "Magenta grazing from the rim", tuple(TIP * 1.25 + Vector((0, 0, 2))), MAGENTA, 6.0e5,
+              (1.0, 0.82, 0.62), 3.6e5, target=tuple(TIP - MACRO_FORWARD * 4), size=0.6, spot=10, blend=0.5)
+    kit.light("AREA", "Magenta grazing from the rim", tuple(TIP * 1.25 + Vector((0, 0, 2))), MAGENTA, 1.8e5,
               target=tuple(TIP * 0.92), size=120)
     kit.light("AREA", "Cyan haze behind the pivot", tuple(PIVOT * 2.2 + Vector((0, 0, 300))), CYAN, 3.0e7,
               target=(0, 0, 0), size=600)
@@ -344,7 +379,7 @@ def leave_the_giant_world(haze, tubes, dists):
         tubes.keyframe_insert("hide_render", frame=f)
 
 
-def write_handoff(final_angle):
+def write_handoff(final_angle, output_root):
     """Where and how the record lands, for the app to register the film onto the live #record."""
     data = {
         "frame": F_END,
@@ -352,8 +387,8 @@ def write_handoff(final_angle):
         "cssAngleDeg": round(math.degrees(-final_angle) % 360, 3),     # CSS rotate() is clockwise on screen
         "rpm": 45,
     }
-    (kit.OUT / "groove").mkdir(parents=True, exist_ok=True)
-    (kit.OUT / "groove" / "handoff.json").write_text(json.dumps(data, indent=2))
+    output_root.mkdir(parents=True, exist_ok=True)
+    (output_root / "handoff.json").write_text(json.dumps(data, indent=2))
 
 
 def main():
@@ -365,6 +400,8 @@ def main():
     ap.add_argument("--h", type=int, default=540)
     ap.add_argument("--samples", type=int, default=48)
     ap.add_argument("--frame", type=int)
+    ap.add_argument("--output-dir", type=Path)
+    ap.add_argument("--resume", action="store_true")
     ap.add_argument("--save", action="store_true")
     args = ap.parse_args(argv)
 
@@ -398,19 +435,20 @@ def main():
         pin.data.dof.focus_distance = dists[f]
         pin.data.dof.keyframe_insert("focus_distance", frame=f)
     angles = bake_record(rec, dists)
-    write_handoff(angles[F_END])
+    out = args.output_dir or kit.OUT / "groove"
+    out.mkdir(parents=True, exist_ok=True)
+    write_handoff(angles[F_END], out)
     leave_the_giant_world(haze, tubes, dists)
     rim = M["neon_rim"].node_tree.nodes["Emission"].inputs["Strength"]
     for f, v in ((F_CONTACT + 60, 24.0), (F_CONTACT + 150, 0.0)):    # the UI has no neon here
         rim.default_value = v
         rim.keyframe_insert("default_value", frame=f)
+    fade_tonearm(lift, F_END - 70, F_END)
     cams.update(approach=pin, contact=pin, final=pin)
     head = TIP - _ARM * 40 + Vector((0, 0, 48))                 # the cartridge body, seen three-quarter
     cams["cartridge"] = kit.camera("B5 The cartridge", tuple(TIP - MACRO_FORWARD * 125 + _ARM * 70 + Vector((0, 0, 150))),
                                    tuple(head - Vector((0, 0, 30))), 35, fstop=5.6, focus=165)
 
-    out = kit.OUT / "groove"
-    out.mkdir(parents=True, exist_ok=True)
     if args.save:
         bpy.ops.wm.save_as_mainfile(filepath=str(out / "hero-groove.blend"))
     frames = {"wide": 120, "low": 120, "approach": 224, "contact": F_CONTACT + 2, "cartridge": 205, "final": F_END}
@@ -421,17 +459,16 @@ def main():
             scene.frame_start, scene.frame_end = 120, 120 + 26
             scene.render.resolution_x, scene.render.resolution_y = args.w, args.h
             scene.cycles.samples = args.samples
-            scene.render.filepath = str(out / "wideseq" / "frame_")
-            bpy.ops.render.render(animation=True)
+            render_frame_sequence(scene, out / "wideseq", 120, 146, args.w, args.h, resume=args.resume)
             continue
         if shot in ("pullback", "glide"):
             scene.camera = pin
             scene.frame_start = args.frame or (1 if shot == "glide" else F_CONTACT - 60)
             scene.frame_end = F_CONTACT + 60 if shot == "glide" else F_END
-            scene.render.resolution_x, scene.render.resolution_y = args.w, args.h
             scene.cycles.samples = args.samples
-            scene.render.filepath = str(out / shot / "frame_")
-            bpy.ops.render.render(animation=True)
+            render_frame_sequence(
+                scene, out / shot, scene.frame_start, scene.frame_end, args.w, args.h, resume=args.resume
+            )
             continue
         raw = out / f"raw-{shot}.png"
         kit.render(scene, cams[shot], raw, args.w, args.h, args.samples, frame=args.frame or frames[shot])

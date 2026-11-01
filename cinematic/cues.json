@@ -10,6 +10,8 @@
   "frames": {
     "coinStart": 0,
     "coinGone": 186,
+    "hallReveal": 240,
+    "coinImpact": 315,
     "relay": 327,
     "attempt": 357,
     "almost": 426,

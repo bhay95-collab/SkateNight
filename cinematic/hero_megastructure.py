@@ -59,16 +59,16 @@ def materials():
 
 def machined_steel():
     """Bright turned steel: lathe rings, clean faces, oil in the corners only."""
-    mat = kit.worn_metal("Machined steel", (0.7, 0.71, 0.73), 1.0, 0.27, wear=0.0, grime=0.12)
+    mat = kit.worn_metal("Machined steel", (0.58, 0.60, 0.63), 1.0, 0.31, wear=0.0, grime=0.12)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
-    nodes["Map Range"].inputs["To Min"].default_value = 0.25      # satin and even: catches the key, not the haze
-    nodes["Map Range"].inputs["To Max"].default_value = 0.3
+    nodes["Map Range"].inputs["To Min"].default_value = 0.28
+    nodes["Map Range"].inputs["To Max"].default_value = 0.36
     rings = nodes.new("ShaderNodeTexWave")
     rings.wave_type = "RINGS"
     rings.rings_direction = "Z"
     rings.inputs["Scale"].default_value = 2.2
     bump = nodes["Bump"]
-    bump.inputs["Strength"].default_value = 0.07
+    bump.inputs["Strength"].default_value = 0.045
     links.new(nodes["Texture Coordinate"].outputs["Object"], rings.inputs["Vector"])
     links.new(rings.outputs["Fac"], bump.inputs["Height"])
     return mat
@@ -316,15 +316,15 @@ def build_lights(variant):
     lights = {}
     lights["back"] = kit.light("SPOT", "Backlight through the drive", (0, 120, 70), (0.25, 0.6, 1.0), 9.0e5 if lit else 0,
               target=(0, 0, 18), size=6, spot=55, blend=0.6)
-    lights["rim"] = kit.light("AREA", "Drive rim cyan", (0, 78, 30), (0.2, 0.7, 1.0), 2.5e4 if lit else 0, target=(0, 40, 26), size=80)
-    lights["kicker"] = kit.light("SPOT", "Magenta kicker", (40, 22, 46), MAGENTA, 2.5e4 if lit else 3e3, target=C,
+    lights["rim"] = kit.light("AREA", "Drive rim cyan", (0, 78, 30), (0.2, 0.7, 1.0), 1.8e4 if lit else 0, target=(0, 40, 26), size=80)
+    lights["kicker"] = kit.light("SPOT", "Magenta kicker", (40, 22, 46), MAGENTA, 1.5e4 if lit else 3e3, target=C,
               size=1.5, spot=30, blend=0.4)
-    lights["key"] = kit.light("AREA", "Warm raking key", (-42, 6, 3), (1.0, 0.76, 0.52), 1.6e4 if lit else 0,
+    lights["key"] = kit.light("AREA", "Warm raking key", (-42, 6, 3), (1.0, 0.76, 0.52), 1.2e4 if lit else 0,
               target=(0, 44, 26), size=16)
     for side in (-1, 1):                                  # work floods on the gantries, raking the drive face
         lights[f"flood{side}"] = kit.light("AREA", f"Gantry flood {side:+d}", (side * 21, 12, 34), (1.0, 0.86, 0.7),
-                                           3.2e4 if lit else 0, target=(side * -6, 46, 24), size=4)
-    lights["up"] = kit.light("SPOT", "Amber uplight on the motor", (0, 26, 0.6), AMBER, 3.0e4 if lit else 2.0e4,
+                                           2.2e4 if lit else 0, target=(side * -6, 46, 24), size=4)
+    lights["up"] = kit.light("SPOT", "Amber uplight on the motor", (0, 26, 0.6), AMBER, 2.2e4 if lit else 1.8e4,
                              target=(0, 40, 30), size=0.6, spot=46, blend=0.5)
     return lights
 
@@ -356,7 +356,7 @@ def animate_push(cam, keys=PUSH, offset=0):
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     ap = argparse.ArgumentParser()
-    ap.add_argument("--shot", default="hero", choices=("hero", "detail", "alt", "dormant", "motion", "all"))
+    ap.add_argument("--shot", default="hero", choices=("hero", "detail", "alt", "dormant", "motion", "all", "spotchecks"))
     ap.add_argument("--w", type=int, default=960)
     ap.add_argument("--h", type=int, default=540)
     ap.add_argument("--samples", type=int, default=48)
@@ -383,7 +383,10 @@ def main():
     if args.save:
         bpy.ops.wm.save_as_mainfile(filepath=str(out / "hero-megastructure.blend"))
 
-    for shot in (("hero", "detail", "alt") if args.shot == "all" else (args.shot,)):
+    shots = ("detail", "alt") if args.shot == "spotchecks" else (
+        ("hero", "detail", "alt") if args.shot == "all" else (args.shot,)
+    )
+    for shot in shots:
         if shot == "motion":
             animate_push(cams["hero"])
             scene.camera = cams["hero"]

@@ -64,6 +64,13 @@ class Mix:
                 self.l[i] += v * gl
                 self.r[i] += v * gr
 
+    def add_mix(self, other):
+        if self.n != other.n:
+            raise ValueError("Cannot combine effects stems with different durations.")
+        for i, (left, right) in enumerate(zip(other.l, other.r)):
+            self.l[i] += left
+            self.r[i] += right
+
     def write(self, path):
         peak = max(max(map(abs, self.l)), max(map(abs, self.r)), 1e-9)
         scale = min(1.0, 0.89 / peak)                  # -1 dBFS ceiling, never louder than authored
@@ -202,6 +209,21 @@ def add_record(m):
     m.add(contact, crackle(1.2, 14, 0.12), 0.5)
 
 
+def add_coin_journey(m):
+    """Keep the coin's close rattle intimate, then open the impact into the hall."""
+    entry = sec(F["coinGone"])
+    m.add(entry + 0.02, ring([(1550, 0.7), (2820, 0.35)], 0.16, 0.035), 0.16, pan=-0.25)
+    m.add(entry + 0.14, noise(0.52, 1400, lambda t: math.sin(math.pi * t / 0.52) ** 2), 0.08, pan=0.3)
+    for index, delay in enumerate((0.28, 0.47, 0.72, 0.98)):
+        m.add(entry + delay, ring([(740 + index * 45, 0.7), (1480 + index * 80, 0.28)],
+                                  0.24, 0.075), 0.11, pan=(-1) ** index * 0.45)
+    impact = sec(F["coinImpact"])
+    m.add(impact, thump(72, 0.72, 0.12, 0.55), 0.5)
+    m.add(impact + 0.015, ring([(116, 0.7), (231, 0.55), (487, 0.32), (1290, 0.12)],
+                                2.4, 0.72), 0.34)
+    m.add(impact + 0.04, noise(1.3, 560, lambda t: math.exp(-t / 0.42)), 0.12, pan=0.2)
+
+
 def duck(m):
     """After the song starts the bed only fades: the music has the room."""
     start, end = CUES["song"]["startSec"], 17.0
@@ -218,6 +240,7 @@ def compose(coin_wav=None):
     add_attempt(m)
     add_recovery(m)
     add_record(m)
+    add_coin_journey(m)
     duck(m)
     return m
 
@@ -233,12 +256,25 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--coin", type=Path, default=ROOT / "build" / "awakening-film.mp4")
     ap.add_argument("--out", type=Path, default=ROOT / "build" / "cinematic-phase4" / "animatic" / "sfx-bed.wav")
+    ap.add_argument("--stems-dir", type=Path)
     args = ap.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    stems_dir = args.stems_dir or args.out.parent / "stems"
+    stems_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        coin = extract_coin(args.coin, tmp) if args.coin.exists() else None
-        peak = compose(coin).write(args.out)
+        generated = compose()
+        generated_peak = generated.write(stems_dir / "cinematic-effects.wav")
+        combined = Mix(DURATION)
+        combined.add_mix(generated)
+        if args.coin.exists():
+            coin = extract_coin(args.coin, tmp)
+            coin_mix = Mix(DURATION)
+            add_coin(coin_mix, coin)
+            coin_mix.write(stems_dir / "coin-and-chute.wav")
+            combined.add_mix(coin_mix)
+        peak = combined.write(args.out)
     print(f"WROTE {args.out} ({DURATION:.3f} s, pre-limit peak {peak:.2f})")
+    print(f"WROTE {stems_dir} (effects peak {generated_peak:.2f})")
 
 
 if __name__ == "__main__":
