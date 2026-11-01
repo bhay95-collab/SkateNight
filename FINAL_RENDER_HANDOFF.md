@@ -8,16 +8,16 @@ The primary workstation is the confirmed M2 Pro Mac mini with 16 GB unified memo
 
 ## Final visual checkpoint
 
-The approved coin-to-hall camera path and cue frames remain unchanged from `29da25c`; the pinned C1 pullback and its timing are also unchanged. The coin journey has an approved offline preview, but the cached 1080p look-development stills and 720p pullback are not a final-resolution render of the current complete cut.
+Final visual corrections are in source revision `a35208636ae895a763ca63c361273eb5f2ba9fb0` on `codex/awakening-final-prep`. The approved coin-to-hall camera path and cue frames remain unchanged from `29da25c`; the pinned C1 pullback, registration, and timing are unchanged.
 
 | Requested correction | Source/status | Evidence and remaining work |
 |---|---|---|
-| Sun-gear highlight clipping | **Outstanding** | The cached 1920x1080 `build/cinematic-phase4/megastructure/raw-detail.png` still has a broad near-white clipped area on the sun gear. Correct the steel/flood balance before treating a final render as visually approved. |
-| Cartridge/vinyl lighting | **Outstanding** | Cached 1920x1080 `build/cinematic-phase4/groove/B-contact.png` and `B-cartridge.png` show dominant magenta reflections on the cartridge and record; they compete with the stylus/contact detail. Rebalance before final image approval. |
-| Tonearm ghosting at the UI handoff | **Mitigation present; final-quality confirmation outstanding** | `hero_groove.py` fades the 3D arm assembly as the UI plate completes the landing. The cached final pullback is only 1280x720, so confirm the 1080p render has a single clean arm and no doubled edge. |
-| Drive-to-record transition | **Cue-preserving assembly present; final-quality confirmation outstanding** | `assemble_animatic.py` blends 12 frames at rendered-segment boundaries without changing total frame count. Confirm the full-resolution cut reads as a continuous drive-to-groove connection. |
+| Sun-gear highlight clipping | **Corrected in representative still** | The machined-steel response and focused drive lighting were reduced. `build/awakening-visual-final-v2/megastructure/A-detail.png` is a 1920x1080, 32-sample spot render; the broad featureless near-white patch is gone and the turned-metal detail remains visible. |
+| Cartridge/vinyl lighting | **Improved; localized pink reflection remains** | `build/awakening-visual-final-v5/B-contact.png` and `B-cartridge.png` are 1920x1080, 32-sample spot renders. Vinyl highlights are softer, grooves and stylus/contact reflection remain legible, and the magenta grazing light is neutralized/reduced. A localized pink neon reflection remains on the cartridge; judge it in the full film before final creative approval. |
+| Tonearm ghosting at C1 | **Verified at final resolution** | Selected 1920x1080, 32-sample frames are in `build/awakening-visual-final-v3/handoff-check/frame_0435.png` and `frame_0443.png`. The arm is fading at 435 and the arm/pivot are absent outside the record at the C1 endpoint, frame 443. The record remains pinned to the existing handoff registration. |
+| Drive-to-record transition | **Short preview reviewed; source unchanged** | `build/awakening-visual-final-v1/drive-to-groove-preview.mp4` is a 48-frame, 480x270, 60 fps preview of the existing 12-frame dissolve. The movement reads as a continuous transition at normal speed; no transition or cue changes were made. Full-resolution motion review remains part of the complete-film check. |
 
-These are concrete visual-quality corrections, not missing render prerequisites. Do not interpret the technical preflight as approval of those images. The final film has not been rendered or visually approved; Claude should resolve the two outstanding lighting issues, render representative 1080p spot checks, and obtain review before starting the complete render.
+These are representative still/preview checks, not a render of the full cut. Camera paths, cue frames, C1 registration, and runtime were not changed. The full film has not been rendered or approved.
 
 ## Coin-entry journey
 
@@ -43,6 +43,8 @@ The effects bed includes the source coin/chute sound and generated close metalli
 The generated full-cut effects stem measured **−22.7 LUFS integrated**, **14.4 LU LRA**, and **−0.8 dBTP** before AAC encoding. The reviewed v27 transition preview's effects audio measured **−22.9 LUFS integrated**, **12.3 LU LRA**, and **−0.8 dBTP**. These are technical measurements, not a loudness target or a substitute for listening. The WAV limiter keeps the sample peak at or below −1 dBFS; confirm the encoded AAC true peak and audible balance on the final export.
 
 The effect bed is 48 kHz stereo and is separate from the opening track. Keep that ownership split: the PWA jukebox starts the song at 15.643 s, while the effects bed fades out and is silent by 17 s. Before approval, listen to the complete film on the production Mac mini, then repeat on the actual event MacBook Pro through the projector/PA. Specifically assess coin/chute intelligibility, relay and impact peaks, the effects-to-song overlap, channel routing, and the final handoff; set operating volume on the playback system rather than baking in an unverified venue gain.
+
+For this checkpoint, the 19.25-second review mix is at `build/awakening-visual-final-v1/effects-plus-opener-review.wav`; the opening song is positioned at 15.643 s and stylus contact at 15.850 s. The mix measured **−19.0 LUFS integrated**, **3.1 LU LRA**, and **−0.4 dBTP**. Playback was started through the Mac's default audio output, but subjective listening approval cannot be claimed from this review; venue/PA loudness remains outstanding.
 
 ## Preview and render workflow
 
@@ -98,7 +100,7 @@ python3 cinematic/render_production.py \
 
 Assembly independently validates all required frame paths and dimensions before encoding. The 1,155 output frames comprise 186 source-film frames, 673 story frames, 27 wide-groove frames, and 269 pinned-pullback frames. Three 12-frame segment transitions are composed by holding the outgoing frame and consuming the incoming transition frames once; the total remains 1,155 and cue positions do not move. FFmpeg verifies the resulting H.264/AAC stream metadata, dimensions, frame count, duration, and sample format before installing the staged movie.
 
-The assembled director's cut is 1,155 frames (19.25 s). FFmpeg encodes H.264 High Profile / `yuv420p` at 1920x1080 and 60 fps, with 48 kHz stereo AAC, fast-start metadata, and frame-count verification. Its frame-preserving visual transitions are covered by a synthetic FFmpeg encode test. The complete 1080p render, final-resolution image critique, and full-film playback check remain outstanding.
+The assembled director's cut is 1,155 frames (19.25 s). FFmpeg encodes H.264 High Profile / `yuv420p` at 1920x1080 and 60 fps, with 48 kHz stereo AAC, fast-start metadata, and frame-count verification. Its frame-preserving visual transitions are covered by a synthetic FFmpeg encode test. The complete 1080p render, full-cut visual review, and full-film playback check remain outstanding.
 
 ## Delivery and approval boundary
 
@@ -109,8 +111,10 @@ The render command invokes `scripts/package-cinematic.mjs` on the assembled mast
 - Python cinematic pipeline tests: 5 passed, including preflight-media rejection cases and a real FFmpeg synthetic encode confirming exact 60 fps frame counts.
 - Full Node test suite: 210 passed.
 - Python syntax checks passed for the changed cinematic sources.
+- Production preflight passed on Blender 5.2.3 / Apple M2 Pro 16-core Metal, confirmed the 1920x1080/60 source video plus audio, and reported 209.8 GiB free at `build/`.
 - The current approved-transition proof is `build/awakening-final-prep-v27/preview/coin-journey/coin-journey-preview.mp4`: 327 H.264 frames at 480x270/60 fps, with 48 kHz stereo AAC and a 7.65 s total file duration. FFprobe verifies the file. The camera route and coin visibility were reviewed in key frames and a sample sheet. It proves the slot passage, scale reveal, and hall follow only at preview resolution.
-- Existing high-resolution look-development stills were inspected: the 1920x1080 drive close-up, gear establishing image, cartridge and stylus-contact images; the cached C1 pullback final frame is 1280x720. Their visual status and remaining concerns are listed above.
+- Representative 1920x1080 gear, cartridge, stylus-contact, and C1 handoff renders were inspected at 32 samples; PNG dimensions and checksums validated. Evidence paths and the remaining pink reflection caveat are listed above. The existing 12-frame drive-to-record dissolve was also reviewed in a short 480x270/60 fps preview.
 - Production preflight confirms the M2 Pro Mac mini's Blender Cycles Metal device and checks the source media, UI plate, FFmpeg encoders, and available output-volume space. This is a prerequisite check only, not a benchmark or render-quality certification.
 - The 19.25-second 48 kHz stereo effects bed regenerated byte-for-byte from `sound_bed.py` and the coin source. The −22.7 LUFS / 14.4 LU LRA / −0.8 dBTP stem and −22.9 LUFS / 12.3 LU LRA / −0.8 dBTP preview measurements are technical only; subjective listening on the event MacBook Pro and venue PA remains outstanding.
-- No complete 1080p film render, event-MacBook/projector/PA acceptance, approval, promotion, push, or merge has occurred.
+- The effects-plus-opening-song review mix measured −19.0 LUFS / 3.1 LU LRA / −0.4 dBTP. Playback was initiated on the Mac mini, but that is not subjective listening approval; venue acceptance remains outstanding.
+- No complete 1080p film render, event-MacBook/projector/PA acceptance, approval, promotion, push, or merge has occurred. The source is technically ready for Claude's full render; visual/audio approval and event playback acceptance remain separate gates.
