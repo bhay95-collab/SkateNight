@@ -59,7 +59,7 @@ AMBER, CYAN, MAGENTA = (1.0, 0.52, 0.12), (0.3, 0.85, 1.0), (1.0, 0.12, 0.55)
 # ----------------------------------------------------------------- materials
 
 def vinyl(name, rings=True):
-    mat = kit.worn_metal(name, (0.0018, 0.0018, 0.0022), 0.0, 0.05, wear=0.0, grime=0.0, scale=0.05, coat=0.12)
+    mat = kit.worn_metal(name, (0.0018, 0.0018, 0.0022), 0.0, 0.11, wear=0.0, grime=0.0, scale=0.05, coat=0.06)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     bsdf = nodes["Principled BSDF"]
     bsdf.inputs["Specular IOR Level"].default_value = 0.4
@@ -127,7 +127,7 @@ def materials():
         "diamond": diamond(),
         "amber": kit.glow("Amber pilot", AMBER, 40),
         "magenta": kit.glow("Platter neon", MAGENTA, 24),
-        "neon_rim": kit.glow("Platter neon rim", MAGENTA, 24),
+        "neon_rim": kit.glow("Platter neon rim", MAGENTA, 3),
         "tube": kit.glow("Mechanism fluorescent", (0.7, 0.9, 1.0), 14),
         "label": label_paper(),
     }
@@ -206,7 +206,7 @@ def build_arm(M):
     """Pivot tower, lift, tube, headshell, cartridge, cantilever, diamond."""
     tower = Batch().cyl((PIVOT.x, PIVOT.y, 40), 70, 96, segs=128).cyl((PIVOT.x, PIVOT.y, 94), 52, 12, segs=128)
     tower.ring(70, 78, 6, z=8, segs=128, matrix=Matrix.Translation(PIVOT))
-    tower.emit("Arm pivot tower", M["black"], bevel=1.2)
+    tower = tower.emit("Arm pivot tower", M["black"], bevel=1.2)
     d = (TIP - PIVOT).normalized()
     lift = kit.empty("Arm lift", (PIVOT.x, PIVOT.y, 100), (0, 0, math.atan2(d.y, d.x)))  # local +X runs down the arm
     L = (TIP - PIVOT).length
@@ -216,7 +216,7 @@ def build_arm(M):
     arm.cyl((0, 0, 0), 34, 60, segs=96)                                        # bearing yoke
     arm.emit("Tonearm tube", M["chrome"], lift, smooth=True, bevel=0.8)
     groove_detail.build_cartridge(M, lift, L)          # lift origin is 100 m up: the tip lands on z=0
-    return lift, L
+    return lift, L, tower
 
 
 def lower_arm(lift, L, heights):
@@ -227,34 +227,35 @@ def lower_arm(lift, L, heights):
         lift.keyframe_insert("rotation_euler", frame=f)
 
 
-def fade_tonearm(lift, start, end):
+def fade_tonearm(arm_roots, start, end):
     """Fade only the arm assembly as the rendered UI plate completes the handoff."""
-    for obj in (lift, *lift.children_recursive):
-        if obj.type != "MESH":
-            continue
-        obj.data = obj.data.copy()
-        for index, material in enumerate(obj.data.materials):
-            if material is None:
+    for root in arm_roots:
+        for obj in (root, *root.children_recursive):
+            if obj.type != "MESH":
                 continue
-            faded = material.copy()
-            obj.data.materials[index] = faded
-            nodes, links = faded.node_tree.nodes, faded.node_tree.links
-            output = next((node for node in nodes if node.type == "OUTPUT_MATERIAL"), None)
-            if output is None:
-                raise RuntimeError(f"Tonearm material {material.name} has no material output.")
-            surface_links = [link for link in links if link.to_socket == output.inputs["Surface"]]
-            if len(surface_links) != 1:
-                raise RuntimeError(f"Tonearm material {material.name} needs one connected surface shader.")
-            source = surface_links[0].from_socket
-            links.remove(surface_links[0])
-            transparent = nodes.new("ShaderNodeBsdfTransparent")
-            mix = nodes.new("ShaderNodeMixShader")
-            links.new(source, mix.inputs[1])
-            links.new(transparent.outputs[0], mix.inputs[2])
-            links.new(mix.outputs[0], output.inputs["Surface"])
-            for frame, value in ((start, 0.0), (end, 1.0)):
-                mix.inputs[0].default_value = value
-                mix.inputs[0].keyframe_insert("default_value", frame=frame)
+            obj.data = obj.data.copy()
+            for index, material in enumerate(obj.data.materials):
+                if material is None:
+                    continue
+                faded = material.copy()
+                obj.data.materials[index] = faded
+                nodes, links = faded.node_tree.nodes, faded.node_tree.links
+                output = next((node for node in nodes if node.type == "OUTPUT_MATERIAL"), None)
+                if output is None:
+                    raise RuntimeError(f"Tonearm material {material.name} has no material output.")
+                surface_links = [link for link in links if link.to_socket == output.inputs["Surface"]]
+                if len(surface_links) != 1:
+                    raise RuntimeError(f"Tonearm material {material.name} needs one connected surface shader.")
+                source = surface_links[0].from_socket
+                links.remove(surface_links[0])
+                transparent = nodes.new("ShaderNodeBsdfTransparent")
+                mix = nodes.new("ShaderNodeMixShader")
+                links.new(source, mix.inputs[1])
+                links.new(transparent.outputs[0], mix.inputs[2])
+                links.new(mix.outputs[0], output.inputs["Surface"])
+                for frame, value in ((start, 0.0), (end, 1.0)):
+                    mix.inputs[0].default_value = value
+                    mix.inputs[0].keyframe_insert("default_value", frame=frame)
 
 
 # ----------------------------------------------------------------- environment
@@ -264,19 +265,19 @@ def build_environment(M):
     tubes = Batch()
     for k, x in enumerate((-380, 120, 620)):
         tubes.box((x, 150, 720), (14, 2600, 10))
-        strip = kit.light("AREA", f"Fluorescent strip {k}", (x, 150, 712), (0.72, 0.9, 1.0), 2.2e6, target=(x, 150, 0))
+        strip = kit.light("AREA", f"Fluorescent strip {k}", (x, 150, 712), (0.72, 0.9, 1.0), 1.2e6, target=(x, 150, 0))
         strip.data.shape = "RECTANGLE"
         strip.data.size, strip.data.size_y = 14, 2600
     tubes = tubes.emit("Mechanism lamp tubes", M["tube"])
-    kit.light("SPOT", "Mechanism lamp on the stylus", (260, -560, 420), (1.0, 0.7, 0.42), 1.1e8,
+    kit.light("SPOT", "Mechanism lamp on the stylus", (260, -560, 420), (1.0, 0.7, 0.42), 6.0e6,
               target=tuple(TIP), size=20, spot=16, blend=0.6)
-    kit.light("SPOT", "Stylus key", tuple(TIP - MACRO_FORWARD * 14 + Vector((0, 0, 10))), (0.8, 0.9, 1.0), 8.0e4,
+    kit.light("SPOT", "Stylus key", tuple(TIP - MACRO_FORWARD * 14 + Vector((0, 0, 10))), (0.8, 0.9, 1.0), 5.0e4,
               target=tuple(TIP + Vector((0, 0, 3))), size=2, spot=16, blend=0.7)
     rake_from = (MACRO_FORWARD + Vector((-MACRO_FORWARD.y, MACRO_FORWARD.x, 0)) * 0.55).normalized()
     kit.light("SPOT", "Groove rake behind the tip", tuple(TIP + rake_from * 40 + Vector((0, 0, 2.2))),
-              (1.0, 0.82, 0.62), 3.6e5, target=tuple(TIP - MACRO_FORWARD * 4), size=0.6, spot=10, blend=0.5)
-    kit.light("AREA", "Magenta grazing from the rim", tuple(TIP * 1.25 + Vector((0, 0, 2))), MAGENTA, 1.8e5,
-              target=tuple(TIP * 0.92), size=120)
+              (1.0, 0.82, 0.62), 6.0e4, target=tuple(TIP - MACRO_FORWARD * 4), size=1.2, spot=10, blend=0.5)
+    kit.light("AREA", "Magenta grazing from the rim", tuple(TIP * 1.25 + Vector((0, 0, 2))),
+              (1.0, 0.82, 0.68), 5.0e3, target=tuple(TIP * 0.92), size=180)
     kit.light("AREA", "Cyan haze behind the pivot", tuple(PIVOT * 2.2 + Vector((0, 0, 300))), CYAN, 3.0e7,
               target=(0, 0, 0), size=600)
     return haze, tubes
@@ -400,6 +401,7 @@ def main():
     ap.add_argument("--h", type=int, default=540)
     ap.add_argument("--samples", type=int, default=48)
     ap.add_argument("--frame", type=int)
+    ap.add_argument("--frames", help="Comma-separated frames to spot-check in the pullback.")
     ap.add_argument("--output-dir", type=Path)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--save", action="store_true")
@@ -411,7 +413,7 @@ def main():
     M = materials()
     rec = build_record(M)
     build_changer(M)
-    lift, L = build_arm(M)
+    lift, L, tower = build_arm(M)
     lower_arm(lift, L, ((1, 46.0), (150, 14.0), (175, 7.5), (215, 1.3), (232, 0.25), (F_CONTACT, 0.0)))
     haze, tubes = build_environment(M)
     ui_match_light(F_END - 70, F_END)
@@ -443,7 +445,7 @@ def main():
     for f, v in ((F_CONTACT + 60, 24.0), (F_CONTACT + 150, 0.0)):    # the UI has no neon here
         rim.default_value = v
         rim.keyframe_insert("default_value", frame=f)
-    fade_tonearm(lift, F_END - 70, F_END)
+    fade_tonearm((lift, tower), F_END - 70, F_END)
     cams.update(approach=pin, contact=pin, final=pin)
     head = TIP - _ARM * 40 + Vector((0, 0, 48))                 # the cartridge body, seen three-quarter
     cams["cartridge"] = kit.camera("B5 The cartridge", tuple(TIP - MACRO_FORWARD * 125 + _ARM * 70 + Vector((0, 0, 150))),
@@ -463,12 +465,24 @@ def main():
             continue
         if shot in ("pullback", "glide"):
             scene.camera = pin
-            scene.frame_start = args.frame or (1 if shot == "glide" else F_CONTACT - 60)
-            scene.frame_end = F_CONTACT + 60 if shot == "glide" else F_END
             scene.cycles.samples = args.samples
-            render_frame_sequence(
-                scene, out / shot, scene.frame_start, scene.frame_end, args.w, args.h, resume=args.resume
-            )
+            if args.frames:
+                if shot != "pullback":
+                    raise ValueError("--frames is supported only with --shot pullback.")
+                selected = [int(value) for value in args.frames.split(",")]
+                if not selected or any(frame < 1 or frame > F_END for frame in selected):
+                    raise ValueError(f"Pullback spot-check frames must be between 1 and {F_END}.")
+                for frame in selected:
+                    render_frame_sequence(
+                        scene, out / "handoff-check", frame, frame, args.w, args.h, resume=args.resume
+                    )
+            else:
+                scene.frame_start = args.frame or (1 if shot == "glide" else F_CONTACT - 60)
+                scene.frame_end = F_CONTACT + 60 if shot == "glide" else F_END
+                render_frame_sequence(
+                    scene, out / shot, scene.frame_start, scene.frame_end,
+                    args.w, args.h, resume=args.resume
+                )
             continue
         raw = out / f"raw-{shot}.png"
         kit.render(scene, cams[shot], raw, args.w, args.h, args.samples, frame=args.frame or frames[shot])

@@ -59,10 +59,10 @@ def materials():
 
 def machined_steel():
     """Bright turned steel: lathe rings, clean faces, oil in the corners only."""
-    mat = kit.worn_metal("Machined steel", (0.58, 0.60, 0.63), 1.0, 0.31, wear=0.0, grime=0.12)
+    mat = kit.worn_metal("Machined steel", (0.27, 0.29, 0.32), 1.0, 0.42, wear=0.0, grime=0.12)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
-    nodes["Map Range"].inputs["To Min"].default_value = 0.28
-    nodes["Map Range"].inputs["To Max"].default_value = 0.36
+    nodes["Map Range"].inputs["To Min"].default_value = 0.30
+    nodes["Map Range"].inputs["To Max"].default_value = 0.42
     rings = nodes.new("ShaderNodeTexWave")
     rings.wave_type = "RINGS"
     rings.rings_direction = "Z"
@@ -319,11 +319,11 @@ def build_lights(variant):
     lights["rim"] = kit.light("AREA", "Drive rim cyan", (0, 78, 30), (0.2, 0.7, 1.0), 1.8e4 if lit else 0, target=(0, 40, 26), size=80)
     lights["kicker"] = kit.light("SPOT", "Magenta kicker", (40, 22, 46), MAGENTA, 1.5e4 if lit else 3e3, target=C,
               size=1.5, spot=30, blend=0.4)
-    lights["key"] = kit.light("AREA", "Warm raking key", (-42, 6, 3), (1.0, 0.76, 0.52), 1.2e4 if lit else 0,
+    lights["key"] = kit.light("AREA", "Warm raking key", (-42, 6, 3), (1.0, 0.76, 0.52), 5.0e3 if lit else 0,
               target=(0, 44, 26), size=16)
     for side in (-1, 1):                                  # work floods on the gantries, raking the drive face
         lights[f"flood{side}"] = kit.light("AREA", f"Gantry flood {side:+d}", (side * 21, 12, 34), (1.0, 0.86, 0.7),
-                                           2.2e4 if lit else 0, target=(side * -6, 46, 24), size=4)
+                                           8.0e3 if lit else 0, target=(side * -6, 46, 24), size=4)
     lights["up"] = kit.light("SPOT", "Amber uplight on the motor", (0, 26, 0.6), AMBER, 2.2e4 if lit else 1.8e4,
                              target=(0, 40, 30), size=0.6, spot=46, blend=0.5)
     return lights
