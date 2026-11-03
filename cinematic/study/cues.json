@@ -1,0 +1,32 @@
+{
+  "study": "The Song Inside — isolated 30 fps exploration",
+  "sourceCommit": "0c99f8befe80ebe4a6ea7e3c6c3432ad05c70bc8",
+  "fps": 30,
+  "durationSec": 38.5,
+  "seconds": {
+    "coinStart": 0,
+    "coinGone": 3.1,
+    "hallReveal": 4,
+    "coinImpact": 5.25,
+    "relay": 5.466666666666667,
+    "attempt": 5.966666666666667,
+    "almost": 7.7,
+    "failure": 8.3,
+    "tick": 8.9,
+    "catch": 9.2,
+    "heartbeats": [9.6, 10.4, 11.033333333333333, 11.566666666666666],
+    "ignite": 12.033333333333333,
+    "transmission": 13.5,
+    "carousel": 15.2,
+    "activeRecord": 20.2,
+    "grooveDescent": 21.2,
+    "canyonFlight": 23.233333333333334,
+    "grooveExit": 29.8,
+    "stylusApproach": 34,
+    "stylusContact": 35.1,
+    "registrationStart": 37.766666666666666,
+    "final": 38.46666666666667
+  },
+  "song": {"trackId": "praise-lifted-on-high", "startSec": 34.893, "firstHitSec": 0.207, "revealAtSec": 3.584},
+  "note": "Audio retains sample precision. Visual cues use nearest frame (half up). C1 is sampled on its original 60-fps time axis; endpoint anchored to original frame 443. No production manifest."
+}
