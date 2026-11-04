@@ -64,28 +64,30 @@ def cost_model(quality_root, supplements=()):
                 image = path.parent / f"frame_{row['frame']:04d}.png"
                 if (row.get('wall_seconds', 0) > 0 and row.get('bytes', 0) > 0
                         and png_dimensions(image) == (1920, 1080)):
-                    measured[row['frame']] = dict(row, report=str(path), image=str(image), process_first=(i == 0))
+                    measured[row['frame']] = dict(row, report=str(path), image=str(image), process_first=(i == 0), primary=(root==quality_root))
         if not measured:
             raise ValueError(f'No measured valid 1080p pixel render timings for {shot}')
         reports[shot] = {'setup_seconds': setup_seconds, 'rows': list(measured.values())}
     shots = {shot['id']: shot for shot in MANIFEST['shots']}
     vstart, vend = shots['vinyl']['start'], shots['vinyl']['end']
-    # The 18-frame mixed LOD interval is deliberately separate: two surfaces
+    # The late ten-frame skin blend is separate: two surfaces
     # coexist there and a single average for all vinyl would hide its cost.
     groups = [('story', 93, 404, 'story'), ('changer', 405, 605, 'changer'),
               ('vinyl descent', vstart, frame('canyonFlight') - 1, 'vinyl'),
               ('groove flight', frame('canyonFlight'), frame('grooveExit') - 1, 'vinyl'),
-              ('groove exit before LOD', frame('grooveExit'), 849, 'vinyl'),
-              ('LOD surface blend', 850, 867, 'vinyl'),
-              ('groove exit after LOD', 868, frame('stylusApproach') - 1, 'vinyl'),
+              ('groove exit', frame('grooveExit'), 904, 'vinyl'),
+              ('LOD surface blend', 905, frame('stylusApproach') - 1, 'vinyl'),
               ('C1 approach and contact', frame('stylusApproach'), vend, 'vinyl')]
     result = []
     for name, lo, hi, shot in groups:
         rows = [r for r in reports[shot]['rows'] if lo <= r['frame'] <= hi]
+        primary_rows=[r for r in rows if r['primary']]
+        if primary_rows:rows=primary_rows
         fallback = not rows
         if fallback:
             midpoint = (lo + hi) / 2
-            rows = [min(reports[shot]['rows'], key=lambda r: abs(r['frame'] - midpoint))]
+            pool=[r for r in reports[shot]['rows'] if r['primary']] or reports[shot]['rows']
+            rows = [min(pool, key=lambda r: abs(r['frame'] - midpoint))]
         times = [r['wall_seconds'] for r in rows]
         count = hi - lo + 1
         result.append({'phase': name, 'start': lo, 'end': hi, 'frames': count,
@@ -105,13 +107,14 @@ def cost_model(quality_root, supplements=()):
             'planning_low_hours': sum(r['planning_low_seconds'] for r in result) / 3600,
             'planning_high_hours': sum(r['planning_high_seconds'] for r in result) / 3600,
             'setup_seconds': sum(r['setup_seconds'] for r in reports.values()),
-            'peak_observed_process_rss_gib': max(r['peak_rss_bytes'] for v in reports.values() for r in v['rows']) / 1024 ** 3,
+            'peak_observed_process_rss_gib': max(r['peak_rss_bytes'] for phase in result for r in phase['samples']) / 1024 ** 3,
             'qualifications': [
                 'Browser capture, assembly, audio, validation, restarts and overnight thermal changes are excluded from Blender hours.',
                 'First measured frame in each process includes possible cold Metal/kernel/cache work; later rows are warm candidates, not controlled cold/warm benchmarks.',
                 'Each phase uses its measured mean, or an explicitly marked nearest-phase fallback. Sparse spots cannot establish a statistical confidence interval.',
+                'Current primary-root samples replace supplementary timings within a phase. A nearest-phase fallback also prefers current primary samples; supplements remain available for unchanged phases.',
                 'Planning range is 75% of each phase minimum to 150% of its maximum; this is a stated budgeting allowance, not measured error bars.',
-                'The 18-frame 850..867 LOD blend is weighted separately. Low-resolution preview timings are not scaled into the final-quality estimate.',
+                'The ten-frame 905..914 skin blend is weighted separately. Low-resolution preview timings are not scaled into the final-quality estimate.',
                 'macOS process peak RSS is cumulative within a process and does not measure all Metal/unified GPU allocations.',
                 'The earlier 19-hour study estimate used different geometry and must not be treated as this build’s measured duration.'
             ]}

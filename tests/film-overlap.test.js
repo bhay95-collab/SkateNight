@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { overlapPlan, registerRecord, validateAwakeningFilmManifest } from '../awakening-film.js';
+import { overlapPlan, registerRecord, songCuePresentationTime, validateAwakeningFilmManifest } from '../awakening-film.js';
 import { OPENER } from '../rotation.js';
 
 // The director's cut timing (cinematic/cues.json): contact on frame 951, song from 15.643 s, last frame 1154.
@@ -177,4 +177,18 @@ test('both overlap formats reject coerced record dimensions before the registrat
       }
     }
   }
+});
+
+test('native song deadline stays attached to the displayed frame when its callback is early or delayed', () => {
+  const frame = { source: 'rvfc', expectedDisplayTime: 1000, observedAt: 985 };
+  const expected = 1000 + (31.393 - 31.133333) * 1000;
+  assert.equal(songCuePresentationTime(31.393, 31.133333, frame, 985), expected);
+  assert.equal(songCuePresentationTime(31.393, 31.133333, { ...frame, observedAt: 1010 }, 1010), expected);
+  assert.equal(songCuePresentationTime(31.393, 31.133333, frame, 1030), expected);
+});
+
+test('a media-clock fallback uses its own observation epoch without inventing a display timestamp', () => {
+  assert.equal(songCuePresentationTime(31.393, 31.1, { source: 'timeupdate', observedAt: 2000 }, 2010),
+    2000 + (31.393 - 31.1) * 1000);
+  assert.equal(songCuePresentationTime(31.393, 31.1, undefined, 2010), 2010 + (31.393 - 31.1) * 1000);
 });

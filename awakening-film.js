@@ -167,6 +167,15 @@ export function overlapPlan(manifest) {
   return { fps, songStartSec, contactSec, endSec, registrationStartSec: start / fps, record: { ...record } };
 }
 
+// A frame's media timestamp belongs to its expected display epoch, which can
+// be a v-sync later than the callback that reports it.
+export function songCuePresentationTime(songStartSec, mediaTime, anchor, observedNow) {
+  const epoch = anchor?.source === 'rvfc' && Number.isFinite(anchor.expectedDisplayTime)
+    ? anchor.expectedDisplayTime
+    : Number.isFinite(anchor?.observedAt) ? anchor.observedAt : observedNow;
+  return epoch + (songStartSec - mediaTime) * 1000;
+}
+
 /* Where the film's record lands on this screen, and the transform that puts it
    on the live record. The film is shown object-fit: cover; the result is a CSS
    transform (origin 0 0: scale, then translate tx/ty in px) and the live record
@@ -456,16 +465,25 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     let callbackId = null;
     const startedAt = performance.now();
     const pending = onTime.slice().sort((a, b) => a.at - b.at);
-    const fire = (mediaTime) => {
+    const native30 = selected.manifest.fps === 30;
+    const presentationClock = native30 && typeof video.requestVideoFrameCallback === 'function';
+    if (native30) globalThis.__awakeningCueEvents = [];
+    const fire = (mediaTime, anchor) => {
       while (pending.length && mediaTime >= pending[0].at - 0.5 / selected.manifest.fps) {
         const cue = pending.shift();
-        try { cue.run(mediaTime); } catch (error) { console.warn('[awakening film cue]', error); }
+        if (native30) globalThis.__awakeningCueEvents.push({ at: cue.at, mediaTime, ...anchor });
+        try {
+          if (native30) cue.run(mediaTime, anchor);
+          else cue.run(mediaTime);
+        } catch (error) { console.warn('[awakening film cue]', error); }
       }
     };
-    const onTimeUpdate = () => fire(video.currentTime);
-    if (pending.length) video.addEventListener('timeupdate', onTimeUpdate);
+    const onTimeUpdate = () => fire(video.currentTime, { source: 'timeupdate', observedAt: performance.now() });
+    // Preserve the legacy60 policy; native30 uses one authoritative clock.
+    if (pending.length && !presentationClock) video.addEventListener('timeupdate', onTimeUpdate);
     const onVideoFrame = (now, metadata) => {
-      fire(metadata.mediaTime);
+      fire(metadata.mediaTime, { source: 'rvfc', observedAt: performance.now(), callbackNow: now,
+        expectedDisplayTime: metadata.expectedDisplayTime, presentationTime: metadata.presentationTime });
       const displayedAt = metadata.expectedDisplayTime ?? now;
       if (previousFrame != null) intervals.push(displayedAt - previousFrame);
       previousFrame = displayedAt;

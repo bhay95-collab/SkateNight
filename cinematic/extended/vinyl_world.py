@@ -81,14 +81,9 @@ def build_vinyl(scene,G):
     mesh.from_pydata(vertices,[],faces);mesh.update();mesh.shade_smooth()
     patch=bpy.data.objects.new('Flight sector — same vinyl record',mesh)
     scene.collection.objects.link(patch);patch.parent=rec;mesh.materials.append(G.vinyl('Smooth flight vinyl',rings=False))
-    # The approved solid base fills the physical V below -.004. During the
-    # scale escape, smoothly converge the deep sector to that visible source
-    # skin before restoring its original mesh; no one-frame depth/normal pop.
-    patch.shape_key_add(name='Physical .13-depth groove')
-    skin=patch.shape_key_add(name='Approved distant record skin LOD')
-    for v in skin.data:v.co.z*=.0039/.13
-    for f,v in ((813,0),(867,1)):
-        skin.value=v;skin.keyframe_insert('value',frame=f)
+    vinyl=patch.data.materials[0].node_tree.nodes['Principled BSDF']
+    vinyl.inputs['Base Color'].default_value=(.003,.0035,.0045,1)
+    vinyl.inputs['Roughness'].default_value=.16
 
     def opacity_copy(mat,name,values):
         copy=mat.copy();copy.name=name
@@ -100,12 +95,39 @@ def build_vinyl(scene,G):
         for f,v in values:
             mix.inputs[0].default_value=v;mix.inputs[0].keyframe_insert('default_value',frame=f)
         return copy
+    # Keep a true-depth groove while the landmark shrinks. Only the bounded
+    # sector cuts through the old flat skin; the surrounding record stays whole.
     skins=[]
     for ob in (base,oldpatch):
         mat=ob.data.materials[0]
-        skins.append((ob,mat,opacity_copy(mat,'Escape LOD '+mat.name,((850,0),(868,1)))))
+        cut=mat.copy();cut.name='Local flight cutout '+mat.name
+        nodes=cut.node_tree.nodes;links=cut.node_tree.links
+        out=next(n for n in nodes if n.type=='OUTPUT_MATERIAL')
+        source=out.inputs['Surface'].links[0].from_socket
+        tex=nodes.new('ShaderNodeTexCoord');tex.object=rec
+        def math_node(op,a,b):
+            node=nodes.new('ShaderNodeMath');node.operation=op
+            for socket,value in zip(node.inputs,(a,b)):
+                if isinstance(value,(int,float)):socket.default_value=value
+                else:links.new(value,socket)
+            return node.outputs[0]
+        axes=[]
+        for axis in ((math.cos(endtheta),math.sin(endtheta),0),(-math.sin(endtheta),math.cos(endtheta),0)):
+            dot=nodes.new('ShaderNodeVectorMath');dot.operation='DOT_PRODUCT';dot.inputs[1].default_value=axis
+            links.new(tex.outputs['Object'],dot.inputs[0]);axes.append(dot.outputs['Value'])
+        radial=math_node('SUBTRACT',axes[0],G.CONTACT_R)
+        inside=math_node('MULTIPLY',math_node('GREATER_THAN',radial,-2.6),math_node('LESS_THAN',radial,2.6))
+        inside=math_node('MULTIPLY',inside,math_node('GREATER_THAN',axes[1],-7.5))
+        inside=math_node('MULTIPLY',inside,math_node('LESS_THAN',axes[1],12.5))
+        amount=nodes.new('ShaderNodeValue')
+        for f,v in ((639,1),(905,1),(914,0)):
+            amount.outputs[0].default_value=v;amount.outputs[0].keyframe_insert('default_value',frame=f)
+        transparent=nodes.new('ShaderNodeBsdfTransparent');mix=nodes.new('ShaderNodeMixShader')
+        links.new(source,mix.inputs[1]);links.new(transparent.outputs[0],mix.inputs[2])
+        links.new(math_node('MULTIPLY',inside,amount.outputs[0]),mix.inputs[0]);links.new(mix.outputs[0],out.inputs['Surface'])
+        skins.append((ob,mat,cut))
     patchmat=patch.data.materials[0]
-    patch.data.materials[0]=opacity_copy(patchmat,'Escape LOD physical sector',((850,1),(868,0)))
+    patch.data.materials[0]=opacity_copy(patchmat,'Escape LOD physical sector',((905,1),(914,0)))
     # No concrete shader: restrained vinyl and thin buried service machinery.
     metal=A.simple_material('Recessed groove service metal',(.075,.095,.11),metal=.75,rough=.30)
     bolts=A.simple_material('Groove service brass fasteners',(.25,.16,.06),metal=.8,rough=.24)
@@ -114,10 +136,13 @@ def build_vinyl(scene,G):
     fixtures=[];station_lights=[]
     # Sparse stations attached to a wall below its lip, including braced
     # gantries and cable runs. None protrudes into the camera channel.
-    for n,th in enumerate([endtheta+.0016+i*.0010 for i in range(5)]):
+    station_thetas=[endtheta+.0006]+[endtheta+.0016+i*.0010 for i in range(1,5)]
+    landmark=None
+    for n,th in enumerate(station_thetas):
         origin=point(th)
         basis=Matrix.Rotation(th,4,'Z')
         frame=kit.empty(f'Embedded wall service station {n}',origin,(0,0,th));frame.parent=rec
+        if n==0:frame.scale.x=-1
         b=kit.Batch().box((.078,0,-.055),(.030,.20,.045))
         for yy in (-.08,.08):
             b.box((.073,yy,-.071),(.014,.012,.065))
@@ -132,14 +157,15 @@ def build_vinyl(scene,G):
         screws.emit(f'Hex inspection fasteners {n}',bolts,frame)
         kit.tube(f'Wall conduit loop {n}',[(.060,-.14,-.076),(.055,-.115,-.084),(.055,.105,-.084),(.060,.14,-.076)],.0022,cable,parent=frame)
         kit.tube(f'Wall handrail {n}',[(.055,-.11,-.026),(.052,-.10,-.019),(.052,.10,-.019),(.055,.11,-.026)],.0012,bolts,parent=frame)
-        kit.Batch().box((.061,-.006,-.047),(.002,.11,.012)).emit(f'Amber slit {n}',warm,frame)
+        window=kit.Batch().box((.061,-.006,-.047),(.002,.11,.012)).emit(f'Amber slit {n}',warm,frame)
+        if n==0:landmark=window
         kit.tube(f'Buried station cable {n}',[(.064,-.10,-.065),(.058,-.15,-.08),(.056,-.24,-.086)],.0014,cable,parent=frame)
         if n == 2:
             gantry=kit.Batch()
             for xx in (-.123,.123):
                 gantry.box((xx,0,-.015),(.009,.016,.08))
             gantry.box((0,0,.029),(.26,.020,.012)).emit(f'Ridge inspection gantry {n}',metal,frame,bevel=.001)
-        lamp=kit.light('AREA',f'Wall station amber rake {n}',point(th,-.035,-.005),(1,.52,.19),.0065,target=point(th,.06,-.05),size=.045)
+        lamp=kit.light('AREA',f'Wall station amber rake {n}',point(th,.035,-.005),(1,.52,.19),.022,target=point(th,-.065,-.05),size=.065)
         lamp.parent=rec;station_lights.append(lamp)
         fixtures.append(frame)
     # Very fine surface-bound dust/scuffs: deterministic, no airborne glitter.
@@ -151,6 +177,7 @@ def build_vinyl(scene,G):
     dust.emit('Pressed-surface sparse dust',metal,rec)
     flight=kit.camera('Continuous record-to-groove-to-stylus',(-250,-520,46),(520,-40,50),24)
     flight.data.clip_start=.00001;flight.data.clip_end=400000
+    flight.rotation_mode='QUATERNION'
     # Keep every authored C1 channel intact and add the preceding record angle
     # on the native timeline. G175=-.035, G240=-.048 exactly.
     for f in range(405,915):
@@ -160,7 +187,11 @@ def build_vinyl(scene,G):
     endpoint=original_cam.location.copy();qend=original_cam.rotation_euler.to_quaternion();lend=original_cam.data.lens
     def angle(f):return -.035+(915-f)*G.OMEGA_GIANT/30
     def world(p,f):return Matrix.Rotation(angle(f),3,'Z')@p
-    poses={}
+    def scale_dolly(start,end,focus,u):
+        # Geometric distance makes the familiar station shrink at a steady rate.
+        a,b=start-focus,end-focus
+        return focus+a.normalized().slerp(b.normalized(),u)*math.exp(math.log(a.length)*(1-u)+math.log(b.length)*u)
+    poses={};previous_q=None
     for f in range(606,915):
         if f<=633:
             u=ease((f-606)/27)
@@ -177,34 +208,45 @@ def build_vinyl(scene,G):
             u=(f-655)/(813-655)
             th=endtheta+.006-.005*u
             loc=world(point(th,z=-.075+.004*math.sin(u*math.tau)),f)
-            tgt=world(point(th-.00025,z=-.100),f);lens=20
+            tgt=world(point(th-.00025,z=-.100),f).lerp(world(point(station_thetas[0],x=-.061,z=-.047),f),ease((f-795)/18));lens=20
         elif f<=864:
             u=ease((f-813)/51)
-            th=endtheta+.001-.0008*u
-            loc=world(point(th,z=-.075+3.075*u),f)
-            tgt=world(point(th-.00025,z=-.100+2.100*u),f);lens=20+5*u
+            focus=point(station_thetas[0],x=-.061,z=-.047)
+            loc=world(scale_dolly(point(endtheta+.001,z=-.075),point(endtheta+.0007,x=.7,z=1.75),focus,u),f)
+            tgt=world(focus,f);lens=20+5*u
         else:
             u=ease((f-864)/51)
-            start=world(point(endtheta+.0002,z=3),864)
-            loc=start.lerp(endpoint,u)
-            qstart=(world(point(endtheta-.00005,z=2),864)-start).to_track_quat('-Z','Y')
-            q=qstart.slerp(qend,u);lens=25+(lend-25)*u
-            flight.location=loc;flight.rotation_euler=q.to_euler();flight.data.lens=lens
-            flight.keyframe_insert('location',frame=f);flight.keyframe_insert('rotation_euler',frame=f);flight.data.keyframe_insert('lens',frame=f)
+            start=world(point(endtheta+.0007,x=.7,z=1.75),f)
+            focus=world(point(station_thetas[0],x=-.061,z=-.047),f)
+            loc=scale_dolly(start,endpoint,focus,u)
+            qstart=(focus-loc).to_track_quat('-Z','Y')
+            q=qstart.slerp(qend,ease((f-890)/25));lens=25+(lend-25)*u
+            if previous_q and q.dot(previous_q)<0:q.negate()
+            previous_q=q.copy()
+            flight.location=loc;flight.rotation_quaternion=q;flight.data.lens=lens
+            flight.keyframe_insert('location',frame=f);flight.keyframe_insert('rotation_quaternion',frame=f);flight.data.keyframe_insert('lens',frame=f)
             poses[f]=(loc,lens);continue
-        flight.location=loc;kit.aim(flight,tgt);flight.data.lens=lens
-        flight.keyframe_insert('location',frame=f);flight.keyframe_insert('rotation_euler',frame=f);flight.data.keyframe_insert('lens',frame=f)
+        q=(tgt-loc).to_track_quat('-Z','Y')
+        if previous_q and q.dot(previous_q)<0:q.negate()
+        previous_q=q.copy()
+        flight.location=loc;flight.rotation_quaternion=q;flight.data.lens=lens
+        flight.keyframe_insert('location',frame=f);flight.keyframe_insert('rotation_quaternion',frame=f);flight.data.keyframe_insert('lens',frame=f)
         poses[f]=(loc,lens)
     # Exact last pose on the same camera rather than an approximate scale cut.
-    flight.location=endpoint;flight.rotation_euler=qend.to_euler();flight.data.lens=lend
-    flight.keyframe_insert('location',frame=915);flight.keyframe_insert('rotation_euler',frame=915);flight.data.keyframe_insert('lens',frame=915)
+    flight.location=endpoint;flight.rotation_quaternion=qend;flight.data.lens=lend
+    flight.keyframe_insert('location',frame=915);flight.keyframe_insert('rotation_quaternion',frame=915);flight.data.keyframe_insert('lens',frame=915)
     # Local illumination is tiny because the camera and corridor have real
     # micro dimensions. It cannot affect the approved world after the escape.
     micros=list(station_lights)
     for n in range(7):
-        th=endtheta+.001+n*.001
-        light=kit.light('AREA',f'Groove grazing service strip {n}',point(th,-.055,.035),(.35,.55,.72),.0008,target=point(th,-.025,-.06),size=.09)
+        th=endtheta+.0005+n*.001
+        light=kit.light('AREA',f'Groove grazing service strip {n}',point(th,-.055,.07),(.35,.55,.72),.05,target=point(th,.065,-.06),size=.50)
+        light.data.shape='RECTANGLE';light.data.size_y=.14
         light.parent=rec;micros.append(light)
+    exit_key=kit.light('AREA','Surface rake reveals the contact groove',point(endtheta+.0006,-1.2,2.8),(.50,.68,1),30,target=point(endtheta+.0006,z=0),size=2.4)
+    exit_key.parent=rec;micros.append(exit_key)
+    for f,v in ((813,0),(840,30),(890,30),(915,0)):
+        exit_key.data.energy=v;exit_key.data.keyframe_insert('energy',frame=f)
     carriage=kit.empty('Groove inspection carriage');carriage.parent=rec
     kit.Batch().box((0,0,0),(.024,.075,.014)).emit('Inspection carriage metal',metal,carriage,bevel=.002)
     kit.Batch().box((0,-.02,.009),(.012,.012,.005)).emit('Inspection carriage pilot',warm,carriage)
@@ -215,21 +257,21 @@ def build_vinyl(scene,G):
         carriage.keyframe_insert('location',frame=f);carriage.keyframe_insert('rotation_euler',frame=f)
     fixtures.append(carriage)
     return dict(G=G,record=rec,base=base,oldpatch=oldpatch,patch=patch,flight=flight,approved=original_cam,
-                fixtures=fixtures,micros=micros,skins=skins,magazine_detail=magazine_detail,mixed_labels=mixed_labels,theta_contact=endtheta,contact_lane_offset=contact_lane_offset,lane=lane,center=center,point=point,
+                fixtures=fixtures,micros=micros,skins=skins,landmark=landmark,magazine_detail=magazine_detail,mixed_labels=mixed_labels,theta_contact=endtheta,contact_lane_offset=contact_lane_offset,lane=lane,center=center,point=point,
                 c1_start_position=list(endpoint),c1_start_quaternion=list(qend),c1_start_lens=lend)
 
 
 def vinyl_frame(scene,f,s):
-    micro=639<=f<=867
+    micro=639<=f<915
     for ob,original,mixed in s['mixed_labels']:ob.data.materials[0]=original if f>=915 else mixed
     # Fine magazine bands and printing are subpixel at this record-level view.
     # Retain actual mounted discs and paper; omit only their close-pass detail.
     for ob in s['magazine_detail']:ob.hide_render=True
     if f<915:
         bpy.data.objects['Mechanism lamp tubes'].hide_render = f<840
-    for ob,original,fade in s['skins']:ob.data.materials[0]=fade if 850<=f<868 else original
-    s['base'].hide_render=639<=f<850
-    s['oldpatch'].hide_render=639<=f<850
+    for ob,original,fade in s['skins']:ob.data.materials[0]=fade if micro else original
+    s['base'].hide_render=False
+    s['oldpatch'].hide_render=False
     s['patch'].hide_render=not micro
     for ob in s['fixtures']:
         for item in (ob,*ob.children_recursive):item.hide_render=not micro
@@ -237,7 +279,7 @@ def vinyl_frame(scene,f,s):
     bpy.data.objects['Pressed-surface sparse dust'].hide_render=not micro
     scene.camera=s['flight'] if f<915 else s['approved']
     result={'record_angle_radians':s['record'].rotation_euler.z,'physical_pitch':.4,'physical_depth':.13,
-            'submerged_base_culled':639<=f<850,'record_skin_lod_active':850<=f<868,'coordinate_space':'approved rotating record','contact_lane_offset':s['contact_lane_offset'],'camera_clip_start':scene.camera.data.clip_start}
+            'submerged_base_culled':False,'local_base_cutout':micro,'record_skin_lod_active':905<=f<915,'coordinate_space':'approved rotating record','contact_lane_offset':s['contact_lane_offset'],'camera_clip_start':scene.camera.data.clip_start}
     if 655<=f<=813:
         local=s['record'].matrix_world.inverted()@scene.camera.location
         theta=math.atan2(local.y,local.x)
@@ -246,6 +288,25 @@ def vinyl_frame(scene,f,s):
         if abs(lateral)>.012 or clearance<.04 or local.z>=0:
             raise ValueError(f'Groove flight collision/escape: {f}, lateral={lateral}, floor={clearance}')
         result.update(groove_lateral_offset=lateral,groove_floor_clearance=clearance,local_camera_z=local.z)
+    if 813<=f<915:
+        bpy.context.view_layer.update()
+        camera=scene.camera;inverse=s['patch'].matrix_world.inverted();origin=inverse@camera.location
+        if origin.z<0:
+            hit,surface,normal,index=s['patch'].ray_cast(origin+Vector((0,0,1)),Vector((0,0,-1)),distance=2)
+            clearance=origin.z-surface.z if hit else None
+            if clearance is None or clearance<.02:raise ValueError(f'Exit camera intersects the physical groove at {f}')
+            result['exit_floor_clearance']=clearance
+        corners=[s['landmark'].matrix_world@Vector(v) for v in s['landmark'].bound_box]
+        target=inverse@(sum(corners,Vector())/8);ray=target-origin
+        hit,surface,normal,index=s['patch'].ray_cast(origin,ray.normalized(),distance=ray.length)
+        result['exit_landmark_wall_occluded']=hit and (surface-origin).length<ray.length-.003
+        view=camera.matrix_world.inverted();projected=[]
+        for corner in corners:
+            p=view@corner
+            if p.z<0:projected.append((.5+p.x/-p.z*camera.data.lens/36,.5+p.y/-p.z*camera.data.lens/36*scene.render.resolution_x/scene.render.resolution_y))
+        if len(projected)==8:
+            bounds=[min(p[0] for p in projected),min(p[1] for p in projected),max(p[0] for p in projected),max(p[1] for p in projected)]
+            result.update(exit_landmark_bounds=bounds,exit_landmark_width_px=(bounds[2]-bounds[0])*scene.render.resolution_x,exit_landmark_height_px=(bounds[3]-bounds[1])*scene.render.resolution_y)
     if f>=915:
         result['approved_source_frame']=source_frame_for_c1(f)
         if f==915:

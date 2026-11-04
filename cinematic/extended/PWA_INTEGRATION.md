@@ -1,82 +1,105 @@
 # Experimental 35-second PWA handoff
 
-The approved website default remains the fixed 60 fps Awakening film. Nothing in this branch promotes or installs the extended film in `films/`.
+The approved website default remains the fixed 60 fps Awakening film. The extended film stays an explicitly imported production preview; nothing here promotes it into `films/`, changes the original worktree or replaces the default.
 
-The actual assembled development movie passes four online viewport checks, registration/phase, OPFS offline playback and both fallback paths. Its offline coin run retains one acceptance failure: the conservative media-clock audible estimate was −40.56 ms against the unchanged ±33.333 ms gate; the presented-frame estimate was −31.54 ms and passed. Portable cold-start calibration therefore remains unresolved before promotion or venue acceptance.
+The finishing pass corrects the native30 song cue's presentation-clock anchor. The final finishing movie has now completed four online sizes, ten offline reloads and the bounded decode-failure case with the frozen source. All fourteen normal runs passed registration, phase, song ownership and controls. Sample-matched PCM passed all ten offline captures: post-limiter first-hit error ranges from **−13.738 to +22.264 ms**, with median **+10.349 ms**. Two offline cases still fail older coarse-clock gates, so the strict combined checker result remains qualified rather than an unconditional pass. All failures remain in their original reports.
 
-The extended assembler writes an external preview manifest with `filmKind: production-preview`, `filmId: production-preview-35s-native30-v1`, `experimental: true`, 1920×1080, 30 fps, 1,050 frames, 35 seconds, and `audioOwnership.songEmbedded: false`. Song-containing review movies cannot use this deployment contract. The file checksum, dimensions, duration, complete decode/seek readiness, and locked C1 timing are checked during import and again when OPFS is prepared after a reload.
+Import the **effects-only** MP4 and JSON together through **TOOLS → IMPORT FILM + MANIFEST**. **PREVIEW EXTERNAL FILM + SONG HANDOFF** explicitly starts the imported film. For the normal coin workflow, reload the prepared PWA with `?film=extended35`, then insert the coin. This selects only the verified `production-preview-35s-native30-v1` asset. Without that option, startup keeps the approved hosted/local 60 fps film. A missing extended film falls back to the approved film or the existing live cut. `?film=extended35&live=1` forces the live cut; reduced motion retains the gentle path.
 
-Import the **effects-only** MP4 and its JSON together through **TOOLS → IMPORT FILM + MANIFEST**. **PREVIEW EXTERNAL FILM + SONG HANDOFF** explicitly starts that film. For the normal coin workflow, reload the prepared PWA with `?film=extended35`, then insert the coin. This opt-in selects only the verified extended film with the exact identifier above. Without that URL option, normal startup keeps the approved hosted/local 60 fps film. If the extended film is absent, startup uses the approved film or the existing live cut. `?film=extended35&live=1` forces the live cut. Reduced motion retains the gentle live path.
+The external contract is `filmKind: production-preview`, `experimental: true`, 1920×1080, 30 fps, 1,050 frames and 35 seconds, with `audioOwnership.songEmbedded: false`. Song-containing review movies cannot use this deployment contract. Import and reload preparation verify the checksum, dimensions, duration, decoding/seeking and locked C1 cues. Record geometry must contain finite numbers; numeric strings and arrays are rejected before playback.
 
-Use **LOAD THE CRATES** before taking the show offline. The effects-only movie and manifest live in OPFS, separate from songs and the service-worker application shell. The preview can prepare from OPFS and play after an offline reload; the opener continues to come from the jukebox player and its saved crate. No music is embedded in the deployment movie.
+Use **LOAD THE CRATES** before going offline. The film and manifest live in OPFS, separate from saved songs and the service-worker shell. The song continues to play from the jukebox engine and its saved crate. The tests use a private ephemeral Chrome profile, not the operator's real profile.
 
-Contact samples frame 948 at 31.6 seconds. The separate opener starts at 31.393 seconds, so its first hit at 0.207 seconds coincides with contact. Registration starts at frame 1028. The final visual sample is frame 1049 at 34.9666667 seconds; the encoded endpoint is 35 seconds. Cue lookahead, callback tolerance, and clock-drift reporting use the selected film's frame rate. Native30 starts the song engine ahead of the target by its measured AudioContext output latency plus 1.5 native frames (50 ms); the target is the audible cue on the film clock. The separately named NATIVE30_COLD_START_ALLOWANCE_FRAMES is a measured workstation cold-start calibration for block-level HTMLMediaElement startup variation; it is not a portable sync guarantee or universal venue calibration. Diagnostics retain the raw media-clock offset, measured sink latency and their sum, so a buffered audio clock cannot masquerade as audible synchronisation. The existing 17 ms empirical calibration remains only for legacy60 overlap previews. Projector/PA calibration still requires venue hardware.
+Contact is frame 948 at 31.6 seconds. Audible song zero targets 31.393 seconds, placing its measured first hit at 0.207 seconds on contact. Registration begins at frame 1028. Frame 1049 samples 34.9666667 seconds; the encoded endpoint is 35 seconds. The approved record position, radius, direction, 45 rpm spin and final 91.055737° label phase remain locked.
 
-Run the actual application integration check from the experimental worktree:
+The timing investigation found two distinct effects:
+
+- The native scheduler anchored an RVFC frame timestamp to callback invocation instead of `expectedDisplayTime`. In ten baseline runs this advanced the gate by 10.767–14.067 ms. The fix uses an absolute presentation deadline. RVFC is authoritative when available; `timeupdate` is the fallback. All captured baseline cues happened to use RVFC, so the possible event-source race is not claimed as the cause of those particular failures.
+- `HTMLAudio.currentTime` advanced mainly in 1,024-sample / 21.333 ms blocks at 48 kHz. A median over the entire musical overlap can also incorporate a later picture hold and mislabel that as a first-hit error. Candidate run 03 contains such a 33.3 ms presentation-epoch shift after contact. Both older estimators and their unchanged gates are retained; contact PCM is measured separately.
+
+The existing **50 ms** native startup lead was not retuned. It is now named in milliseconds rather than as 1.5 video frames. Ten baseline PCM trials measured play-call → audible source zero of 79.87 / 95.42 / 106.99 ms (minimum / median / maximum). Beyond the reported 48 ms sink latency, the extra was 31.87 / 47.42 / 58.99 ms. This includes the reported 21.333 ms base latency, measured 6 ms compressor path, and a remaining 4.54–31.66 ms media/startup term that the data cannot separate into decoder and queue components. Gate bookkeeping added 2.5–10.1 ms. The 50 ms value is an explicit workstation calibration with measured cause and limits, not a universal browser guarantee. The legacy60 +17 ms policy is unchanged; `player.js` and `audio.js` were not modified.
+
+The test-only AudioWorklet records one second from the music bus and limiter output into a silent monitor branch. Normalised correlation against the decoded opener locates the same source samples in both streams; post-limiter matching includes the compressor delay automatically. The matched context sample maps to performance time through the nearest `getOutputTimestamp()` pair, then compares with RVFC frame 948. Sink/base latency is not added again. This follows the [Web Audio output timestamp mapping](https://www.w3.org/TR/webaudio-1.0/#dom-audiocontext-getoutputtimestamp) and [RVFC presentation timestamp semantics](https://wicg.github.io/video-rvfc/).
+
+The two non-paired batches used ten fresh offline reloads each, the same actual 35-second proxy and unchanged 50 ms lead. Values below are minimum / median / maximum, in milliseconds:
+
+| Measurement | Baseline | Fixed presentation anchor |
+| --- | ---: | ---: |
+| Existing media-clock estimate | −40.536 / −19.035 / +2.280 | −19.701 / −19.069 / +2.535 |
+| Existing presented-frame estimate | −44.872 / −23.603 / −8.872 | −31.666 / −10.436 / −3.539 |
+| Matched post-limiter PCM at contact | −29.330 / −7.9295 / +6.892 | **−10.548 / +4.997 / +12.053** |
+| Gate error against its absolute deadline | −14.067 / −12.717 / −10.767 | −0.267 / +1.033 / +1.933 |
+
+One baseline run failed both older estimators; its matched PCM contact error was −29.330 ms. The fixed candidate passed all old gates in all ten runs, without widening tolerances. All twenty runs recorded 1,050 unique samples 0..1049, zero decoder drops and one independently playing song. Every candidate presented all 22 registration samples through frame 1049; maximum registration gap was 56.4 ms and maximum exposed-record phase error was 5.265°. Each offline run also exercised pause/resume controls. The late decode-failure test waited for an actual RVFC preparation frame, proved that the gate was still closed, then restored one opener, the live cabinet and controls in **4.215 seconds**.
+
+PCM acceptance is conclusive only with ten unique captures, finite local output-timestamp mappings, pre/post correlations at least 0.95, and a six millisecond limiter-path match within two samples. Timing must then meet the unchanged ±33.333 ms target. Missing/poor captures or an invalid frame rate fail with a nonzero CLI exit. Both real batches are conclusive; candidate post-limiter correlations range from 0.99666 to 0.99784. An independent FFT analysis using a different reference window recovered every PCM timing sample exactly. A negative nine-run/missing-capture fixture is retained and correctly fails.
+
+Evidence is under `build/awakening-35-development/`:
+
+- `timing-baseline-offline/`: ten original-policy reloads, raw clocks, cue sources, play events, Float32 PCM, `pcm-audio-timing.json` and `latency-decomposition.json`.
+- `timing-candidate-offline/`: ten corrected-policy reloads and PCM; `integration-proof.json` has no old-gate failures, and `pcm-audio-timing.json` has `conclusive: true` / `passed: true`.
+- `timing-candidate-offline/independent-timing-distribution.json` and `.md`: independent FFT verification, raw checksums and the later-hold analysis.
+- `timing-candidate-offline/frame-control-summary.json`: all native samples, decoder drops, registration and phase.
+- `timing-candidate-offline/source-sha256.json` and `runtime-source-unchanged.json`: runtime source captured and verified unchanged during the batch. Analysis-only acceptance hardening occurred afterward and its current hash is embedded in the analysis report.
+- `timing-baseline-candidate-comparison.json`: full distributions, preserved old-gate failures and final source hashes.
+- `timing-candidate-decode-fallback/integration-proof.json`: actual presented-frame preparation, closed → opened gate, single song and released controls.
+- `timing-analysis-negative/`: intentionally invalid capture batch; it is not acceptance evidence.
+
+Reproduce the ten-run check with the existing actual proxy, using a fresh output directory:
 
 ```sh
-node scripts/check-extended-preview.mjs --out build/awakening-35-development/integration-repeat-synthetic
-```
-
-It creates a clearly labelled synthetic 1920×1080/30 H.264/AAC effects-only proxy, imports it through the real operator input, and exercises four viewport handoffs. It checks registration, spin phase, song clock, independently playing effects and one song, presentation gaps, released transport/fader controls, OPFS preparation after an offline reload, normal coin playback with the opt-in URL, and live fallback after removing the test OPFS film. It writes JSON samples (including native frame callbacks, decoder drops, presentation gaps and console/page errors), ffprobe information and screenshots in the requested `--out` directory.
-
-This check uses a private ephemeral browser profile and HTTP server. It never writes the user's real Chrome profile or hosted film directory. Its synthetic image and test tone establish technical integration only. They do not approve the final film's image quality, sonic mix, full-film decode performance, projector sync, or event hardware.
-
-The native cabinet renderer uses `frame / 30` seconds directly, with the approved browser composition fixed at 1920×1080. Smaller outputs use the same viewport and downscaled device pixels. It validates existing frame chunks with the shared production PNG validator before resume; incomplete frames are rerendered atomically.
-
-```sh
-node cinematic/extended/render_cabinet.mjs --start 0 --end 92 \
-  --width 1920 --height 1080 --output-dir build/awakening-35-development/cabinet-native30 --resume
-```
-
-To exercise an assembled development proxy instead of the synthetic slate:
-
-```sh
-node scripts/check-extended-preview.mjs \
+node scripts/check-extended-preview.mjs --offline-only --offline-runs 10 --viewports 1920x1080 \
   --movie build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
   --manifest build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
-  --out build/awakening-35-development/integration-assembled-repeat
+  --out build/awakening-35-development/timing-offline-repeat
+node scripts/analyse-film-audio-timing.mjs build/awakening-35-development/timing-offline-repeat
 ```
 
-Native browser render sample times and scene state are reproducible. Repeated GPU PNG captures can differ by up to three 8-bit colour levels in the measured native cabinet frames (no camera or coin displacement); the independent decoded-pixel comparison is recorded in `build/awakening-35-production/v1/assets/native-pixel-verification.json`. This is distinct from deterministic animation timing and checksum validation of the files actually encoded.
+The final finishing movie was checked separately at 1920×1080, 1440×900, 1280×800 and 1024×768 online, then through ten fresh 1920×1080 offline reloads. The new proxy is `build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4`; its SHA-256 is `11eee99f6b38a45276ce60152d578597eeb0f536ae9b81152f3745f72c735f61`, matching its manifest. Runtime, checker, helper and test hashes match the earlier frozen candidate and were unchanged before/after the checks.
 
-The separate bounded fault-injection case pauses/seeks the test film to the prepared-song window and dispatches a decode failure **before the song gate opens**. It checks that the gate is released, one opener plays, the failed film stops, the live cabinet becomes visible, and transport controls work within eight seconds. The diagnostic seek does not establish normal audiovisual sync.
+| Final movie measurement | Minimum / median / maximum (ms) | Result |
+| --- | ---: | --- |
+| Offline existing media-clock estimate | −40.650 / +1.9505 / +23.669 | 2 of 10 outside ±33.333 ms |
+| Offline existing presented-frame estimate | −52.984 / −4.936 / +8.333 | 1 of 10 outside ±33.333 ms |
+| Offline matched post-limiter PCM at contact | **−13.738 / +10.3485 / +22.264** | **10 of 10 within ±33.333 ms** |
+| Offline gate error against absolute deadline | −0.367 / +1.233 / +1.733 | Absolute anchor retained |
+
+The online media / presented estimates were −19.286 / −8.873 ms at 1920, +18.105 / +14.873 ms at 1440, +2.233 / +0.333 ms at 1280 and +23.330 / +19.000 ms at 1024; all passed. Offline run 03 failed the old media / presented gates at −40.650 / −52.984 ms, while its matched contact PCM was −10.345 ms. Run 07 failed the media gate at −40.432 ms; its presented estimate was −27.667 ms and contact PCM was −13.738 ms. These remain failed coarse-estimator assertions. The PCM result measures the first hit independently; it does not rewrite the strict checker exit status or establish external speaker/projector timing.
+
+The ten-capture PCM analysis is conclusive and passes with no quality issues: correlations range from 0.996566 to 0.998216, every pre/post match has the measured 288-sample / 6 ms limiter delay, and all timestamp mappings meet the existing locality criterion. Across all fourteen normal runs, every registration interval presented all 22 samples through frame 1049, maximum gap was 57.7 ms, and maximum exposed-record phase error was 3.186°. Record centre/radius errors were zero, each run had one playing song plus independent film effects, there were zero uncovered samples and zero decoder-reported drops, and pause/resume worked after every handoff. The online runs also exercised the music fader. Missing-film offline startup used the live cut and saved opener with released controls. The actual-RVFC before-gate fault proved a closed gate, then recovered one song, the visible live cabinet and controls in **4.197 seconds**.
+
+Whole-film diagnostics remain distinct: eleven runs recorded 1,050 unique frame timestamps and three recorded 1,049; all fourteen showed an initial frame 0→1 callback interval of 104.3–145.6 ms. These initial callback holds were outside the registration interval. Page exceptions were zero. Reports retain 15 HTTP 404 messages per initial browser context and offline resource failures (3,988 `ERR_FAILED`, 770 `ERR_INTERNET_DISCONNECTED`) rather than claiming an empty console. Film import, saved opener, offline shell and tested fallback still completed.
+
+Final evidence is under `build/awakening-35-finishing/`:
+
+- `integration-finishing-preview-v1/`: four online cases, PCM/raw clocks, revealed live PWA PNGs, `integration-proof.json`, source hashes before/after; checker exit 0.
+- `integration-finishing-offline-v1/`: ten offline coin workflows and missing-asset fallback, raw PCM/clocks, `pcm-audio-timing.json`; strict checker exit 1 for the three assertions above, conclusive PCM analyser exit 0.
+- `integration-finishing-decode-fallback-v1/`: bounded prepared-song fault and revealed fallback PNG; exit 0.
+- `integration-finishing-summary.json`: fourteen rows, original failures, diagnostics, PCM distributions and source-hash equality. `allLandingChecksPass` is true; `allStrictGatesPass` is false.
+
+Reproduce with three separate fresh output directories so the ten-capture analyser sees exactly ten offline rows:
 
 ```sh
+node scripts/check-extended-preview.mjs --skip-offline \
+  --movie MOVIE.mp4 --manifest MOVIE.mp4.json --out FRESH_ONLINE_DIRECTORY
+node scripts/check-extended-preview.mjs --offline-only --offline-runs 10 --viewports 1920x1080 \
+  --movie MOVIE.mp4 --manifest MOVIE.mp4.json --out FRESH_OFFLINE_DIRECTORY
+node scripts/analyse-film-audio-timing.mjs FRESH_OFFLINE_DIRECTORY MOVIE.mp4.json
 node scripts/check-extended-preview.mjs --fault-only --viewports 1920x1080 \
-  --movie build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
-  --manifest build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
-  --out build/awakening-35-development/integration-decode-fallback-repeat
+  --movie MOVIE.mp4 --manifest MOVIE.mp4.json --out FRESH_FAULT_DIRECTORY
 ```
 
-The integration gate covers the **entire registration-to-final window**: presented-frame gaps must stay within two native frame periods plus 1 ms measurement tolerance; no media-time step may skip more than one native sample; and frame 1049 must actually be presented. The live background must be ready and registration audible drift must stay within two native frame periods. During the first 150 ms of the exposed-record crossfade, at least two phase observations must exist and remain within six degrees of the final-frame phase advanced at 45 rpm. Whole-film decoder drops and maximum callback gaps remain separate diagnostics.
+The frozen source passed **225 Node tests** (`build/awakening-35-development/timing-candidate-offline/node-tests-final.log`), including fixed hosted60 validation, legacy overlap and native presentation-deadline tests. `player.js` and `audio.js` remain unchanged. No tolerance, lead or runtime source was adjusted for the final asset. The repeated PCM evidence meets the first-hit target on this workstation, while the retained coarse-estimator failures qualify combined acceptance. Final-resolution audiovisual inspection and venue projector/PA calibration remain outstanding. API output/presentation timestamps are browser estimates, not an external microphone/projector measurement.
 
-`PLAYWRIGHT_CORE_PATH` explicitly selects the Playwright module file and takes precedence over locally installed tools. `CHROME_PATH` explicitly selects the browser executable. Both scripts follow the same override semantics as production preflight.
+The entire registration-to-end gate remains strict: gaps no longer than two native periods plus 1 ms; no media step skipping more than one sample; actual presentation of frame 1049; live background ready; registration audible drift within two periods; and at least two exposed-phase observations in the first 150 ms, each below six degrees. Whole-film callback holds remain separate diagnostics rather than being hidden by a smooth contact window.
 
-The actual `final-preview-v1` development movie was tested with the frozen **1.5-frame / 50 ms workstation calibration**. It contains all 1,050 newly rendered native30 preview frames, spatially upscaled from the 480-pixel render to a 1920×1080 H.264/AAC importable proxy; it is explicitly `qualityTier: development-proxy`, not a final-resolution cinematic render. The deployed audio track is effects-only.
+Earlier synthetic and actual-proxy reports remain in `integration*`, including the original actual offline −40.564 ms media / −31.538 ms presented failure. They remain historical failures, not relabelled passes. The corrected-anchor candidate and final finishing-movie reports above are the current timing evidence; the latter preserves the remaining coarse-estimator failures alongside passing contact PCM.
 
-| Actual movie case | Media-clock audible estimate | Presented-frame audible estimate | Dual-clock gate |
-| --- | ---: | ---: | --- |
-| 1920×1080 | −19.21 ms | −14.33 ms | Pass |
-| Offline 1920×1080 coin opt-in | **−40.56 ms** | −31.54 ms | **Fail: media estimate** |
-| 1440×900 | −19.18 ms | −10.33 ms | Pass |
-| 1280×800 | +1.97 ms | −14.33 ms | Pass |
-| 1024×768 | +1.96 ms | −15.79 ms | Pass |
+The native cabinet renderer samples `frame / 30` directly at the approved 1920×1080 composition. Smaller outputs preserve that viewport and scale device pixels. Resume validates all PNG chunk checksums and the end marker, rerendering incomplete frames atomically. Repeated GPU captures showed up to three 8-bit colour levels of pixel variance without camera/coin displacement (`build/awakening-35-production/v1/assets/native-pixel-verification.json`).
 
-All five film runs recorded **1,050 unique native samples 0..1049**, zero decoder drops and no uncovered samples. Every case presented all 22 registration samples 1028..1049; maximum late-window gaps were 33.4–54.7 ms and exposed phase error stayed below 4.73°. Whole-film maximum callback gaps of 89.5–112.5 ms remain recorded separately. The media estimate retains the RAF film/song clock comparison; the independent presented estimate interpolates the song clock at each RVFC expected-display timestamp. Neither estimate measures projector or PA latency.
+```sh
+node cinematic/extended/render_cabinet.mjs --start 0 --end 92 --width 1920 --height 1080 \
+  --output-dir build/awakening-35-development/cabinet-native30 --resume
+```
 
-Actual-movie evidence is under `build/awakening-35-development/`:
-
-- `integration-final-preview-v1/integration-proof.json`: complete four-viewport, offline coin and missing-film fallback results, including the preserved offline timing failure.
-- `integration-final-preview-v1/final-verification-summary.json`: both clock estimates, strict registration/phase checks, unique native-frame counts and decoder drops; `allStrictGatesPass` is **false**.
-- `integration-final-preview-v1/source-sha256.json`: app, validator, checker, analysis helper and cue hashes; verified unchanged throughout the run and matching the final synthetic run.
-- `integration-final-preview-v1/*-samples.json` and `*-revealed.png`: raw clocks, presentation callbacks and live-UI screenshots. The 1920×1080 end-of-film screenshot is `integration-final-preview-v1/1920x1080-revealed.png`.
-- `integration-final-decode-fallback-v1/integration-proof.json`: the injected failure began with the song gate closed, opened that gate, stopped the failed film, revealed the live cabinet and restored one opener plus transport controls in **4.177 seconds**.
-
-The missing-film case exercised the real coin → live cut → opener path and verified released transport controls. The decode-fault case separately covers failure after preparation but before the scheduled song gate. No executable source or acceptance gates changed after the rendered source was frozen.
-
-The earlier frozen synthetic pass remains in `integration-final-synthetic/`: both clock gates passed in all five runs, all 1,050 unique samples were observed, and decoder drops were zero. Its separate fault recovery passed in 4.166 seconds (`integration-final-decode-fallback/`). These synthetic results do not override the later actual-movie offline failure.
-
-Older failed captures remain in `integration/` (333/500 ms registration stalls and approximately 45 ms start errors) and `integration-current-synthetic/` (successful prewarmed registration but approximately 44 ms start errors). Raw reports, the registration replay audit and estimator-bias audit are preserved. The final checks retain strict registration/phase requirements and both ±33.333 ms clock gates; no earlier failure has been relabelled as a pass.
-
-The source and movie can be reviewed and the qualified render pipeline handed off, but the actual-movie dual-clock acceptance is incomplete. The 50 ms cold-start allowance is explicit workstation calibration rather than a portable guarantee. Final-resolution audiovisual inspection, reliable cold-start calibration and event projector/PA acceptance remain outstanding before promotion. No further fixed-offset tuning was applied to make this individual offline run pass.
+`PLAYWRIGHT_CORE_PATH` explicitly selects the module file and takes precedence over local tools; `CHROME_PATH` selects the executable. All checks use isolated local profiles and output directories. The existing test movie is a spatially upscaled 480-pixel native30 development render, not final-quality 1080p approval. No full production movie render, promotion or deployment is implied.

@@ -132,14 +132,6 @@ def main():
         c1_errors=remap_original_c1(scene)
         (args.output_dir/'c1-source-equivalence.json').write_text(json.dumps(c1_errors,indent=2))
         state = build_vinyl(scene, G); update = vinyl_frame
-        if args.validate_only:
-            subframes=[]
-            for n in range((813-655)*4+1):
-                t=655+n/4
-                scene.frame_set(math.floor(t),subframe=t%1)
-                row=vinyl_frame(scene,t,state)
-                subframes.append(dict(frame=t,lateral=row['groove_lateral_offset'],floor_clearance=row['groove_floor_clearance']))
-            (args.output_dir/'micro-subframe-clearance.json').write_text(json.dumps(subframes,indent=2))
         scene.cycles.volume_step_rate = 4.0
     scene.render.fps = FPS
     scene.render.engine = 'CYCLES' if args.engine == 'cycles' else 'BLENDER_EEVEE'
@@ -156,6 +148,20 @@ def main():
     scene.render.image_settings.file_format = 'PNG'
     scene.frame_start = 0; scene.frame_end = FRAME_COUNT-1
     scene.render.film_transparent = False
+    if args.shot=='vinyl' and args.validate_only:
+        subframes=[]
+        for n in range((813-655)*4+1):
+            t=655+n/4
+            scene.frame_set(math.floor(t),subframe=t%1)
+            row=vinyl_frame(scene,t,state)
+            subframes.append(dict(frame=t,lateral=row['groove_lateral_offset'],floor_clearance=row['groove_floor_clearance']))
+        (args.output_dir/'micro-subframe-clearance.json').write_text(json.dumps(subframes,indent=2))
+        exit_samples=[]
+        for n in range((915-813)*4):
+            t=813+n/4
+            scene.frame_set(math.floor(t),subframe=t%1)
+            exit_samples.append(dict(frame=t,**vinyl_frame(scene,t,state)))
+        (args.output_dir/'exit-subframe-proof.json').write_text(json.dumps(exit_samples,indent=2))
     info = dict(validate_only=args.validate_only,shot=args.shot, fps=FPS, width=args.width, height=args.height,
                 samples=args.samples, engine=args.engine, manifest_sha256=manifest_sha256(),
                 shutter_frames=.5, exposure_seconds=.5/FPS, setup_seconds=time.perf_counter()-setup,

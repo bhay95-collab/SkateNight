@@ -29,7 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { createAwakeningFilm, EXTENDED_PREVIEW_ID, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord } from './awakening-film.js';
+import { createAwakeningFilm, EXTENDED_PREVIEW_ID, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord, songCuePresentationTime } from './awakening-film.js';
 import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
@@ -82,7 +82,10 @@ const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venu
 const OVERLAP_SONG_OFFSET_MS = 17;
 // Measured cold HTMLMediaElement startup on this workstation. This remains a
 // venue calibration, separate from the audio sink's reported output latency.
-const NATIVE30_COLD_START_ALLOWANCE_FRAMES = 1.5;
+// Ten PCM/output-timestamp trials measured 31.87..58.99 ms (median 47.42 ms)
+// beyond the reported sink latency. Keep the existing 50 ms value, in ms:
+// this combines render buffering/startup and is not 30 fps quantisation.
+const NATIVE30_MEDIA_STARTUP_LEAD_MS = 50;
 const PREPARE_ON_LAUNCH = (() => {
   try { return new URLSearchParams(location.search).has('prepare'); } catch { return false; }
 })();
@@ -1114,7 +1117,7 @@ async function main() {
         video.style.webkitMaskImage = 'linear-gradient(#000, #000)';
       }
     };
-    const startSong = (mediaTime) => {
+    const startSong = (mediaTime, anchor) => {
       stats.songCueMediaTime = mediaTime;
       // Presented sample time anchors the picture; currentTime can lag the
       // compositor by an audio buffer, especially immediately after a seek.
@@ -1123,9 +1126,18 @@ async function main() {
       // Centre the measured cold-start audio-block variation separately from
       // sink latency; the legacy60 preview keeps its original calibration.
       stats.songOffsetMs = plan.fps === 30
-        ? -(getEngine()?.ctx.outputLatency || 0) * 1000 - frameSec * 1000 * NATIVE30_COLD_START_ALLOWANCE_FRAMES
+        ? -(getEngine()?.ctx.outputLatency || 0) * 1000 - NATIVE30_MEDIA_STARTUP_LEAD_MS
         : OVERLAP_SONG_OFFSET_MS;
-      songTimer = setTimeout(openGate, Math.max(0, stats.songLeadMs + stats.songOffsetMs));
+      if (plan.fps === 30) {
+        const now = performance.now();
+        stats.songCueAnchor = anchor;
+        stats.songPresentationTargetMs = songCuePresentationTime(plan.songStartSec, mediaTime, anchor, now);
+        stats.songGateDeadlineMs = stats.songPresentationTargetMs + stats.songOffsetMs;
+        stats.songLeadMs = Math.max(0, stats.songPresentationTargetMs - now);
+        songTimer = setTimeout(openGate, Math.max(0, stats.songGateDeadlineMs - now));
+      } else {
+        songTimer = setTimeout(openGate, Math.max(0, stats.songLeadMs + stats.songOffsetMs));
+      }
       syncId = requestAnimationFrame(follow);
     };
     const register = (mediaTime) => {

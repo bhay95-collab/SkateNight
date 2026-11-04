@@ -11,6 +11,9 @@ import { validateAwakeningFilmManifest } from '../awakening-film.js';
 import { registrationContinuity, songClockAlignment } from './film-continuity.mjs';
 const args = process.argv.slice(2);
 const opt = (name, fallback) => args.includes(name) ? args[args.indexOf(name) + 1] : fallback;
+const offlineRuns = Number(opt('--offline-runs', '1'));
+if (!Number.isInteger(offlineRuns) || offlineRuns < 1) throw new Error('--offline-runs must be a positive integer.');
+const offlineOnly = args.includes('--offline-only');
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const out = resolve(opt('--out', 'build/awakening-35-development/integration'));
 await mkdir(out, { recursive: true });
@@ -87,18 +90,33 @@ const results = [], failures = [];
 const assert = (ok, message) => {if (!ok) failures.push(message);};
 async function ready(page) {await page.waitForFunction(() => window.__skateNight && !document.getElementById('btn-film-import').disabled,null,{timeout:60000});}
 async function play(page, label, coin = false) {
-  await page.evaluate(({coin, registrationAt}) => {
-    window.__samples=[]; window.__frames=[]; window.__stopSampling=false;
+  await page.evaluate(async ({coin, registrationAt, songAt}) => {
+    const { getEngine } = await import('./audio.js');
+    window.__getAudioEngine = getEngine;
+    window.__samples=[]; window.__frames=[]; window.__mediaEvents=[]; window.__stopSampling=false;
     const video=document.getElementById('production-preview-video');
-    const onFrame=(now,meta) => {window.__frames.push([meta.expectedDisplayTime ?? now,meta.mediaTime]); if(!window.__stopSampling) video.requestVideoFrameCallback(onFrame);};
+    const onFrame=(now,meta) => {window.__frames.push([meta.expectedDisplayTime ?? now,meta.mediaTime,{callbackNow:now,observedAt:performance.now(),presentationTime:meta.presentationTime,presentedFrames:meta.presentedFrames}]); if(!window.__stopSampling) video.requestVideoFrameCallback(onFrame);};
     video.requestVideoFrameCallback(onFrame);
     let spin=null;
+    const pcm = new Float32Array(1024);
     const tick=(wall) => {
       const p=window.__skateNight.player, v=video;
       const active=[...window.__media].filter((m) => !m.paused && !m.muted && !m.ended);
       if(!spin && v.currentTime>=registrationAt-1/30) spin=document.getElementById('record').getAnimations().find((a)=>a.animationName==='record-spin');
       const opacity=Number(getComputedStyle(v).opacity);
-      window.__samples.push({wall,film:v.currentTime,playing:!v.paused,song:p?.currentTime,track:p?.currentTrackId,
+      const engine = getEngine();
+      let audioClock = null;
+      if (engine && v.currentTime >= songAt - 1) {
+        const timestamp = engine.ctx.getOutputTimestamp?.();
+        engine.analyser.getFloatTimeDomainData(pcm);
+        let energy = 0, peak = 0;
+        for (const value of pcm) { energy += value * value; peak = Math.max(peak, Math.abs(value)); }
+        audioClock = { contextTime: engine.ctx.currentTime, baseLatency: engine.ctx.baseLatency,
+          outputLatency: engine.ctx.outputLatency, sampleRate: engine.ctx.sampleRate,
+          outputContextTime: timestamp?.contextTime, outputPerformanceTime: timestamp?.performanceTime,
+          rms: Math.sqrt(energy / pcm.length), peak };
+      }
+      window.__samples.push({wall,audioClock,film:v.currentTime,playing:!v.paused,song:p?.currentTime,track:p?.currentTrackId,
         filmOpacity:opacity,spinMs:spin?.currentTime ?? null,
         activeAudio:active.filter((m) => m.tagName==='AUDIO').length, activeVideo:active.filter((m) => m.tagName==='VIDEO').length,
         covered:v.classList.contains('is-playing') && opacity>0,
@@ -107,7 +125,7 @@ async function play(page, label, coin = false) {
     }; requestAnimationFrame(tick);
     document.getElementById(coin ? 'attract' : 'btn-film-preview').click();
     document.getElementById('cabinet-tools').open=false;
-  }, {coin, registrationAt:manifest.cues.registrationStartFrame/manifest.fps});
+  }, {coin, registrationAt:manifest.cues.registrationStartFrame/manifest.fps, songAt:manifest.handoff.songStartSec});
   await page.waitForFunction(() => document.getElementById('production-preview-video').currentTime >= 34.6,null,{timeout:70000});
   // Screenshots stall Chrome's compositor; collect timing before any capture.
   await page.waitForFunction(() => window.__overlapStats?.revealMs,null,{timeout:20000});
@@ -116,9 +134,21 @@ async function play(page, label, coin = false) {
     window.__stopSampling=true;const box=document.getElementById('record-mover').getBoundingClientRect();
     const spin=document.getElementById('record').getAnimations().find((a)=>a.animationName==='record-spin');
     return {stats:window.__overlapStats,filmStats:window.__awakeningFilmStats,samples:window.__samples,frames:window.__frames,
+      cueEvents:window.__awakeningCueEvents,mediaEvents:window.__mediaEvents,
+      pcmCapture:window.__pcmCapture ? { ...window.__pcmCapture,
+        music:Array.from(window.__pcmCapture.music), output:Array.from(window.__pcmCapture.output) } : null,
       box:{cx:box.x+box.width/2,cy:box.y+box.height/2,r:box.width/2},spinMs:spin?.currentTime,now:performance.now(),
       state:window.__skateNight.state(),attractHidden:document.getElementById('attract').hidden};
   });
+  if (result.pcmCapture) {
+    for (const channel of ['music', 'output']) {
+      const name = `${label}-${channel}.f32le`;
+      const values = new Float32Array(result.pcmCapture[channel]);
+      await writeFile(resolve(out, name), Buffer.from(values.buffer));
+      delete result.pcmCapture[channel];
+      result.pcmCapture[`${channel}File`] = name;
+    }
+  }
   await page.screenshot({path:resolve(out,`${label}-revealed.png`)});
   const locked=result.samples.filter((s)=>s.playing && s.track===cue.opener.track_id && s.song>0.15);
   const alignment=songClockAlignment(result,manifest);
@@ -166,15 +196,20 @@ async function faultBeforeGate(page) {
   await page.evaluate(()=>document.getElementById('btn-film-preview').click());
   await page.waitForFunction(()=>!document.getElementById('production-preview-video').paused);
   const injectedAt=Date.now();
-  const before=await page.evaluate(()=>{
+  await page.evaluate(()=>{
     const video=document.getElementById('production-preview-video');
     // Inject the failure after prepareSong, but before the song-start cue. This
     // is a fault-path test; seeking here is not evidence of normal sync.
     video.pause();video.currentTime=30.7;
-    video.dispatchEvent(new Event('timeupdate'));
+  });
+  await page.waitForFunction(() => window.__awakeningCueEvents?.some((event) => Math.abs(event.at - (31.393 - 0.75)) < 0.001),
+    null, { timeout: 5000 });
+  const before=await page.evaluate(()=>{
+    const video=document.getElementById('production-preview-video');
+    const preparation = window.__awakeningCueEvents.find((event) => Math.abs(event.at - (31.393 - 0.75)) < 0.001);
     const gateWasClosed=window.__overlapStats.songGateOpenedMs==null;
     video.dispatchEvent(new Event('error'));
-    return {gateWasClosed};
+    return {gateWasClosed, preparationSource: preparation.source, hasFrameCallback: typeof video.requestVideoFrameCallback === 'function'};
   });
   await page.waitForFunction(()=>window.__overlapStats?.revealMs && document.getElementById('attract').hidden
     && window.__skateNight.state().phase==='playing',null,{timeout:8000});
@@ -186,6 +221,7 @@ async function faultBeforeGate(page) {
   await page.evaluate(()=>document.getElementById('btn-play').click());
   await page.waitForFunction(()=>window.__skateNight.state().phase==='paused');
   assert(before.gateWasClosed && result.stats.playbackFailed && result.stats.songGateOpenedMs!=null,'Before-gate decode failure did not open its prepared song gate');
+  assert(before.preparationSource === (before.hasFrameCallback ? 'rvfc' : 'timeupdate'), 'Decode fault did not prepare on the authoritative cue clock');
   assert(result.activeSongs===1 && result.filmStopped && result.bodyRevealed && result.controlsReleased,'Decode fallback did not restore one song and live controls');
   await page.screenshot({path:resolve(out,'before-gate-decode-fallback.png')});
   return {label:'before-gate-decode-fallback',...before,...result,finishedWithinMs:Date.now()-injectedAt};
@@ -197,7 +233,80 @@ try {
     const [width,height]=viewports[i]; const context=await browser.newContext({viewport:{width,height}});
     await context.addInitScript(() => {
       sessionStorage.setItem('sn_booted','1'); window.__media=new Set();const play=HTMLMediaElement.prototype.play;
-      HTMLMediaElement.prototype.play=function(...args){window.__media.add(this);return play.apply(this,args);};
+      const Context = window.AudioContext || window.webkitAudioContext;
+      const createCompressor = Context.prototype.createDynamicsCompressor;
+      Context.prototype.createDynamicsCompressor = function(...args) {
+        const limiter = createCompressor.apply(this, args);
+        if (!window.__pcmProbePromise && this.audioWorklet) {
+          const context = this;
+          const code = `class FilmTimingProbe extends AudioWorkletProcessor {
+            constructor() {
+              super();
+              this.capture = null;
+              this.port.onmessage = () => { this.capture = { position: 0, startFrame: null,
+                music: new Float32Array(sampleRate), output: new Float32Array(sampleRate) }; };
+            }
+            process(inputs) {
+              const capture = this.capture;
+              if (!capture) return true;
+              if (capture.startFrame === null) capture.startFrame = currentFrame;
+              const count = Math.min(128, capture.music.length - capture.position);
+              for (let input = 0; input < 2; input++) {
+                const channels = inputs[input];
+                const target = input === 0 ? capture.music : capture.output;
+                for (let i = 0; i < count; i++) {
+                  let value = 0;
+                  for (const channel of channels) value += channel[i] || 0;
+                  target[capture.position + i] = channels.length ? value / channels.length : 0;
+                }
+              }
+              capture.position += count;
+              if (capture.position === capture.music.length) {
+                this.port.postMessage({ contextStartSec: capture.startFrame / sampleRate, sampleRate,
+                  music: capture.music.buffer, output: capture.output.buffer }, [capture.music.buffer, capture.output.buffer]);
+                this.capture = null;
+              }
+              return true;
+            }
+          }
+          registerProcessor('film-timing-probe', FilmTimingProbe);`;
+          const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+          window.__pcmProbePromise = context.audioWorklet.addModule(url).then(() => {
+            const engine = window.__getAudioEngine();
+            const probe = new AudioWorkletNode(context, 'film-timing-probe', { numberOfInputs: 2, numberOfOutputs: 1 });
+            engine.musicBus.connect(probe, 0, 0);
+            limiter.connect(probe, 0, 1);
+            const silent = context.createGain();
+            silent.gain.value = 0;
+            probe.connect(silent).connect(context.destination);
+            probe.port.onmessage = ({ data }) => { window.__pcmCapture = { ...data,
+              music: new Float32Array(data.music), output: new Float32Array(data.output) }; };
+            window.__pcmProbe = probe;
+          }).catch((error) => { window.__pcmProbeError = error.message; }).finally(() => URL.revokeObjectURL(url));
+        }
+        return limiter;
+      };
+      const observed = new WeakSet();
+      HTMLMediaElement.prototype.play = function(...args) {
+        window.__media.add(this);
+        const record = (event) => {
+          const context = window.__getAudioEngine?.()?.ctx;
+          const timestamp = context?.getOutputTimestamp?.();
+          window.__mediaEvents?.push({ event, wall: performance.now(),
+            tag: this.tagName, id: this.id, currentTime: this.currentTime, readyState: this.readyState, paused: this.paused,
+            contextTime: context?.currentTime, baseLatency: context?.baseLatency, outputLatency: context?.outputLatency,
+            outputContextTime: timestamp?.contextTime, outputPerformanceTime: timestamp?.performanceTime });
+        };
+        if (!observed.has(this)) {
+          observed.add(this);
+          for (const event of ['playing', 'pause', 'waiting', 'stalled', 'seeking', 'seeked']) this.addEventListener(event, () => record(event));
+        }
+        record('play-called');
+        if (this.tagName === 'AUDIO' && window.__pcmProbe) { window.__pcmCapture = null; window.__pcmProbe.port.postMessage({ arm: true }); }
+        const result = play.apply(this, args);
+        result.then(() => record('play-resolved'), () => record('play-rejected'));
+        return result;
+      };
     });
     const page=await context.newPage(), errors=[], consoleErrors=[];page.on('pageerror',(e)=>errors.push(e.message));
     page.on('console',(message)=>{if(message.type()==='error') consoleErrors.push(message.text());});
@@ -217,6 +326,7 @@ try {
       await writeFile(resolve(out,'integration-proof.json'),JSON.stringify({generatedSyntheticProxy:!suppliedMovie,assetQuality:manifest.qualityTier || (suppliedMovie ? 'external-preview' : 'synthetic-technical-proxy'),cinematicApproval:false,movie:proxy,manifest:manifestPath,probe,results,failures},null,2)+'\n');
       await context.close();break;
     }
+    if (!offlineOnly) {
     results.push(await play(page,`${width}x${height}`));
     // Normal controls must be released after the film, including the actual music bus.
     await page.evaluate(()=>document.getElementById('btn-play').click());
@@ -228,12 +338,29 @@ try {
       const {getEngine}=await import('./audio.js');return {musicLevel:getEngine().musicLevel,inert:document.getElementById('btn-play').closest('[inert]')!==null};
     });
     assert(controls.musicLevel===0.45 && !controls.inert,`${width}x${height}: controls/music fader`);
-    if(i===0 && !args.includes('--skip-offline')) {
+    }
+    if(i===0 && (offlineOnly || !args.includes('--skip-offline'))) {
       await page.evaluate(async()=>{await navigator.serviceWorker.ready;sessionStorage.removeItem('sn_opened');});
       await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
-      await context.setOffline(true);await page.goto(`${base}/?film=extended35`,{waitUntil:'load'});await ready(page);
-      assert(await page.locator('#btn-film-preview').isEnabled(),'OPFS preview not prepared on offline reload');
-      results.push(await play(page,'offline-opfs-reload-coin-opt-in',true));
+      await context.setOffline(true);
+      for (let run = 0; run < offlineRuns; run++) {
+        await page.evaluate(() => {
+          sessionStorage.removeItem('sn_opened');
+          localStorage.removeItem('sn-volumes');
+        });
+        await page.goto(`${base}/?film=extended35`, { waitUntil: 'load' });
+        await ready(page);
+        assert(await page.locator('#btn-film-preview').isEnabled(), 'OPFS preview not prepared on offline reload');
+        const label = offlineRuns === 1 ? 'offline-opfs-reload-coin-opt-in' : `offline-opfs-run-${String(run + 1).padStart(2, '0')}`;
+        results.push(await play(page, label, true));
+        await page.evaluate(() => document.getElementById('btn-play').click());
+        await page.waitForFunction(() => window.__skateNight.state().phase === 'paused');
+        await page.evaluate(() => document.getElementById('btn-play').click());
+        await page.waitForFunction(() => window.__skateNight.state().phase === 'playing' && window.__skateNight.player.isPlaying);
+        await writeFile(resolve(out, 'integration-proof.json'), JSON.stringify({ generatedSyntheticProxy: !suppliedMovie,
+          assetQuality: manifest.qualityTier, cinematicApproval: false, movie: proxy, manifest: manifestPath,
+          offlineRunsRequested: offlineRuns, probe, results, failures }, null, 2) + '\n');
+      }
       const storage=await page.evaluate(async()=>{
         const dir=await navigator.storage.getDirectory();const names=[];for await(const [name] of dir.entries()) names.push(name);
         for(const name of names) if(name.startsWith('cinematic-preview-')) await dir.removeEntry(name);
