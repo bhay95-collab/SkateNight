@@ -2,18 +2,22 @@
 
 The filename retains the requested `35FPS` spelling. The film is **35 seconds at 30 fps**, with **1,050 frames**. It is an isolated production development version of *Skate by Faith — Not by Sight*.
 
-**The complete development cut and render pipeline are delivered with one unresolved application timing gate.** The actual-film offline test measured a −40.56 ms media-clock audible-start estimate against a ±33.333 ms target; its presented-frame estimate passed at −31.54 ms. Four online viewports passed both estimates. Do not treat this handoff as unqualified production acceptance. No complete final-resolution film has been rendered, promoted, published or installed as the default.
+**The targeted finishing cut, first-hit timing correction and landing checks are complete in the tested configuration.** The approved 35-second structure, carousel and groove journey remain fixed. This pass improves the groove exit and local readability, corrects native30 offline cue scheduling, and refreshes the landing review and handoff. It adds no scenes or duration. No complete final-resolution film has been rendered, promoted, published or installed as the default.
+
+The fresh finished-movie proxy passes four online cases, all ten offline first-hit PCM checks at the unchanged ±33.333 ms band, and all fourteen landing/control checks. Offline PCM/output-clock error is **−13.738 / +10.3485 / +22.264 ms minimum/median/maximum**. The unchanged coarse offline checker still exits 1: two media-estimate failures and one presented whole-overlap failure remain. Independent analysis separates those estimators' bias from a real later 66.7 ms picture hold; it does not establish one-frame sync throughout the song overlap. Browser cadence, full-resolution inspection and projector/PA acceptance remain qualified as detailed below.
 
 ## Source and preservation
 
-Worktree: `/Users/benjaminhay/SkateNight-30fps-study`  
-Branch: `codex/awakening-30fps-study`  
-Starting experimental commit: `df26607`  
-Verified implementation commit: **`13df8705f90b2ad6ca2a3c70cd34c69c53e7084c`** (`Develop 35-second native30 cinematic production pipeline`).
+- Worktree: `/Users/benjaminhay/SkateNight-30fps-study`
+- Branch: `codex/awakening-30fps-study`
+- Starting experimental commit: `df26607`
+- Earlier verified implementation: `13df8705f90b2ad6ca2a3c70cd34c69c53e7084c` (`Develop 35-second native30 cinematic production pipeline`)
+- Targeted finishing started from: `b98819e717d073b30cba929722cd50a01d35665d`
+- **Verified finishing implementation: `1af1dbd445fbf732995f4f3f45c27f8183189576`**
 
-That commit contains the frozen source used for the verified development render. After it was created, `git status --short` showed only this untracked handoff; there were no remaining source changes. This handoff is recorded by a later documentation-only commit, which does not change the rendered source. Use the implementation SHA above when identifying or reproducing the film.
+The finishing implementation commit records the twelve frozen files used for the render and application tests; their bytes were verified unchanged after the commit. The earlier implementation SHA identifies the preserved baseline. This handoff is recorded by a later documentation-only commit, which does not change the rendered source. Use the finishing implementation SHA above, together with the recorded source/asset fingerprints, to identify and reproduce the finished development cut.
 
-The approved original remains in `/Users/benjaminhay/SkateNight`, on `codex/awakening-final-prep` at `0c99f8befe80ebe4a6ea7e3c6c3432ad05c70bc8`. Its pre-existing uncommitted changes and `.playwright-mcp/` are preserved. The original 19.25-second/60-fps builders, production cues and source movie remain the source of the approved coin/C1 elements. The separate photorealistic experiment is outside this change.
+The approved original remains in `/Users/benjaminhay/SkateNight`, on `codex/awakening-final-prep` at `0c99f8befe80ebe4a6ea7e3c6c3432ad05c70bc8`. Its pre-existing uncommitted changes and `.playwright-mcp/` are preserved. The final original-worktree comparison matches all eleven file hashes recorded at the start, including the two pre-existing dirty files, and its HEAD remains unchanged. The original 19.25-second/60-fps builders, production cues and source movie remain the source of the approved coin/C1 elements. The separate photorealistic experiment is outside this change.
 
 Build media are ignored local files. Keep the worktree and original source assets together until the render is packaged. The source commit does not contain the rendered movies, original song MP3, or all source textures.
 
@@ -31,37 +35,37 @@ The new builders reuse the unchanged `cinematic/story_megastructure.py`, `hero_m
 
 ## Review package and acceptance status
 
-The completed development render root is:
+The preserved complete baseline is `build/awakening-35-production/final-preview-v1/`. Its [baseline review page](build/awakening-35-development/final-review-v1/index.html) contains the complete song review, native clips, selected 1080p stills, comparisons, actual application ending and the original offline failure. Keep it for comparison; it is not the newly finished cut.
 
-`build/awakening-35-production/final-preview-v1/`
-
-Open [the local review page](build/awakening-35-development/final-review-v1/index.html) for the full movie with song, four native-frame clips, selected 1080p stills, comparisons, actual application ending, and the preserved offline timing failure. Its 52 local references were checked. The standalone film ends with the registered record over black; the live application supplies the real jukebox interface beneath its final crossfade.
-
-All complete movies below contain exactly 1,050 native frames at 30 fps and run 35.0 seconds. The development picture is 480×270 Cycles at four samples; no temporal interpolation or frame-rate conversion was used. The importable 1080p proxy is a spatial enlargement of those same frames.
+The finishing outputs use fresh roots:
 
 | Deliverable | Evidence or present state |
 |---|---|
-| Complete review with song | [`final-preview-v1/assembled/awakening-35-REVIEW-WITH-SONG.mp4`](build/awakening-35-production/final-preview-v1/assembled/awakening-35-REVIEW-WITH-SONG.mp4) |
-| Effects-only movie and manifest | [`awakening-35-effects-only.mp4`](build/awakening-35-production/final-preview-v1/assembled/awakening-35-effects-only.mp4) and its `.mp4.json`; low-resolution development export, not application importable |
-| Carousel clip | [`carousel.mp4`](build/awakening-35-development/final-review-v1/carousel.mp4); frames 456–605 inclusive, 150 frames / 5 seconds |
-| Groove-world clip | [`groove-world.mp4`](build/awakening-35-development/final-review-v1/groove-world.mp4); frames 606–914 inclusive, 309 frames / 10.3 seconds |
-| Groove-to-stylus clip | [`groove-exit-to-stylus.mp4`](build/awakening-35-development/final-review-v1/groove-exit-to-stylus.mp4); frames 813–948 inclusive, 136 frames / 4.533 seconds |
-| C1 contact/registration clip | [`C1-contact-and-registration.mp4`](build/awakening-35-development/final-review-v1/C1-contact-and-registration.mp4); frames 915–1049 inclusive, 135 frames / 4.5 seconds |
-| Selected 1920×1080 spots | Settled shaft 380 in `build/awakening-35-development/v15/corrected-1080-spots/`; optimized groove 680 in `v14/corrected-1080-spots/`; unchanged carousel/exit/contact/landing spots in `v12/final-1080-spots/` |
-| Reproducible 35-second effects and song-review WAVs | [`audio/effects-only.wav`](build/awakening-35-production/final-preview-v1/audio/effects-only.wav), [`audio/review-with-song.wav`](build/awakening-35-production/final-preview-v1/audio/review-with-song.wav), and [`audio-report.json`](build/awakening-35-production/final-preview-v1/audio/audio-report.json) |
-| Pipeline tests | 16 Python tests passed, including stale dependencies, corruption recovery and output preservation |
-| Browser/application CPU regressions | 220 Node tests passed |
-| Synthetic application/offline/fallback checks | All five playback cases pass both 33.333 ms song gates, final registration, controls and one-song checks; separate before-gate decode fault recovers in 4.166 seconds |
-| Actual new-film application/offline acceptance | Four online viewports pass; offline media-clock audible-start estimate fails. All five present every frame with zero decoder drops and pass final registration. Missing-film and before-gate decode fallback pass. |
-| Future final-quality production preflight | Passed in `build/awakening-35-production/final-1080-v1/preflight.json`; preflight only, no image frames rendered in that root |
-| Full-resolution full-cut visual inspection | Deferred until the future authorized final render |
-| Event projector/PA calibration | Requires venue hardware |
+| Targeted native30 groove-to-stylus clip | [`groove-to-stylus-native30.mp4`](build/awakening-35-finishing/v1/groove-to-stylus-native30.mp4); frames 655–948 inclusive, 294 frames / 9.8 seconds, with review audio |
+| Revised 1920×1080 / 96-sample vinyl spots | `build/awakening-35-finishing/v1/quality/vinyl/`; frames 680, 868 and 907 completed and passed selected-still inspection |
+| Fresh complete 480×270 / 4-sample preview | [`finishing-preview-v1/`](build/awakening-35-production/finishing-preview-v1/); all 1,050 frames rendered and both complete movies encoded |
+| Fresh local review package | [`final-review-v1/index.html`](build/awakening-35-finishing/final-review-v1/index.html); full song review, four native clips, comparisons and current final-quality spots; 57 local references checked |
+| Fresh final-quality preflight | [`final-1080-v2/preflight.json`](build/awakening-35-production/final-1080-v2/preflight.json) passed with Metal; zero image frames rendered |
+| Pipeline CPU regressions | 17 pipeline Python tests and 3 earlier-study tests passed in fresh independent verification |
+| Browser/application CPU regressions | 225 Node tests passed in fresh independent verification |
+| Ten baseline offline reloads | One run fails the existing dual-estimate gates; preserved independently from candidate results |
+| Ten candidate offline reloads | All ten pass the existing dual-estimate gates and independent PCM/output-clock ±33.333 ms check |
+| Newly finished movie application checks | Four online cases pass; ten offline first-hit PCM checks and all fourteen landing/control checks pass; coarse whole-overlap checker remains exit 1 |
+| Full-resolution full-cut inspection | Deferred to a separately authorized final render |
+| Operator listening and projector/PA calibration | Requires operator listening and venue hardware |
 
-Development examples and superseded proofs remain under `build/awakening-35-development/`. They document the work; the fresh complete movie and current quality-root reports must be used for acceptance and cost estimates.
+Both complete finishing movies contain 1,050 native frames at 30 fps and run 35.0 seconds. The review generator verified the frame count, rate, source hashes and effects-only song ownership; both full exports and all four review clips passed error-fatal FFmpeg decode. A 1080p development proxy is a spatial enlargement of the 480×270 images and adds no final-render detail. No temporal interpolation or frame-rate conversion is permitted.
 
-Visual review sampled the fresh full cut through the opening, failure, recovery, shaft, carousel, descent and canyon, then checked escape frames 813 and 840, the 867–868 blend, frames 900 and 915, contact 948, registration 1028 and final frame 1049. No new material geometry or camera issue was observed in those checks. The carousel reads as individual records; the glossy groove and scale reversal read in the inspected evidence. Targeted native-motion proofs and selected final-quality spots were also reviewed. This does not claim human approval of every image or a complete real-time audiovisual screening. Operator viewing of the whole cut and subjective headphone/speaker listening remain acceptance work.
+The standalone film ends with the registered record over black; the application supplies the real jukebox beneath the final crossfade. The refreshed review includes the baseline comparison, preserved earlier ending context and the [actual finishing-proxy jukebox ending](build/awakening-35-finishing/integration-finishing-preview-v1/1920x1080-revealed.png). Native-motion clips and selected stills supplement the complete cut; they do not establish approval of every image or replace a normal-speed audiovisual screening.
 
-[`assembly-report.json`](build/awakening-35-production/final-preview-v1/assembled/assembly-report.json) records movie SHA-256 checksums and all four shot fingerprints. The effects movie SHA-256 is `bf5d2a0dbf9406c218d79ffdce0de2fb6cdd47d977e57cbb3b00734d126a723c`; the song-review movie is `0f6db1d536f401f46cf33f94c8781c7768b2cc75ae764481c6ffb403493a330f`. Assembly validated current source/asset provenance and all 1,050 PNGs. Both complete encoded movies subsequently decoded through FFmpeg with error-fatal checking and no errors. Clip hashes and native ranges are in [`review-report.json`](build/awakening-35-development/final-review-v1/review-report.json).
+The baseline [`assembly-report.json`](build/awakening-35-production/final-preview-v1/assembled/assembly-report.json) preserves source provenance and movie checksums. Baseline effects SHA-256: `bf5d2a0dbf9406c218d79ffdce0de2fb6cdd47d977e57cbb3b00734d126a723c`; baseline song-review SHA-256: `0f6db1d536f401f46cf33f94c8781c7768b2cc75ae764481c6ffb403493a330f`. The finishing [`assembly-report.json`](build/awakening-35-production/finishing-preview-v1/assembled/assembly-report.json) records effects SHA-256 `74cedcbf2e23c76d1ac2691c9934e2b8108b11c1c4cad6b81e7b6d0ec4e2f0d8` and song-review SHA-256 `ac6f08e7d617f52a12d54799aa93528f75902a77bdccc8f672b4ca976d7318c2`. Its [review report](build/awakening-35-finishing/final-review-v1/review-report.json) records all four clip hashes and exact native ranges; [package verification](build/awakening-35-finishing/final-review-v1/package-verification.json) records the six successful movie decodes and refreshed local reference check. The independent [final artifact verification](build/awakening-35-finishing/v1/final-artifact-verification.json) confirms all 1,050 PNGs and current four-shot fingerprints against 162 source/asset file hashes per state, native packet PTS/durations, exact WAV provenance, valid proxy manifest and bit-identical copied AAC packets in the proxy. The proxy SHA-256 is `11eee99f6b38a45276ce60152d578597eeb0f536ae9b81152f3745f72c735f61`.
+
+| Fresh review clip | Inclusive native range | Frames / duration |
+|---|---|---|
+| Carousel | 456–605 | 150 / 5.0 s |
+| Groove world | 606–914 | 309 / 10.3 s |
+| Groove exit to stylus | 813–948 | 136 / 4.533333 s |
+| C1 contact and registration | 915–1049 | 135 / 4.5 s |
 
 ## What changed in the film
 
@@ -71,9 +75,15 @@ The hall-to-carousel join uses a foreground metal housing wipe across frames 398
 
 The descent, hidden world, escape and stylus approach occupy one rotating record coordinate system. The rounded V-shaped channel has .4 pitch, .13 depth and .26 width in the source scene units. Five recessed service stations, wall ribs, brass fasteners, conduits, handrails, a gantry and a low inspection carriage give the groove a readable scale. The camera travels about 2.75 scene units during the 5.27-second flight. It follows the modulated channel with at least .051 floor clearance in the sampled quarter-frame checks.
 
-The source record's solid base would fill the deep groove. It is culled near the submerged camera, then returns as the local sector converges to the original surface. The depth closes across 813–867; the surface/normal blend spans 850–868, including 18 frames with both representations active. This measured geometry LOD removes the one-frame valley-fill/specular change found in the earlier exit proof. The original source geometry and materials are restored before C1.
+The exit now holds an existing amber service station as a visible landmark on the rotating record. During frames 813–890 the camera follows that same material point as the station and curved valley shrink into the surrounding grooves. It rises and retreats on the same side of the channel, then eases into the exact frame-915 source camera. The path has no added city or station population.
 
-All 135 C1 integer samples, global 915–1049, are compared with their approved source camera and record poses. Position, orientation, lens and record angle errors are zero at those evaluated samples. This preserves the source pose sequence at native30, including an explicit final source-frame 443 sample. It does not establish that every subframe of the retimed motion blur is byte-identical to the original render.
+The true .13-depth groove stays open during the emergence. A bounded material cutout in the original record base and groove patch prevents that skin from filling the local valley while leaving the surrounding record present. The old 813–867 depth collapse and 850–868 surface blend are superseded. The local sector and original skin now crossfade only across frames 905–914, after the landmark is hidden by the physical wall in the sampled camera rays. Original materials, geometry visibility and lighting return at frame 915.
+
+Broad local grazing fill, restrained amber counter-light and a temporary surface rake make the walls, hardware and receding spiral easier to read. A small local charcoal-blue reflectance increase and broader reflections support that change. Global exposure and world lighting remain unchanged; the carousel and approved C1 use their original materials.
+
+Fresh CPU verification compared all 135 C1 integer samples, global 915–1049, with their approved source camera and record poses. Position, orientation, lens and record angle errors are zero at those evaluated samples. This preserves the source pose sequence at native30, including an explicit final source-frame 443 sample. It does not establish that every subframe of the retimed motion blur is byte-identical to the original render.
+
+The final exit proof evaluates 408 quarter-frame samples, with minimum floor clearance .055 scene units. All 40 quarter-frame landmark checks across 905–914.75 are occluded by the groove wall. Independent checks also verified 20/20 protected source hashes in both worktrees. These geometric checks support the selected image and motion evidence; they do not replace full-cut viewing. Evidence: `build/awakening-35-finishing/v1/final-cpu-validation/` and `final-verification-protected.json`.
 
 Implementation detail and geometry qualifications: [scene development](cinematic/extended/SCENE_DEVELOPMENT.md).
 
@@ -121,9 +131,9 @@ The deployment/application film contains cinematic effects and atmosphere only. 
 
 Both WAVs are 48 kHz, stereo PCM16, exactly 1,680,000 samples / 35 seconds. The song begins at sample 1,506,864. Its .207-second first hit lands at sample 1,516,800, exactly 31.6 seconds. The audio generator uses a fixed seed and records source, helper, cue, WAV and asset hashes. A resume validates those hashes before retaining files.
 
-The verified development mix measured effects-only **−26.5 LUFS integrated / −6.8 dBTP**, and review-with-song **−23.6 LUFS / −5.8 dBTP**. These are the development mix's measured levels, not a venue loudness target. The 8.62–8.9-second failure gap is silent; the effects bed is fully ducked from 32.6 seconds to the endpoint.
+The preserved baseline development mix measured effects-only **−26.5 LUFS integrated / −6.8 dBTP**, and review-with-song **−23.6 LUFS / −5.8 dBTP**. These are the development mix's measured levels, not a venue loudness target. The 8.62–8.9-second failure gap is silent; the effects bed is fully ducked from 32.6 seconds to the endpoint.
 
-The encoded AAC checked with the same FFmpeg `ebur128=peak=true` method measured effects-only **−26.5 LUFS / −6.7 dBTP**, and review-with-song **−23.6 LUFS / −5.9 dBTP**. See [`encoded-audio-qa.json`](build/awakening-35-development/final-review-v1/encoded-audio-qa.json). Metering and successful decode do not establish subjective listening approval.
+The baseline encoded AAC checked with the same FFmpeg `ebur128=peak=true` method measured effects-only **−26.5 LUFS / −6.7 dBTP**, and review-with-song **−23.6 LUFS / −5.9 dBTP**. See [`encoded-audio-qa.json`](build/awakening-35-development/final-review-v1/encoded-audio-qa.json). Metering and successful decode do not establish subjective listening approval.
 
 Listen to the complete song review on headphones and the intended speakers. Check the failed start and quiet gap, the recovery pulse, the drive's movement into the carousel, the scale change in the groove, and the contact transient against the first song hit. Confirm that the hidden-world resonance does not mask the story or become tiring. In the application, verify that one song continues through registration, effects remain separate, and transport/fader controls work after release. Finish with the projector and PA connected so their real latency can be measured.
 
@@ -133,25 +143,23 @@ Final settings are Cycles Metal, 1920×1080, 30 fps, 0.5-frame shutter / 1/60-se
 
 The machine is an M2 Pro Mac with 16 GiB unified memory. Run Blender pixel work and Chrome compositor acceptance tests serially. Earlier overlapping work caused compositor stalls and a Metal process failure; simultaneous acceptance/render work is not a valid timing benchmark.
 
-The previous study estimated 19 hours for the 35-second version against a roughly 36-hour original-film model. Neither is a measured duration for the finished new geometry. [`review.py`](cinematic/extended/review.py) now weights actual 1080p final-sample timings by 312 story, 201 changer and 444 vinyl frames, with a separate 18-frame mixed-LOD group. It splits descent, groove flight, escape and C1 instead of assigning all vinyl frames the cost of one still.
+The previous 19-hour study and the baseline 33.22-hour spot estimate used earlier exit geometry. Keep those reports as history; neither is the finishing estimate. The revised [`review.py`](cinematic/extended/review.py) weights 312 story, 201 changer and 444 vinyl frames, with a separate ten-frame skin blend at 905–914. It splits descent, flight, exit and C1 instead of assigning every vinyl frame the cost of one still.
 
-The final-source spot-based Blender estimate is **33.22 hours**, with a stated planning allowance of **23.94–51.78 hours**. The calculation and actual image/report paths are in `build/awakening-35-development/final-cost-v2/render-cost.{json,md}`. This is a budget from sparse samples, not a measured full-render duration. It uses the settled-camera story spot from v15, the optimized groove spot from v14, and unchanged carousel/exit/contact/landing spots from v12, at their real paths.
+The finishing spot-based Blender estimate is **38.03 hours**, with a planning allowance of **27.55–59.00 hours**. The [cost report](build/awakening-35-finishing/final-cost-v1/render-cost.md) and its JSON companion use `build/awakening-35-finishing/v1/quality` as the primary root, with unchanged story/changer/C1 spots from `v12/final-1080-spots` and the corrected shaft from `v15/corrected-1080-spots`. Current primary samples win within each phase, and the superseded exit spots at 840 and 867 do not determine the revised exit/blend estimate.
 
-| Final-quality spot | Samples | Measured render seconds |
-|---|---:|---:|
-| Settled shaft, frame 380 | 128 | 205.15 |
-| Carousel close, frame 480 | 96 | 71.00 |
-| Carousel wide, frame 542 | 96 | 68.08 |
-| Optimized groove flight, frame 680 | 96 | 120.72 |
-| Groove exit, frame 840 | 96 | 90.63 |
-| Mixed-LOD exit, frame 867 | 96 | 201.37 |
-| Restored record surface, frame 868 | 96 | 83.22 |
-| Diamond contact, frame 948 | 96 | 74.98 |
-| Final landing, frame 1049 | 96 | 9.91 |
+| Phase | Frames | Measured frame(s) | Seconds per frame | Estimated hours |
+|---|---:|---|---:|---:|
+| Story | 312 | 380 | 205.15 | 17.78 |
+| Changer | 201 | 480, 542 | 69.54 | 3.88 |
+| Vinyl descent | 49 | 680, borrowed | 182.25 | 2.48 |
+| Groove flight | 158 | 680 | 182.25 | 8.00 |
+| Groove exit | 92 | 868 | 157.89 | 4.03 |
+| Skin blend | 10 | 907 | 94.93 | 0.26 |
+| C1 approach and contact | 135 | 948, 1049 | 42.44 | 1.59 |
 
-The model assigns frame 380's 205.15 seconds to all 312 story frames, contributing 17.78 hours. It borrows groove frame 680 for the unmeasured descent and averages contact/landing frames 948 and 1049 across C1. Those assumptions limit precision. The smaller groove sector reduced geometry and observed process memory, but its 120.72-second measurement shows no meaningful speed gain over the earlier 121.10 seconds.
+The three new 1920×1080 / 96-sample images were inspected: flight frame 680 took 182.25 seconds with 3.50 GiB process peak RSS, exit frame 868 took 157.89 seconds with 3.67 GiB, and blend frame 907 took 94.93 seconds with 4.39 GiB. The historical story spot still accounts for 17.78 hours of the estimate; descent borrows the current flight measurement, and C1 averages the unchanged contact and landing samples. These sparse inputs limit precision. Across all selected historical/current samples the observed process peak RSS is 4.85 GiB.
 
-Cost inputs require nonzero rendered image bytes, positive wall time and a CRC-valid 1920×1080 PNG; validation-only runs are excluded. The planning allowance uses 75% of each phase's observed minimum through 150% of its maximum. It is not a statistical confidence interval. First frames may include cold kernel/cache work. Browser capture, encoding, validation, restarts and overnight thermal changes remain additional work. Observed process peak RSS reached 4.85 GiB; this cumulative macOS metric does not measure all Metal/unified GPU allocations.
+Cost inputs require positive render wall time, nonzero image bytes and a CRC-valid 1920×1080 PNG at 128 story samples or 96 changer/vinyl samples. Validation-only runs are excluded. The report identifies borrowed phase measurements and the real image/report paths. Its planning allowance uses 75% of each phase's observed minimum through 150% of its maximum; it is not a statistical confidence interval. Browser capture, encoding, validation, restarts and overnight thermal changes remain additional work. Process peak RSS does not measure all Metal/unified GPU allocations.
 
 ## Commands for the next operator
 
@@ -163,31 +171,31 @@ cd /Users/benjaminhay/SkateNight-30fps-study
 # Dependency, source-asset, codec, Metal and storage preflight; no image rendering.
 python3 cinematic/extended/render_production.py \
   --assets-root /Users/benjaminhay/SkateNight \
-  --output-dir build/awakening-35-production/final-1080-v1 --check
+  --output-dir build/awakening-35-production/final-1080-v2 --check
 
 # Future authorized complete final-quality render; native30 throughout.
 python3 cinematic/extended/render_production.py \
   --assets-root /Users/benjaminhay/SkateNight \
-  --output-dir build/awakening-35-production/final-1080-v1 --render-full
+  --output-dir build/awakening-35-production/final-1080-v2 --render-full
 
 # Resume the same source/assets/settings after interruption.
 python3 cinematic/extended/render_production.py \
   --assets-root /Users/benjaminhay/SkateNight \
-  --output-dir build/awakening-35-production/final-1080-v1 --render-full --resume
+  --output-dir build/awakening-35-production/final-1080-v2 --render-full --resume
 ```
 
 The runner keeps persistent unique logs in the render root's `logs/`. It fingerprints source content, browser dependencies, external assets, prepared transition textures and render settings. It rejects stale or unproven frame directories. Resume checks PNG CRCs and dimensions, preserves valid frame bytes/mtimes, and rerenders missing or corrupt frames through temporary files. A source or settings change needs a new render version. Do not delete state files to bypass that refusal.
 
 At 1920×1080 the preflight storage allowance is about 13.69 GiB; low-resolution work has a 4 GiB minimum. Allow further room for exports, old versions, application proxies and render diagnostics. Use the actual `preflight.json` for current free space and dependency versions. Keep source assets unchanged for a resumable production run.
 
-The final 1080p preflight passed with Blender 5.2.3, FFmpeg/FFprobe, Node, Chrome and Playwright available, and `Apple M2 Pro (GPU - 16 cores)` detected as a Cycles Metal device. It recorded 206.65 GiB free against a 13.69 GiB allowance. The separate `final-1080-v1` root currently contains preflight evidence only.
+The earlier `final-1080-v1` preflight passed with Blender 5.2.3 and Cycles Metal on `Apple M2 Pro (GPU - 16 cores)`. The fresh finishing `final-1080-v2` preflight passed with required tools/assets present and the same Metal device. It recorded 204.08 GiB free against a 13.69 GiB allowance. The root contains only `preflight.json`, with zero rendered image frames.
 
 If all frames and audio already exist but assembly stopped, preserve successful exports and select a fresh export directory:
 
 ```sh
 python3 cinematic/extended/render_production.py \
   --assets-root /Users/benjaminhay/SkateNight \
-  --output-dir build/awakening-35-production/final-1080-v1 \
+  --output-dir build/awakening-35-production/final-1080-v2 \
   --assemble-only --skip-metal-check \
   --export-root build/awakening-35-production/final-1080-export-v2
 ```
@@ -199,15 +207,15 @@ To reproduce the inexpensive full preview in a fresh version, then build its loc
 ```sh
 python3 cinematic/extended/render_production.py \
   --assets-root /Users/benjaminhay/SkateNight \
-  --output-dir build/awakening-35-production/final-preview-v2 \
+  --output-dir build/awakening-35-production/finishing-preview-v1 \
   --width 480 --height 270 --samples 4 --importable-proxy
 
 python3 cinematic/extended/review.py \
-  --render-root build/awakening-35-production/final-preview-v2 \
-  --quality-root build/awakening-35-development/v15/corrected-1080-spots \
+  --render-root build/awakening-35-production/finishing-preview-v1 \
+  --quality-root build/awakening-35-finishing/v1/quality \
   --supplement-quality-root build/awakening-35-development/v12/final-1080-spots \
-  --supplement-quality-root build/awakening-35-development/v14/corrected-1080-spots \
-  --output-dir build/awakening-35-development/final-review-v2
+  --supplement-quality-root build/awakening-35-development/v15/corrected-1080-spots \
+  --output-dir build/awakening-35-finishing/final-review-v1
 ```
 
 Add `--export-root` to the review command if assembly used a separate export root. If later corrective quality spots live in a new root, use that as `--quality-root` and retain unchanged older spots with `--supplement-quality-root OLD_ROOT`. Their real paths and measurements remain in the report; the primary root wins duplicate frame numbers. Review output directories are also preserved; choose a new version for a repeat. Clips trim native frame ranges without interpolation, frame dropping or frame-rate conversion. The HTML package links to its source movies, WAVs, manifests and quality stills instead of duplicating those assets.
@@ -228,37 +236,67 @@ Import the verified **effects-only** 1920×1080 MP4 and its `.mp4.json` through 
 Use **LOAD THE CRATES** before disconnecting. The movie and manifest persist in OPFS; song crates and the application shell have their existing offline paths. Check an actual offline reload, normal coin insertion, song overlap and controls. The private-profile test below does not alter the operator's real Chrome profile.
 
 ```sh
-node scripts/check-extended-preview.mjs \
-  --movie build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
-  --manifest build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
-  --out build/awakening-35-development/integration-final-preview-v2
+# Four online viewports and missing-film fallback.
+node scripts/check-extended-preview.mjs --skip-offline \
+  --movie build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
+  --manifest build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
+  --out build/awakening-35-finishing/integration-finishing-preview-v1
+
+# Ten offline reloads in their own capture population.
+node scripts/check-extended-preview.mjs --offline-only --offline-runs 10 --viewports 1920x1080 \
+  --movie build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
+  --manifest build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
+  --out build/awakening-35-finishing/integration-finishing-offline-v1
+
+node scripts/analyse-film-audio-timing.mjs \
+  build/awakening-35-finishing/integration-finishing-offline-v1 \
+  build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json
 
 node scripts/check-extended-preview.mjs --fault-only --viewports 1920x1080 \
-  --movie build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
-  --manifest build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
-  --out build/awakening-35-development/integration-final-decode-fallback-v2
+  --movie build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4 \
+  --manifest build/awakening-35-production/finishing-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json \
+  --out build/awakening-35-finishing/integration-finishing-decode-fallback-v1
 ```
 
-The default integration run covers 1920×1080, 1440×900, 1280×800 and 1024×768, plus offline OPFS preparation and missing-asset fallback. The fault case fails decoding after opener preparation but before the song gate opens; it must release the gate, play one opener, reveal the live cabinet and restore controls.
+The online batch covers 1920×1080, 1440×900, 1280×800 and 1024×768. Keep its captures separate from the ten offline runs: the frozen PCM analyser requires exactly ten unique run identifiers and rejects a combined fourteen-capture population. The fault case fails decoding after opener preparation but before the song gate opens; it must release the gate, play one opener, reveal the live cabinet and restore controls.
 
-Native30 song timing accounts for measured AudioContext output latency and a separately named 1.5-frame / 50 ms cold-start allowance, calibrated on this workstation. The existing legacy60 calibration stays unchanged. Reports retain raw media drift, estimated audible drift and a second estimate using presented-frame timestamps with interpolated song time. Both audible estimates must meet the unchanged 33.333 ms gate. This calibration does not replace measurement of the projector and PA.
+Native30 now uses one authoritative presented-frame callback and an absolute `expectedDisplayTime` deadline for the cue. It accounts for elapsed callback time instead of starting a fresh relative wait after callback delivery. The competing native30 `timeupdate` cue path is removed. The approved legacy60 path and its 17 ms calibration remain unchanged.
 
-Registration-to-final continuity checks two-frame presentation-gap bounds, native frame advances, actual presentation of frame 1049, ready live background and exposed-record phase. Earlier 333/500 ms stalls and approximately 45 ms audible-timing failures remain preserved as failed evidence; replay tests reject them.
+The named native30 1.5-frame / 50 ms lead is also unchanged. Independent PCM matching measured play-to-audible startup beyond the reported sink at 31.87 / 47.42 / 58.99 ms minimum/median/maximum on this workstation. That combines buffering, compressor delay and startup/task phase; it is not a frame-quantisation constant or a portable venue guarantee. Reports retain the existing media-clock and presented-frame estimates and enforce the same ±33.333 ms gates.
 
-The frozen-code synthetic run now passes all five cases: four viewports and an offline OPFS reload using normal coin insertion. Each recorded all 1,050 unique native frames, 0–1049, with zero decoder drops. Media-clock estimated audible start errors ranged from −19.33 to +23.37 ms; presented-frame estimates ranged from −11.79 to +9.79 ms. Every case presented all 22 registration samples, 1028–1049. The largest late-window gap was 54.1 ms, and the largest exposed-record phase error was 5.59°. Whole-film callback gaps reached 152 ms outside that window; complete frame coverage and zero decoder drops do not imply perfectly uniform presentation cadence.
+The original actual-film baseline remains in [`integration-final-preview-v1/final-verification-summary.json`](build/awakening-35-development/integration-final-preview-v1/final-verification-summary.json). All five baseline viewport/offline cases presented all 1,050 unique frames with zero decoder drops and all 22 registration samples. Four online cases passed timing, while offline failed the media estimate at −40.56 ms and passed the presented estimate at −31.54 ms. Missing-film fallback and the 4.177-second before-gate decode recovery are retained. Its [revealed jukebox screenshot](build/awakening-35-development/integration-final-preview-v1/1920x1080-revealed.png) preserves the application ending context.
 
-Synthetic results: `build/awakening-35-development/integration-final-synthetic/final-verification-summary.json`; its separate decode-fault case recovers in 4.166 seconds. These technical-asset passes are retained alongside the actual-film evidence below.
+A separate ten-reload baseline batch reproduced one failure on each existing timing estimator; the corrected ten-reload batch passed both estimators in every run. The batches are independent, not paired causal matches. Independent analysis matched decoded source music against music-bus and post-limiter PCM, confirmed the 288-sample / 6 ms limiter delay in all twenty captures, and mapped the output clock without adding sink/base/compressor latency twice.
 
-The actual assembled development proxy was then imported through the application and tested at all four viewports plus offline OPFS reload. All five runs recorded 1,050 unique frames, 0–1049, and zero decoder drops. Every registration sample 1028–1049 appeared; maximum late-window gap was 54.7 ms and exposed-record phase error was at most 4.73°. One song continued without a duplicate, the live background was ready, no unintended black gap was detected, and controls released. Missing-film live fallback passed. The actual-film before-gate decode fault recovered in 4.177 seconds.
+| Offline batch | PCM/output-clock minimum | Median | Maximum | P95 absolute | Failures at ±33.333 ms |
+|---|---:|---:|---:|---:|---:|
+| Baseline, 10 runs | −29.330 ms | −7.9295 ms | +6.892 ms | 29.330 ms | 0/10 |
+| Corrected, 10 runs | −10.548 ms | +4.997 ms | +12.053 ms | 12.053 ms | 0/10 |
 
-**One actual-film gate remains unsatisfied:** offline coin playback measured −40.56 ms using the media-clock audible-start estimator, exceeding the ±33.333 ms target by 7.23 ms. Its presented-frame estimate was −31.54 ms, within the target. All four online viewports passed both estimates. The offline failure remains a cold-start calibration limitation; the source, calibration, report and acceptance tolerance were left unchanged rather than turning it into a pass. Application-wide timing approval therefore remains qualified.
+Positive error means audio late. P95 uses nearest rank; with ten observations it is the largest observed absolute error, not a precise population-tail estimate. PCM/output-clock matching measures the software path, not physical acoustic output. Baseline PCM passes do not erase the existing estimator failure. Candidate run 03 also contains a 66.6 ms hold after contact that moves its later display epoch without skipping a frame; that cadence evidence remains reported alongside the first-hit measurement.
 
-Actual results: [`integration-final-preview-v1/final-verification-summary.json`](build/awakening-35-development/integration-final-preview-v1/final-verification-summary.json) and [`integration-final-decode-fallback-v1/integration-proof.json`](build/awakening-35-development/integration-final-decode-fallback-v1/integration-proof.json). The review page includes the actual [1920×1080 revealed jukebox screenshot](build/awakening-35-development/integration-final-preview-v1/1920x1080-revealed.png). Further detail: [PWA integration](cinematic/extended/PWA_INTEGRATION.md).
+Evidence: [`timing-baseline-offline/`](build/awakening-35-development/timing-baseline-offline/), [`timing-candidate-offline/`](build/awakening-35-development/timing-candidate-offline/), and the independent [distribution audit](build/awakening-35-development/timing-candidate-offline/independent-timing-distribution.md) with its JSON companion and capture checksums. These earlier actual-film batches remain the separate baseline/candidate comparison; the fresh finishing-proxy batch below validates the final media asset. Further detail: [PWA integration](cinematic/extended/PWA_INTEGRATION.md).
+
+Registration-to-final checks retain two-frame presentation-gap bounds, native frame advances, actual presentation of frame 1049, a ready live background and exposed-record phase. Whole-film cadence diagnostics remain separate; complete frame coverage and zero decoder drops do not imply perfectly uniform presentation.
+
+## Finished-movie first-hit and landing results
+
+The fresh proxy was imported into the actual application and checked at four online viewports, followed by ten independent offline OPFS reloads and a separate before-gate decode fault. Source hashes match the frozen candidate and remained unchanged throughout these tests. No offset, tolerance or source change was made to turn a result into a pass.
+
+All four online cases pass the existing checker. The offline post-limiter PCM analysis is conclusive and passes **10/10** first hits against ±33.333 ms, with minimum **−13.738 ms**, median **+10.3485 ms** and maximum **+22.264 ms**. Independent full-search FFT matching reproduces the first-hit results and confirms the 6 ms music-bus-to-limiter delay. PCM projected through the output clock is the authoritative measurement for the first hit here; physical acoustic output was not measured.
+
+The unchanged coarse offline checker exits **1**, and `allStrictGatesPass` remains **false**. Its media-clock estimate fails run 03 at **−40.650 ms** and run 07 at **−40.432 ms**; its presented whole-overlap estimate fails run 03 at **−52.984 ms**. Those values remain in the final summary.
+
+Run 03 explains why these measures cannot be treated as interchangeable. Independent FFT finds a first-hit error of **−10.345 ms** with **0.9967** correlation. Coarse audio-clock sampling contributes roughly **−14.57 ms** estimator bias. After contact, a **66.7 ms** picture hold between media times 32.633333 and 32.666667 moves the display epoch by **33.37 ms**; the independently projected later overlap drift is then about **−43.7 ms**. The first-hit pass therefore closes the tested contact-timing issue, while the later picture hold remains a browser cadence and whole-overlap qualification. This handoff does not claim the whole overlap stays within one native frame.
+
+All fourteen cases pass landing and controls: all **22 registration samples, 1028–1049**, are presented through the final frame, the maximum registration gap is **57.7 ms**, and exposed-record phase error is at most **3.186°**. Record centre/radius registration is exact, the live background is ready, one opener continues, and no decoder drops or uncovered samples were detected. Callback counts are **1,049 in three cases and 1,050 in eleven**; initial callback holds range from 104 to 145.6 ms. These results do not claim every native image received a callback or uniformly spaced display. Missing-film fallback passes, and the before-gate decode fault restores one song, the cabinet and controls in **4.197 seconds**.
+
+Evidence: [combined summary](build/awakening-35-finishing/integration-finishing-summary.json), [four online cases](build/awakening-35-finishing/integration-finishing-preview-v1/), [ten offline cases and captures](build/awakening-35-finishing/integration-finishing-offline-v1/), [first-hit PCM analysis](build/awakening-35-finishing/integration-finishing-offline-v1/pcm-audio-timing.json), [independent FFT/cadence audit](build/awakening-35-finishing/integration-finishing-offline-v1/independent-pcm-audit.json), and [decode-fault evidence](build/awakening-35-finishing/integration-finishing-decode-fallback-v1/).
 
 ## Work still requiring evidence
 
-The first corrected 1080p shaft frame pointed at the intended mechanism but had heavy diagonal blur. The camera now settles across frames 378–386; CPU projection checks reduce stationary-shaft travel at frame 380 from 61.85 pixels to zero, and the cheap 45-frame motion clip reads clearly. The replacement final-quality spot, `build/awakening-35-development/v15/corrected-1080-spots/story/frame_0380.png`, passed visual inspection at 128 samples. The earlier blurred image is retained as failed visual evidence.
+The complete development cut, selected final-quality spots, native clips, first-hit PCM acceptance, landing/control checks, current artifact verification and final-quality preflight are complete. The exact implementation SHA is recorded above; this handoff belongs in a later documentation-only commit.
 
-The full native30 development cut, targeted clips, selected final-quality spots, soundtrack, resumable production workflow and actual-film application tests now exist at implementation commit `13df8705f90b2ad6ca2a3c70cd34c69c53e7084c`. The unresolved offline audible-start gate above prevents an unqualified render-ready/production-accepted claim. Resolve and recheck that timing case without relaxing its tolerance. A code change requires a fresh fingerprinted development render/proxy; do not reuse frames under stale provenance.
+The complete 1080p render remains a separate future action and has not been started. No push, merge, deployment or default-film promotion is part of this assignment. Inspect the complete future final image sequence and encoded movie for noise, blur, contact, skin restoration and continuity before event acceptance.
 
-The complete 1080p render remains a separate future action and has not been started. Inspect its entire image sequence and encoded movie for noise, blur, contact, geometry LOD and continuity before event acceptance. The operator must also watch the complete development cut at normal speed and listen on headphones and speakers. Venue playback must check real display cadence, projector/PA delay, offline readiness, one continuing opener, and operator control release. Those hardware checks cannot be replaced by a headless browser or selected stills.
+The operator must watch the complete development cut at normal speed and listen on headphones and speakers. Venue playback must check display cadence, the qualified whole-overlap behaviour, projector/PA latency, offline readiness, one continuing opener and control release. Those hardware checks cannot be replaced by a headless browser, software PCM capture or selected stills.
