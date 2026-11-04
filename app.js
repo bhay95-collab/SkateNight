@@ -29,7 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { createAwakeningFilm, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord } from './awakening-film.js';
+import { createAwakeningFilm, EXTENDED_PREVIEW_ID, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord } from './awakening-film.js';
 import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
@@ -80,6 +80,9 @@ const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venu
    the picture by 17-19 ms at every screen size; it starts that much later.
    Re-measure on the event machine: node scripts/check-film-overlap.mjs (README). */
 const OVERLAP_SONG_OFFSET_MS = 17;
+// Measured cold HTMLMediaElement startup on this workstation. This remains a
+// venue calibration, separate from the audio sink's reported output latency.
+const NATIVE30_COLD_START_ALLOWANCE_FRAMES = 1.5;
 const PREPARE_ON_LAUNCH = (() => {
   try { return new URLSearchParams(location.search).has('prepare'); } catch { return false; }
 })();
@@ -1064,21 +1067,28 @@ async function main() {
      jukebox is showing; throws only before the song has started. */
   async function playOverlapFilm(film, plan, volume) {
     const video = film.element;
-    const stats = { songStartSec: plan.songStartSec, endSec: plan.endSec };
+    const stats = { fps: plan.fps, songStartSec: plan.songStartSec, endSec: plan.endSec,
+      outputLatencySec: getEngine()?.ctx.outputLatency || 0 };
+    const frameSec = 1 / plan.fps;
     globalThis.__overlapStats = stats;
     let landing = null;
     let frameId = 0;
     let syncId = 0;
+    let songTimer = null;
     /* Watched, not steered: both clocks run from the same wall clock for 3.6 s,
        and in Chrome changing a playing video's rate stalls it (measured: a
        ±10% servo turned a 3 ms offset into 60 ms). Only a stall the size of a
        real hang (a quarter second) is jumped over. */
     const follow = () => {
       if (player?.currentTrackId === OPENER.id && player.currentTime > 0.05 && !video.paused) {
-        const drift = (video.currentTime - plan.songStartSec) - player.currentTime;
+        const mediaDrift = (video.currentTime - plan.songStartSec) - player.currentTime;
+        const sinkLatency = plan.fps === 30 ? (getEngine()?.ctx.outputLatency || 0) : 0;
+        const drift = mediaDrift + sinkLatency;
+        stats.maxMediaDriftMs = Math.max(stats.maxMediaDriftMs || 0, Math.abs(mediaDrift * 1000));
+        stats.driftClock = plan.fps === 30 ? 'estimated-audible' : 'media';
         if (Math.abs(drift) > 0.25) video.currentTime -= drift;
         stats.maxDriftMs = Math.max(stats.maxDriftMs || 0, Math.abs(drift * 1000));
-        if (Math.abs(drift) > 1 / 60 && stats.firstSlip == null) {
+        if (Math.abs(drift) > frameSec && stats.firstSlip == null) {
           stats.firstSlip = { songTime: player.currentTime, driftMs: Math.round(drift * 1000) };
         }
       }
@@ -1087,12 +1097,35 @@ async function main() {
     // The changer's DOM work happens well before the song, so the frame the song
     // starts on is not the frame the page is busy laying out.
     let openGate = () => {};
-    const gate = new Promise((resolve) => { openGate = resolve; });
-    const prepareSong = () => { landing = landOpener(gate, { leadMs: 0, at: OPENER.revealAt }); };
+    const gate = new Promise((resolve) => { openGate = () => {
+      stats.songGateOpenedMs ??= performance.now();
+      resolve();
+    }; });
+    const prepareSong = () => {
+      landing = landOpener(gate, { leadMs: 0, at: OPENER.revealAt });
+      if (plan.fps === 30) {
+        // Warm the live cabinet and mask beneath the opaque film, before its
+        // final registration has to expose newly painted layers in one frame.
+        document.body.classList.remove('on-attract');
+        attractScreen.classList.add('is-revealed');
+        video.style.willChange = 'transform, opacity, mask-image';
+        video.style.transform = 'translate(0px, 0px) scale(1)';
+        video.style.maskImage = 'linear-gradient(#000, #000)';
+        video.style.webkitMaskImage = 'linear-gradient(#000, #000)';
+      }
+    };
     const startSong = (mediaTime) => {
       stats.songCueMediaTime = mediaTime;
+      // Presented sample time anchors the picture; currentTime can lag the
+      // compositor by an audio buffer, especially immediately after a seek.
+      stats.songCueCurrentTime = video.currentTime;
       stats.songLeadMs = Math.max(0, (plan.songStartSec - mediaTime) * 1000);
-      setTimeout(openGate, stats.songLeadMs + OVERLAP_SONG_OFFSET_MS);
+      // Centre the measured cold-start audio-block variation separately from
+      // sink latency; the legacy60 preview keeps its original calibration.
+      stats.songOffsetMs = plan.fps === 30
+        ? -(getEngine()?.ctx.outputLatency || 0) * 1000 - frameSec * 1000 * NATIVE30_COLD_START_ALLOWANCE_FRAMES
+        : OVERLAP_SONG_OFFSET_MS;
+      songTimer = setTimeout(openGate, Math.max(0, stats.songLeadMs + stats.songOffsetMs));
       syncId = requestAnimationFrame(follow);
     };
     const register = (mediaTime) => {
@@ -1124,19 +1157,31 @@ async function main() {
     try {
       await film.play(volume, { onTime: [
         { at: plan.songStartSec - 0.75, run: prepareSong },
-        { at: plan.songStartSec - 2 / 60, run: startSong },
+        { at: plan.songStartSec - (plan.fps === 30
+          ? Math.max(8 * frameSec, (getEngine()?.ctx.outputLatency || 0) + 3 * frameSec)
+          : 2 * frameSec), run: startSong },
         { at: plan.registrationStartSec, run: register },
       ] });
     } catch (err) {
-      if (!landing) throw err;                                // the song is already playing: finish the landing
+      if (!landing) throw err;
+      // A prepared song may still be waiting for its gate. Finish safely on
+      // the live cabinet if decoding fails either before or after that gate.
+      clearTimeout(songTimer);
+      stats.playbackFailed = true;
+      openGate();
+      film.stop();
+      document.body.classList.remove('on-attract');
+      attractScreen.classList.add('is-revealed');
       console.warn('[awakening film]', err);
     }
+    clearTimeout(songTimer);
     cancelAnimationFrame(frameId);
     cancelAnimationFrame(syncId);
     video.playbackRate = 1;
     stats.filmEndedMs = performance.now();
+    stats.outputLatencySec = getEngine()?.ctx.outputLatency || 0;
     const spin = $('record').getAnimations().find((a) => a.animationName === 'record-spin');
-    if (spin) {                                              // the live record picks up the film's label angle
+    if (spin && !stats.playbackFailed) {                      // the live record picks up the film's label angle
       spin.currentTime = (plan.record.cssAngleDeg / 360) * (60000 / plan.record.rpm);
       stats.cssAngleDeg = plan.record.cssAngleDeg;
     }
@@ -1146,7 +1191,7 @@ async function main() {
     stats.revealMs = performance.now();
     await delay(120);
     film.stop();
-    for (const prop of ['transform', 'transformOrigin', 'maskImage', 'webkitMaskImage', 'transition', 'opacity']) {
+    for (const prop of ['transform', 'transformOrigin', 'maskImage', 'webkitMaskImage', 'transition', 'opacity', 'willChange']) {
       video.style[prop] = '';
     }
   }
@@ -1168,9 +1213,11 @@ async function main() {
     };
     let playedFilm = false;
     let overlapLanded = false;
+    const forceLiveCut = new URLSearchParams(location.search).has('live');
+    const extended35 = new URLSearchParams(location.search).get('film') === 'extended35'
+      && productionPreview.ready && productionPreview.manifest?.filmId === EXTENDED_PREVIEW_ID;
+    const film = previewFilm || extended35 ? productionPreview : awakeningFilm;
     try {
-      const forceLiveCut = new URLSearchParams(location.search).has('live');
-      const film = previewFilm ? productionPreview : awakeningFilm;
       let overlap = null;
       try { overlap = plan.music === 'opener' ? overlapPlan(film.manifest) : null; } catch (err) { console.warn('[overlap]', err); }
       if (film.ready && !matchMedia('(prefers-reduced-motion: reduce)').matches && (!forceLiveCut || previewFilm)) {
@@ -1210,7 +1257,7 @@ async function main() {
     }
     if (playedFilm) {
       attractScreen.classList.add('is-dark');
-      (previewFilm ? productionPreview : awakeningFilm).stop();
+      film.stop();
     }
     if (toDark) {
       // The film cut gives the opener's first beat a short dark landing; live

@@ -78,6 +78,13 @@ test('overlap records must describe a circle inside the frame', () => {
   assert.throws(() => overlapPlan(manifest), /record/);
 });
 
+test('registration rejects missing or invalid viewport geometry', () => {
+  const { record } = overlapManifest().handoff;
+  assert.throws(() => registerRecord(record, null, { x: 0, y: 0, width: 120, height: 120 }), /viewport/i);
+  assert.throws(() => registerRecord(record, { width: 1920, height: 1080 }, null), /live record/i);
+  assert.throws(() => registerRecord({ ...record, cx: 0 }, { width: 1920, height: 1080 }, { x: 0, y: 0, width: 120, height: 120 }), /record/i);
+});
+
 test('registration maps the film record onto the live record at the authored size', () => {
   const { record } = overlapManifest().handoff;
   const live = { x: 1067.5, y: 330.9, width: 181.1, height: 181.1 };
@@ -107,4 +114,67 @@ test('the jukebox starts the opener from the film clock while the film is still 
   assert.match(app, /overlapPlan\(/);
   assert.match(app, /registerRecord\(/);
   assert.match(app, /onTime/);
+});
+
+const extendedManifest = () => {
+  const base = overlapManifest();
+  return {
+    ...base, filmId: 'production-preview-35s-native30-v1', experimental: true,
+    fps: 30, frameCount: 1050, durationSec: 35,
+    audioOwnership: { songEmbedded: false, trackId: OPENER.id },
+    cues: { ...base.cues, firstFailureFrame: 249, recoveryFrame: 276,
+      stylusContactFrame: 948, firstSongCueFrame: 948, musicHandoffFrame: 941,
+      registrationStartFrame: 1028, finalCinematicFrame: 1049 },
+    handoff: { ...base.handoff, videoFrame: 941, songStartSec: 31.393,
+      record: { cx: 0.603125, cy: 0.39018517953378185, r: 0.047135416666666666, cssAngleDeg: 91.0557374652127, rpm: 45 } },
+  };
+};
+
+test('only the explicit 35-second native30 effects preview can opt into 30 fps', () => {
+  const manifest = extendedManifest();
+  validateAwakeningFilmManifest(manifest, 'production-preview');
+  const plan = overlapPlan(manifest);
+  assert.equal(plan.fps, 30);
+  assert.equal(plan.contactSec, 31.6);
+  assert.equal(plan.songStartSec + OPENER.firstHit, plan.contactSec);
+  assert.equal(plan.registrationStartSec, 1028 / 30);
+  assert.equal(plan.endSec, 1049 / 30);
+  assert.ok(Math.abs(plan.endSec - (plan.songStartSec + OPENER.revealAt)) < 1 / 30);
+  assert.throws(() => validateAwakeningFilmManifest(manifest), /not a awakening/);
+  for (const change of [
+    { filmId: 'arbitrary-30fps-preview' }, { experimental: false }, { frameCount: 1051 },
+    { audioOwnership: { songEmbedded: true, trackId: OPENER.id } },
+    { audioOwnership: undefined }, { fps: 60 },
+    { handoff: { ...manifest.handoff, mode: 'cut' } },
+    { handoff: { ...manifest.handoff, record: { ...manifest.handoff.record, cssAngleDeg: 105.913 } } },
+    { cues: { ...manifest.cues, registrationStartFrame: 1029 } },
+  ]) assert.throws(() => validateAwakeningFilmManifest({ ...manifest, ...change }, 'production-preview'));
+});
+
+test('native30 registration preserves the approved C1 centre and radius across aspect ratios', () => {
+  const { record } = extendedManifest().handoff;
+  for (const [width, height] of [[1920,1080], [1440,900], [1280,800], [1024,768], [390,844]]) {
+    const live = { x: width * 0.6, y: height * 0.35, width: 120, height: 120 };
+    const fit = registerRecord(record, { width, height }, live);
+    const cover = Math.max(width / 1920, height / 1080);
+    const x = (width - 1920 * cover) / 2 + record.cx * 1920 * cover;
+    const y = (height - 1080 * cover) / 2 + record.cy * 1080 * cover;
+    assert.ok(Math.abs(x * fit.scale + fit.tx - (live.x + 60)) < 1e-9);
+    assert.ok(Math.abs(y * fit.scale + fit.ty - (live.y + 60)) < 1e-9);
+    assert.ok(Math.abs(record.r * 1920 * cover * fit.scale - 60) < 1e-9);
+  }
+});
+
+test('both overlap formats reject coerced record dimensions before the registration cue', () => {
+  for (const factory of [overlapManifest, extendedManifest]) {
+    for (const key of ['cx', 'cy', 'r', 'cssAngleDeg', 'rpm']) {
+      const value = factory().handoff.record[key];
+      for (const invalid of [String(value), [value], null, {}, Infinity, NaN]) {
+        const manifest = factory();
+        manifest.handoff.record[key] = invalid;
+        assert.throws(() => overlapPlan(manifest), /record/, `${key}: ${JSON.stringify(invalid)}`);
+        assert.throws(() => validateAwakeningFilmManifest(manifest, 'production-preview'), /record/);
+      }
+    }
+  }
 });

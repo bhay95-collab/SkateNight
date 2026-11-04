@@ -3,6 +3,8 @@ import { timeline } from './startup-timing.js';
 
 export const AWAKENING_FILM_ID = 'skate-by-faith-awakening-plunge-1080p60-v1';
 export const AWAKENING_FILM_FPS = 60;
+// Opt-in external preview only. The approved hosted film keeps its 60 fps contract.
+export const EXTENDED_PREVIEW_ID = 'production-preview-35s-native30-v1';
 export const AWAKENING_FILM_WIDTH = 1920;
 export const AWAKENING_FILM_HEIGHT = 1080;
 export const HOSTED_AWAKENING_MANIFEST = 'films/manifest.json';
@@ -43,14 +45,16 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
     throw new Error('The production preview manifest needs a versioned film identifier.');
   }
 
+  const native30 = expectedKind === 'production-preview' && manifest.filmId === EXTENDED_PREVIEW_ID;
   const dimensionsMatch = expectedKind === 'awakening'
     ? manifest.width === AWAKENING_FILM_WIDTH && manifest.height === AWAKENING_FILM_HEIGHT
       && manifest.fps === AWAKENING_FILM_FPS && manifest.frameCount === AWAKENING_FILM_FRAME_COUNT
     : Number.isInteger(manifest.width) && Number.isInteger(manifest.height)
       && manifest.width > 0 && manifest.height > 0 && manifest.width * 9 === manifest.height * 16
-      && manifest.fps === AWAKENING_FILM_FPS && Number.isInteger(manifest.frameCount) && manifest.frameCount > 1;
+      && manifest.fps === (native30 ? 30 : AWAKENING_FILM_FPS)
+      && Number.isInteger(manifest.frameCount) && manifest.frameCount > 1;
   if (!dimensionsMatch || manifest.videoCodec !== 'h264' || manifest.audioCodec !== 'aac') {
-    throw new Error('The film export must be 16:9 H.264/AAC at 60 fps.');
+    throw new Error('The film export must be 16:9 H.264/AAC at its supported frame rate.');
   }
   if (expectedKind === 'production-preview') {
     if (manifest.width !== AWAKENING_FILM_WIDTH || manifest.height !== AWAKENING_FILM_HEIGHT
@@ -71,6 +75,7 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
       throw new Error('The production preview final frame or handoff frame is inconsistent.');
     }
     overlapPlan(manifest);
+    if (native30) validateExtendedPreview(manifest);
   }
   if (!Number.isFinite(manifest.durationSec) || manifest.durationSec <= 0
       || Math.abs(manifest.durationSec - manifest.frameCount / manifest.fps) > 0.001
@@ -98,6 +103,25 @@ export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakenin
         || manifest.handoff.interactiveState !== 'jukebox-playing:praise-lifted-on-high') {
       throw new Error('The Awakening manifest final frame or jukebox handoff is inconsistent.');
     }
+  }
+}
+
+// Keep this exception narrow: arbitrary 30 fps or song-containing review files
+// must never become a prepared show asset. The source cue manifest owns timing.
+function validateExtendedPreview(manifest) {
+  const { cues, handoff } = manifest;
+  const record = handoff.record || {};
+  if (manifest.experimental !== true || manifest.frameCount !== 1050 || manifest.durationSec !== 35
+      || manifest.audioOwnership?.songEmbedded !== false
+      || manifest.audioOwnership?.trackId !== OPENER.id
+      || handoff.mode !== 'overlap' || handoff.songStartSec !== 31.393
+      || cues.stylusContactFrame !== 948 || cues.firstSongCueFrame !== 948
+      || cues.registrationStartFrame !== 1028 || cues.finalCinematicFrame !== 1049
+      || Math.abs(record.cx - 0.603125) > 1e-9
+      || Math.abs(record.cy - 0.39018517953378185) > 1e-9
+      || Math.abs(record.r - 0.047135416666666666) > 1e-9
+      || Math.abs(record.cssAngleDeg - 91.0557374652127) > 0.001 || record.rpm !== 45) {
+    throw new Error('The experimental native-30 preview needs the locked 35-second effects-only C1 contract.');
   }
 }
 
@@ -136,11 +160,11 @@ export function overlapPlan(manifest) {
   }
   const record = handoff.record || {};
   const inFrame = (v) => Number.isFinite(v) && v > 0 && v < 1;
-  if (!inFrame(record.cx) || !inFrame(record.cy) || !(record.r > 0 && record.r < 0.5)
-      || !Number.isFinite(record.cssAngleDeg) || !(record.rpm > 0)) {
+  if (!inFrame(record.cx) || !inFrame(record.cy) || !Number.isFinite(record.r) || !(record.r > 0 && record.r < 0.5)
+      || !Number.isFinite(record.cssAngleDeg) || !Number.isFinite(record.rpm) || !(record.rpm > 0)) {
     throw new Error('The overlap film must say where its record lands.');
   }
-  return { songStartSec, contactSec, endSec, registrationStartSec: start / fps, record: { ...record } };
+  return { fps, songStartSec, contactSec, endSec, registrationStartSec: start / fps, record: { ...record } };
 }
 
 /* Where the film's record lands on this screen, and the transform that puts it
@@ -148,13 +172,33 @@ export function overlapPlan(manifest) {
    transform (origin 0 0: scale, then translate tx/ty in px) and the live record
    circle in viewport px, for masking the film down to the record. */
 export function registerRecord(record, viewport, live) {
-  const cover = Math.max(viewport.width / 1920, viewport.height / 1080);
-  const offsetX = (viewport.width - 1920 * cover) / 2;
-  const offsetY = (viewport.height - 1080 * cover) / 2;
+  if (!record || typeof record !== 'object') throw new Error('The overlap film must say where its record lands.');
+  if (!viewport || typeof viewport !== 'object') throw new Error('The viewport must include width and height.');
+  if (!live || typeof live !== 'object') throw new Error('The live record must include its box geometry.');
+  const viewportWidth = Number(viewport.width);
+  const viewportHeight = Number(viewport.height);
+  const liveX = Number(live.x);
+  const liveY = Number(live.y);
+  const liveWidth = Number(live.width);
+  const liveHeight = Number(live.height);
+  const inFrame = (v) => Number.isFinite(v) && v > 0 && v < 1;
+  const recordValues = [record.cx, record.cy, record.r, record.cssAngleDeg, record.rpm];
+  if (!Number.isFinite(viewportWidth) || !Number.isFinite(viewportHeight) || viewportWidth <= 0 || viewportHeight <= 0
+      || !Number.isFinite(liveX) || !Number.isFinite(liveY) || !Number.isFinite(liveWidth) || !Number.isFinite(liveHeight)
+      || liveWidth <= 0 || liveHeight <= 0
+      || !inFrame(record.cx) || !inFrame(record.cy) || !Number.isFinite(record.r) || !(record.r > 0 && record.r < 0.5)
+      || !Number.isFinite(record.cssAngleDeg) || !Number.isFinite(record.rpm) || !(record.rpm > 0)
+      || !recordValues.every((value) => Number.isFinite(value))) {
+    throw new Error('The overlap film must say where its record lands.');
+  }
+
+  const cover = Math.max(viewportWidth / 1920, viewportHeight / 1080);
+  const offsetX = (viewportWidth - 1920 * cover) / 2;
+  const offsetY = (viewportHeight - 1080 * cover) / 2;
   const filmX = offsetX + record.cx * 1920 * cover;
   const filmY = offsetY + record.cy * 1080 * cover;
   const filmR = record.r * 1920 * cover;
-  const mask = { cx: live.x + live.width / 2, cy: live.y + live.height / 2, r: live.width / 2 };
+  const mask = { cx: liveX + liveWidth / 2, cy: liveY + liveHeight / 2, r: liveWidth / 2 };
   const scale = mask.r / filmR;
   return { scale, tx: mask.cx - filmX * scale, ty: mask.cy - filmY * scale, mask };
 }
@@ -413,7 +457,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     const startedAt = performance.now();
     const pending = onTime.slice().sort((a, b) => a.at - b.at);
     const fire = (mediaTime) => {
-      while (pending.length && mediaTime >= pending[0].at - 0.5 / AWAKENING_FILM_FPS) {
+      while (pending.length && mediaTime >= pending[0].at - 0.5 / selected.manifest.fps) {
         const cue = pending.shift();
         try { cue.run(mediaTime); } catch (error) { console.warn('[awakening film cue]', error); }
       }
@@ -458,6 +502,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
         : null;
       globalThis.__awakeningFilmStats = {
         expectedFrames: selected.manifest.frameCount,
+        expectedFps: selected.manifest.fps,
         frameCallbacks,
         mediaFrames: qualityEnd ? qualityEnd.totalVideoFrames - (qualityStart?.totalVideoFrames || 0) : null,
         droppedFrames: qualityEnd ? qualityEnd.droppedVideoFrames - (qualityStart?.droppedVideoFrames || 0) : null,
@@ -465,6 +510,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
         effectiveFps: intervals.length ? Number((frameCallbacks * 1000 / (performance.now() - startedAt)).toFixed(2)) : null,
         intervalP95Ms: percentile(0.95),
         intervalsOver25ms: intervals.filter((interval) => interval > 25).length,
+        intervalsOverFrameBudget: intervals.filter((interval) => interval > 1500 / selected.manifest.fps).length,
         maxIntervalMs: ordered.length ? Number(ordered.at(-1).toFixed(2)) : null,
       };
     }

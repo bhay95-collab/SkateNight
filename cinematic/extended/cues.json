@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "version": "production-preview-35s-native30-v1",
+  "experimental": true,
+  "film_kind": "production-preview",
+  "fps": 30,
+  "frame_count": 1050,
+  "duration_seconds": 35.0,
+  "frame_convention": "zero-based frames 0..1049; frame f samples f/30; encoded end is 35.0 seconds",
+  "rounding": "nearest visual frame, half upward; audio seconds never quantized",
+  "cues": {
+    "coinStart": 0,
+    "coinGone": 3.1,
+    "hallReveal": 4,
+    "coinImpact": 5.25,
+    "relay": 5.466666666666667,
+    "attempt": 5.966666666666667,
+    "almost": 7.7,
+    "failure": 8.3,
+    "tick": 8.9,
+    "catch": 9.2,
+    "heartbeats": [
+      9.6,
+      10.4,
+      11.033333333333333,
+      11.566666666666666
+    ],
+    "ignite": 12.033333333333333,
+    "transmission": 13.5,
+    "carousel": 15.2,
+    "activeRecord": 19.2,
+    "grooveDescent": 20.2,
+    "canyonFlight": 21.835491606714626,
+    "grooveExit": 27.1136690647482,
+    "stylusApproach": 30.5,
+    "stylusContact": 31.6,
+    "registrationStart": 34.266666666666666,
+    "final": 34.96666666666667
+  },
+  "audio": {
+    "songPlayback": 31.393,
+    "firstHit": 31.6,
+    "coinImpact": 5.25
+  },
+  "shots": [
+    {
+      "id": "cabinet",
+      "start": 0,
+      "end": 92,
+      "renderer": "browser"
+    },
+    {
+      "id": "story",
+      "start": 93,
+      "end": 404,
+      "renderer": "blender"
+    },
+    {
+      "id": "changer",
+      "start": 405,
+      "end": 605,
+      "renderer": "blender"
+    },
+    {
+      "id": "vinyl",
+      "start": 606,
+      "end": 1049,
+      "renderer": "blender"
+    }
+  ],
+  "opener": {
+    "track_id": "praise-lifted-on-high",
+    "first_hit_seconds": 0.207
+  },
+  "c1": {
+    "source_fps": 60,
+    "approach_source_start": 175,
+    "approach_frames": 33,
+    "contact_source_frame": 240,
+    "landing_frames": 102,
+    "final_source_frame": 443,
+    "endpoint_sampling": "last native frame explicitly evaluates source443, rather than442",
+    "record": {
+      "cx": 0.603125,
+      "cy": 0.39018517953378185,
+      "r": 0.047135416666666666,
+      "cssAngleDeg": 91.0557374652127,
+      "rpm": 45
+    }
+  }
+}
