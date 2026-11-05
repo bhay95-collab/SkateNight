@@ -14,14 +14,18 @@ const opt = (name, fallback) => args.includes(name) ? args[args.indexOf(name) + 
 const offlineRuns = Number(opt('--offline-runs', '1'));
 if (!Number.isInteger(offlineRuns) || offlineRuns < 1) throw new Error('--offline-runs must be a positive integer.');
 const offlineOnly = args.includes('--offline-only');
+// --hosted: the real show path - films/manifest.json, background download, OPFS, the coin, offline reloads.
+const hosted = args.includes('--hosted');
+const filmEl = hosted ? 'awakening-film' : 'production-preview-video';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const out = resolve(opt('--out', 'build/awakening-35-development/integration'));
 await mkdir(out, { recursive: true });
 const cue = JSON.parse(await readFile(resolve(root, 'cinematic/extended/cues.json')));
 const frame = (name) => Math.floor(cue.cues[name] * cue.fps + 0.5);
-const suppliedMovie = opt('--movie', null);
+const hostedManifest = hosted ? JSON.parse(await readFile(resolve(root, 'films/manifest.json'))) : null;
+const suppliedMovie = hosted ? resolve(root, 'films', hostedManifest.videoFile) : opt('--movie', null);
 const proxy = suppliedMovie ? resolve(suppliedMovie) : resolve(out, 'technical-effects-only-1080p30.mp4');
-const manifestPath = resolve(opt('--manifest', proxy + '.json'));
+const manifestPath = hosted ? resolve(root, 'films/manifest.json') : resolve(opt('--manifest', proxy + '.json'));
 async function run(cmd, params) {
   return new Promise((done, fail) => {
     const child = spawn(cmd, params, { stdio: ['ignore', 'pipe', 'pipe'] }); const stdout = [], stderr = [];
@@ -65,7 +69,7 @@ const manifest = suppliedMovie ? JSON.parse(await readFile(manifestPath)) : {
   handoff:{mode:'overlap',songStartSec:cue.audio.songPlayback,videoFrame:Math.floor(cue.audio.songPlayback * 30),openerTrackId:cue.opener.track_id,
     interactiveState:`jukebox-playing:${cue.opener.track_id}`,record},
 };
-validateAwakeningFilmManifest(manifest,'production-preview');
+validateAwakeningFilmManifest(manifest,hosted ? 'awakening' : 'production-preview');
 if (!suppliedMovie) await writeFile(manifestPath,JSON.stringify(manifest,null,2)+'\n');
 const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.mp3':'audio/mpeg','.png':'image/png','.svg':'image/svg+xml','.wav':'audio/wav','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
 const server = createServer(async (req,res) => {
@@ -89,12 +93,18 @@ const browser = await playwright.chromium.launch({
 const results = [], failures = [];
 const assert = (ok, message) => {if (!ok) failures.push(message);};
 async function ready(page) {await page.waitForFunction(() => window.__skateNight && !document.getElementById('btn-film-import').disabled,null,{timeout:60000});}
+// The launch website check runs in the background; wait for its verdict, not just the page.
+const ledShows = (page, text) => page.waitForFunction((t) => document.getElementById('offline-text').textContent === t, text, {timeout:20000})
+  .then(() => true, () => false);
+async function filmSettled(page) {await page.waitForFunction(() => document.getElementById('film-status').dataset.state !== 'checking',null,{timeout:180000});
+  return page.evaluate(() => ({state:document.getElementById('film-status').dataset.state,text:document.getElementById('film-status').textContent,
+    led:document.getElementById('offline-text').textContent}));}
 async function play(page, label, coin = false) {
   await page.evaluate(async ({coin, registrationAt, songAt}) => {
     const { getEngine } = await import('./audio.js');
     window.__getAudioEngine = getEngine;
     window.__samples=[]; window.__frames=[]; window.__mediaEvents=[]; window.__stopSampling=false;
-    const video=document.getElementById('production-preview-video');
+    const video=document.getElementById(window.__filmEl);
     const onFrame=(now,meta) => {window.__frames.push([meta.expectedDisplayTime ?? now,meta.mediaTime,{callbackNow:now,observedAt:performance.now(),presentationTime:meta.presentationTime,presentedFrames:meta.presentedFrames}]); if(!window.__stopSampling) video.requestVideoFrameCallback(onFrame);};
     video.requestVideoFrameCallback(onFrame);
     let spin=null;
@@ -125,8 +135,8 @@ async function play(page, label, coin = false) {
     }; requestAnimationFrame(tick);
     document.getElementById(coin ? 'attract' : 'btn-film-preview').click();
     document.getElementById('cabinet-tools').open=false;
-  }, {coin, registrationAt:manifest.cues.registrationStartFrame/manifest.fps, songAt:manifest.handoff.songStartSec});
-  await page.waitForFunction(() => document.getElementById('production-preview-video').currentTime >= 34.6,null,{timeout:70000});
+  }, {coin:coin || hosted, registrationAt:manifest.cues.registrationStartFrame/manifest.fps, songAt:manifest.handoff.songStartSec});
+  await page.waitForFunction(() => document.getElementById(window.__filmEl).currentTime >= 34.6,null,{timeout:70000});
   // Screenshots stall Chrome's compositor; collect timing before any capture.
   await page.waitForFunction(() => window.__overlapStats?.revealMs,null,{timeout:20000});
   await page.waitForTimeout(400);
@@ -193,11 +203,11 @@ async function play(page, label, coin = false) {
   console.log(JSON.stringify(summary));return summary;
 }
 async function faultBeforeGate(page) {
-  await page.evaluate(()=>document.getElementById('btn-film-preview').click());
-  await page.waitForFunction(()=>!document.getElementById('production-preview-video').paused);
+  await page.evaluate((trigger)=>document.getElementById(trigger).click(), hosted ? 'attract' : 'btn-film-preview');
+  await page.waitForFunction(()=>!document.getElementById(window.__filmEl).paused);
   const injectedAt=Date.now();
   await page.evaluate(()=>{
-    const video=document.getElementById('production-preview-video');
+    const video=document.getElementById(window.__filmEl);
     // Inject the failure after prepareSong, but before the song-start cue. This
     // is a fault-path test; seeking here is not evidence of normal sync.
     video.pause();video.currentTime=30.7;
@@ -205,7 +215,7 @@ async function faultBeforeGate(page) {
   await page.waitForFunction(() => window.__awakeningCueEvents?.some((event) => Math.abs(event.at - (31.393 - 0.75)) < 0.001),
     null, { timeout: 5000 });
   const before=await page.evaluate(()=>{
-    const video=document.getElementById('production-preview-video');
+    const video=document.getElementById(window.__filmEl);
     const preparation = window.__awakeningCueEvents.find((event) => Math.abs(event.at - (31.393 - 0.75)) < 0.001);
     const gateWasClosed=window.__overlapStats.songGateOpenedMs==null;
     video.dispatchEvent(new Event('error'));
@@ -215,7 +225,7 @@ async function faultBeforeGate(page) {
     && window.__skateNight.state().phase==='playing',null,{timeout:8000});
   const result=await page.evaluate(()=>({stats:window.__overlapStats,state:window.__skateNight.state(),
     activeSongs:[...window.__media].filter((m)=>m.tagName==='AUDIO' && !m.paused && !m.ended).length,
-    filmStopped:document.getElementById('production-preview-video').paused,
+    filmStopped:document.getElementById(window.__filmEl).paused,
     bodyRevealed:!document.body.classList.contains('on-attract'),
     controlsReleased:!document.getElementById('btn-play').closest('[inert]')}));
   await page.evaluate(()=>document.getElementById('btn-play').click());
@@ -231,8 +241,8 @@ try {
   const viewports=opt('--viewports','1920x1080,1440x900,1280x800,1024x768').split(',').map((x)=>x.split('x').map(Number));
   for (let i=0;i<viewports.length;i++) {
     const [width,height]=viewports[i]; const context=await browser.newContext({viewport:{width,height}});
-    await context.addInitScript(() => {
-      sessionStorage.setItem('sn_booted','1'); window.__media=new Set();const play=HTMLMediaElement.prototype.play;
+    await context.addInitScript((filmElId) => {
+      sessionStorage.setItem('sn_booted','1'); window.__media=new Set(); window.__filmEl=filmElId;const play=HTMLMediaElement.prototype.play;
       const Context = window.AudioContext || window.webkitAudioContext;
       const createCompressor = Context.prototype.createDynamicsCompressor;
       Context.prototype.createDynamicsCompressor = function(...args) {
@@ -307,7 +317,7 @@ try {
         result.then(() => record('play-resolved'), () => record('play-rejected'));
         return result;
       };
-    });
+    }, filmEl);
     const page=await context.newPage(), errors=[], consoleErrors=[];page.on('pageerror',(e)=>errors.push(e.message));
     page.on('console',(message)=>{if(message.type()==='error') consoleErrors.push(message.text());});
     await page.goto(base,{waitUntil:'load'});await ready(page);
@@ -316,9 +326,16 @@ try {
       const {loadCrates}=await import('./crates.js'); const track=window.__skateNight.library.tracks.find((t)=>t.id==='praise-lifted-on-high');
       const r=await loadCrates([{url:new URL(track.file,location.href).href,kind:'audio'}]);if(r.failed.length) throw new Error('Opener crate preload failed');
     });
+    if (hosted) {
+      const cold=await filmSettled(page);
+      results.push({label:`${width}x${height}-cold-start`,...cold});
+      assert(cold.state==='ready' && /READY OFFLINE/.test(cold.text) && cold.text.includes(`SHA ${manifest.sha256.slice(0,8).toUpperCase()}`)
+        && cold.text.includes('35.0 S') && cold.text.includes('1920x1080') && cold.text.includes('30 FPS'),`${width}x${height}: website film not prepared: ${cold.text}`);
+    } else {
     await page.evaluate(()=>document.getElementById('cabinet-tools').open=true);
     await page.setInputFiles('#film-files',[proxy,manifestPath]);
     await page.waitForFunction(()=>!document.getElementById('btn-film-preview').disabled,null,{timeout:120000});
+    }
     if(args.includes('--fault-only')) {
       results.push(await faultBeforeGate(page));
       results.push({label:'fault-diagnostics',pageErrors:errors,consoleErrors});
@@ -341,6 +358,15 @@ try {
     }
     if(i===0 && (offlineOnly || !args.includes('--skip-offline'))) {
       await page.evaluate(async()=>{await navigator.serviceWorker.ready;sessionStorage.removeItem('sn_opened');});
+      if (hosted && !args.includes('--no-crates')) {
+        await page.evaluate(()=>{document.getElementById('cabinet-tools').open=true;document.getElementById('btn-crates').click();});
+        await page.waitForFunction(()=>!document.getElementById('btn-crates').disabled && document.getElementById('offline-text').textContent!=='',null,{timeout:300000});
+        const prepared=await ledShows(page,'OFFLINE READY');
+        results.push({label:'prepare-for-show-crates',offlineReady:prepared,led:await page.locator('#offline-text').textContent()});
+        assert(prepared,'Prepare for Show: LED did not confirm OFFLINE READY with songs and film saved');
+        // Show-like state: songs were saved earlier, not seconds before the coin.
+        await page.waitForTimeout(Number(opt('--settle-sec','0'))*1000);
+      }
       await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
       await context.setOffline(true);
       for (let run = 0; run < offlineRuns; run++) {
@@ -348,10 +374,15 @@ try {
           sessionStorage.removeItem('sn_opened');
           localStorage.removeItem('sn-volumes');
         });
-        await page.goto(`${base}/?film=extended35`, { waitUntil: 'load' });
+        await page.goto(hosted ? base : `${base}/?film=extended35`, { waitUntil: 'load' });
         await ready(page);
-        assert(await page.locator('#btn-film-preview').isEnabled(), 'OPFS preview not prepared on offline reload');
-        const label = offlineRuns === 1 ? 'offline-opfs-reload-coin-opt-in' : `offline-opfs-run-${String(run + 1).padStart(2, '0')}`;
+        if (hosted) {
+          const offline=await filmSettled(page);
+          offline.ledOfflineReady=await ledShows(page,'OFFLINE READY');
+          assert(offline.state==='ready' && /SAVED FILM READY OFFLINE/.test(offline.text) && offline.ledOfflineReady,`offline reload not ready: ${JSON.stringify(offline)}`);
+          results.push({label:`offline-reload-${run + 1}-status`,...offline});
+        } else assert(await page.locator('#btn-film-preview').isEnabled(), 'OPFS preview not prepared on offline reload');
+        const label = offlineRuns === 1 ? (hosted ? 'offline-opfs-reload-coin' : 'offline-opfs-reload-coin-opt-in') : `offline-opfs-run-${String(run + 1).padStart(2, '0')}`;
         results.push(await play(page, label, true));
         await page.evaluate(() => document.getElementById('btn-play').click());
         await page.waitForFunction(() => window.__skateNight.state().phase === 'paused');
@@ -361,24 +392,58 @@ try {
           assetQuality: manifest.qualityTier, cinematicApproval: false, movie: proxy, manifest: manifestPath,
           offlineRunsRequested: offlineRuns, probe, results, failures }, null, 2) + '\n');
       }
-      const storage=await page.evaluate(async()=>{
+      const prefix = hosted ? 'awakening-film-' : 'cinematic-preview-';
+      if (hosted) {
+        await page.evaluate(async(prefix)=>{
+          const dir=await navigator.storage.getDirectory();
+          for await(const [name,handle] of dir.entries()) if(name.startsWith(prefix) && name.endsWith('.mp4')) {
+            const file=await handle.getFile();const w=await handle.createWritable();
+            await w.write(new Uint8Array(await file.slice(0,file.size-4096).arrayBuffer()));await w.write(new Uint8Array(4096).fill(7));await w.close();
+          }
+          sessionStorage.removeItem('sn_opened');
+        },prefix);
+        await page.reload({waitUntil:'load'});await ready(page);
+        const corrupt=await filmSettled(page);
+        corrupt.ledWarns=await ledShows(page,'SONGS SAVED - FILM NOT READY');
+        results.push({label:'offline-corrupt-film',...corrupt});
+        assert(corrupt.state==='bad' && /NO VERIFIED FILM/.test(corrupt.text) && corrupt.ledWarns,`Corrupt saved film was not rejected with a warning: ${JSON.stringify(corrupt)}`);
+      }
+      const storage=await page.evaluate(async(prefix)=>{
         const dir=await navigator.storage.getDirectory();const names=[];for await(const [name] of dir.entries()) names.push(name);
-        for(const name of names) if(name.startsWith('cinematic-preview-')) await dir.removeEntry(name);
+        for(const name of names) if(name.startsWith(prefix)) await dir.removeEntry(name);
         sessionStorage.removeItem('sn_opened');return names;
-      });
+      },prefix);
       await page.reload({waitUntil:'load'});await ready(page);
-      assert(await page.locator('#btn-film-preview').isDisabled(),'Missing preview was not rejected safely');
+      if (hosted) {const missing=await filmSettled(page);results.push({label:'offline-missing-film-status',...missing});
+        assert(missing.state==='bad' && /NO VERIFIED FILM/.test(missing.text),'Missing film did not warn');}
+      else assert(await page.locator('#btn-film-preview').isDisabled(),'Missing preview was not rejected safely');
       await page.locator('#attract').click();
       await page.waitForFunction(()=>document.getElementById('attract').hidden && window.__skateNight.state().phase==='playing',null,{timeout:40000});
       const fallback=await page.evaluate(()=>({state:window.__skateNight.state(),
         usedLive:!window.__awakeningFilmStats && !window.__overlapStats,
-        filmStopped:document.getElementById('production-preview-video').paused,
+        filmStopped:document.getElementById(window.__filmEl).paused,
         controlsReleased:!document.getElementById('btn-play').closest('[inert]')}));
       assert(fallback.usedLive && fallback.filmStopped && fallback.controlsReleased && fallback.state.nowId===cue.opener.track_id,'Missing film failed to use the normal live cut and opener');
       await page.evaluate(()=>document.getElementById('btn-play').click());
       await page.waitForFunction(()=>window.__skateNight.state().phase==='paused');
       results.push({label:'offline-missing-film-fallback',passed:true,storedNames:storage,...fallback});
       await page.screenshot({path:resolve(out,'offline-live-fallback.png')});
+      if (hosted) {
+        // Back online with nothing saved: the launch check downloads and verifies the website film again.
+        await context.setOffline(false);
+        await page.evaluate(()=>sessionStorage.removeItem('sn_opened'));
+        await page.reload({waitUntil:'load'});await ready(page);
+        const recovered=await filmSettled(page);results.push({label:'online-recovery-download',...recovered});
+        assert(recovered.state==='ready' && /WEBSITE FILM DOWNLOADED/.test(recovered.text),`Online recovery failed: ${recovered.text}`);
+        // A website film that differs from the saved one is reported, never silently replaced or ignored.
+        await page.route('**/films/manifest.json',(route)=>route.fulfill({contentType:'application/json',
+          body:JSON.stringify({...hostedManifest,sha256:'0'.repeat(64)})}));
+        await page.evaluate(()=>sessionStorage.removeItem('sn_opened'));
+        await page.reload({waitUntil:'load'});await ready(page);
+        const stale=await filmSettled(page);results.push({label:'stale-saved-film-warning',...stale});
+        assert(stale.state==='bad' && /NOT THE CURRENT WEBSITE FILM/.test(stale.text),`Stale film not reported: ${stale.text}`);
+        await page.unroute('**/films/manifest.json');
+      }
     }
     results.push({label:`${width}x${height}-diagnostics`,pageErrors:errors,consoleErrors});
     assert(errors.length===0,`${width}x${height}: page errors ${errors.join('; ')}`);
