@@ -81,11 +81,14 @@ const REVEAL_OFFSET_MS = 0;                      // picture vs sound at the venu
    Re-measure on the event machine: node scripts/check-film-overlap.mjs (README). */
 const OVERLAP_SONG_OFFSET_MS = 17;
 // Measured cold HTMLMediaElement startup on this workstation. This remains a
-// venue calibration, separate from the audio sink's reported output latency.
-// Ten PCM/output-timestamp trials measured 31.87..58.99 ms (median 47.42 ms)
-// beyond the reported sink latency. Keep the existing 50 ms value, in ms:
-// this combines render buffering/startup and is not 30 fps quantisation.
-const NATIVE30_MEDIA_STARTUP_LEAD_MS = 50;
+// venue calibration, separate from the audio sink's reported output latency;
+// it combines render buffering/startup and is not 30 fps quantisation.
+// 50 ms was set with only the opener saved offline. With the final film and the
+// whole library saved (the real show state) two ten-run offline PCM batches put
+// first-hit contact at median +20.6 / +27.8 ms, each with 2/10 outside ±33.3 ms;
+// the gate itself was on time (≤1.5 ms). 70 ms recentres that. Re-measure on the
+// event machine: node scripts/check-extended-preview.mjs --hosted (README).
+const NATIVE30_MEDIA_STARTUP_LEAD_MS = 70;
 const PREPARE_ON_LAUNCH = (() => {
   try { return new URLSearchParams(location.search).has('prepare'); } catch { return false; }
 })();
