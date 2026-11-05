@@ -1,44 +1,59 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, statSync } from 'node:fs';
 import {
   AWAKENING_FILM_FPS,
   AWAKENING_FILM_FRAME_COUNT,
   AWAKENING_FILM_HEIGHT,
   AWAKENING_FILM_ID,
   AWAKENING_FILM_WIDTH,
+  describeFilm,
+  NATIVE30_CONTRACT,
   validateAwakeningFilmManifest,
   validateHostedAwakeningManifest,
 } from '../awakening-film.js';
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+// The show-film fixture is built from the approved timing file itself, so a pass
+// proves the runtime's locked contract and cinematic/extended/cues.json agree.
+const cueFile = JSON.parse(read('cinematic/extended/cues.json'));
+const frameAt = (seconds) => Math.floor(seconds * cueFile.fps + 0.5);   // nearest frame, half upward (cues.json rounding)
+const songFrame = Math.floor(cueFile.audio.songPlayback * cueFile.fps);
 const validManifest = () => ({
+  manifestVersion: 1,
+  filmKind: 'awakening',
   filmId: AWAKENING_FILM_ID,
+  filmVersion: 1,
+  experimental: false,
   width: AWAKENING_FILM_WIDTH,
   height: AWAKENING_FILM_HEIGHT,
-  fps: AWAKENING_FILM_FPS,
-  frameCount: AWAKENING_FILM_FRAME_COUNT,
-  durationSec: AWAKENING_FILM_FRAME_COUNT / AWAKENING_FILM_FPS,
+  fps: cueFile.fps,
+  frameCount: cueFile.frame_count,
+  durationSec: cueFile.duration_seconds,
   videoCodec: 'h264',
   audioCodec: 'aac',
-  manifestVersion: 1,
-  filmVersion: 1,
   audioSampleRate: 48000,
   audioChannels: 2,
+  audioOwnership: { trackId: cueFile.opener.track_id, songEmbedded: false },
   sha256: 'a'.repeat(64),
   cues: {
     coinSequenceStartFrame: 0,
-    firstFailureFrame: 558,
-    recoveryFrame: 689,
-    stylusContactFrame: null,
-    musicHandoffFrame: AWAKENING_FILM_FRAME_COUNT - 1,
-    firstSongCueFrame: AWAKENING_FILM_FRAME_COUNT - 1,
-    finalCinematicFrame: AWAKENING_FILM_FRAME_COUNT - 1,
+    firstFailureFrame: frameAt(cueFile.cues.failure),
+    recoveryFrame: frameAt(cueFile.cues.catch),
+    stylusContactFrame: frameAt(cueFile.cues.stylusContact),
+    musicHandoffFrame: songFrame,
+    firstSongCueFrame: frameAt(cueFile.cues.stylusContact),
+    registrationStartFrame: frameAt(cueFile.cues.registrationStart),
+    finalCinematicFrame: cueFile.frame_count - 1,
   },
   handoff: {
-    videoFrame: AWAKENING_FILM_FRAME_COUNT - 1,
-    openerTrackId: 'praise-lifted-on-high',
-    interactiveState: 'jukebox-playing:praise-lifted-on-high',
+    mode: 'overlap',
+    songStartSec: cueFile.audio.songPlayback,
+    videoFrame: songFrame,
+    openerTrackId: cueFile.opener.track_id,
+    interactiveState: `jukebox-playing:${cueFile.opener.track_id}`,
+    record: { ...cueFile.c1.record },
   },
 });
 const validPreviewManifest = () => ({
@@ -72,21 +87,56 @@ const validPreviewManifest = () => ({
   },
 });
 
-test('accepts only the complete current 1080p60 H.264/AAC Awakening export', () => {
+test('the runtime contract is the approved native-30 timing file', () => {
+  assert.equal(AWAKENING_FILM_FPS, cueFile.fps);
+  assert.equal(AWAKENING_FILM_FRAME_COUNT, cueFile.frame_count);
+  assert.equal(NATIVE30_CONTRACT.durationSec, cueFile.duration_seconds);
+  assert.equal(NATIVE30_CONTRACT.songStartSec, cueFile.audio.songPlayback);
+  assert.equal(NATIVE30_CONTRACT.stylusContactFrame, frameAt(cueFile.cues.stylusContact));
+  assert.equal(NATIVE30_CONTRACT.stylusContactFrame, frameAt(cueFile.audio.firstHit));
+  assert.equal(NATIVE30_CONTRACT.registrationStartFrame, frameAt(cueFile.cues.registrationStart));
+  assert.equal(NATIVE30_CONTRACT.finalCinematicFrame, frameAt(cueFile.cues.final));
+  assert.deepEqual({ ...NATIVE30_CONTRACT.record }, cueFile.c1.record);
+});
+
+test('accepts only the approved 35-second 1080p30 effects-only show film', () => {
   assert.doesNotThrow(() => validateAwakeningFilmManifest(validManifest()));
+  const base = validManifest();
   for (const change of [
-    { filmId: 'old-film' },
+    { filmId: 'skate-by-faith-awakening-plunge-1080p60-v1' },   // the earlier 19.25 s cut can never be selected
     { width: 1280 },
     { height: 720 },
-    { fps: 30 },
+    { fps: 60 },
     { frameCount: AWAKENING_FILM_FRAME_COUNT - 1 },
     { videoCodec: 'vp9' },
     { audioCodec: 'opus' },
-    { durationSec: 1 },
+    { durationSec: 34 },
     { sha256: 'not-a-checksum' },
+    { experimental: true },
+    { audioOwnership: { ...base.audioOwnership, songEmbedded: true } },
+    { cues: { ...base.cues, stylusContactFrame: 947, firstSongCueFrame: 947 } },
+    { cues: { ...base.cues, registrationStartFrame: 1027 } },
+    { handoff: { ...base.handoff, songStartSec: 31.4 } },
+    { handoff: { ...base.handoff, record: { ...base.handoff.record, cx: 0.6 } } },
+    { handoff: { ...base.handoff, record: { ...base.handoff.record, rpm: 33 } } },
   ]) {
-    assert.throws(() => validateAwakeningFilmManifest({ ...validManifest(), ...change }));
+    assert.throws(() => validateAwakeningFilmManifest({ ...base, ...change }), undefined, JSON.stringify(change));
   }
+  assert.throws(() => validateAwakeningFilmManifest({ ...base, filmKind: 'production-preview' }), /not a awakening/);
+  assert.equal(describeFilm({ ...base, sha256: 'cf4befea'.padEnd(64, '0') }),
+    'V1 · 35.0 S · 1920x1080 · 30 FPS · SHA CF4BEFEA');
+});
+
+test('the committed website film is the approved asset its manifest names', () => {
+  const manifest = JSON.parse(read('films/manifest.json'));
+  const video = validateHostedAwakeningManifest(manifest, 'https://bhay95-collab.github.io/SkateNight/films/manifest.json');
+  assert.equal(video.href, `https://bhay95-collab.github.io/SkateNight/films/${manifest.videoFile}`);
+  assert.equal(manifest.sha256, 'cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c');
+  const file = new URL(`../films/${manifest.videoFile}`, import.meta.url);
+  assert.equal(statSync(file).size, manifest.hostedSizeBytes);
+  assert.equal(createHash('sha256').update(readFileSync(file)).digest('hex'), manifest.sha256);
+  assert.equal(manifest.audioOwnership.songEmbedded, false, 'the website film carries effects only');
+  assert.doesNotMatch(JSON.stringify(manifest), /\/Users\//, 'no local render paths are published');
 });
 
 test('validates versioned production previews and their explicit jukebox handoff', () => {
@@ -109,7 +159,7 @@ test('validates versioned production previews and their explicit jukebox handoff
 test('hosted delivery is versioned, same-origin and gated by explicit approval', () => {
   const manifest = {
     ...validManifest(),
-    videoFile: 'awakening-v1.mp4',
+    videoFile: 'song-inside-35s-v1.mp4',
     productionApproval: {
       status: 'approved',
       approvedBy: 'Production review',
@@ -118,11 +168,11 @@ test('hosted delivery is versioned, same-origin and gated by explicit approval',
   };
   assert.equal(
     validateHostedAwakeningManifest(manifest, 'https://skate.example/films/manifest.json').href,
-    'https://skate.example/films/awakening-v1.mp4',
+    'https://skate.example/films/song-inside-35s-v1.mp4',
   );
   assert.equal(
     validateHostedAwakeningManifest(manifest, 'https://example.github.io/SkateNight/films/manifest.json').href,
-    'https://example.github.io/SkateNight/films/awakening-v1.mp4',
+    'https://example.github.io/SkateNight/films/song-inside-35s-v1.mp4',
   );
   assert.throws(() => validateHostedAwakeningManifest(
     { ...manifest, productionApproval: undefined },
@@ -174,13 +224,17 @@ test('operator import UI is available from TOOLS and uses OPFS-backed verificati
   assert.match(module, /const FILE_PREFIX = 'awakening-film-'/);
   assert.match(module, /const PREVIEW_PREFIX = 'cinematic-preview-'/);
   assert.match(read('app.js'), /startNight\(\{ previewFilm: true \}\)/);
-  assert.match(read('app.js'), /prepareHosted/);
+  assert.match(read('app.js'), /^  awakeningFilm\.prepareHosted\(hostedManifestUrl, \{ replaceLocal: !awakeningFilm\.ready \}\)/m,
+    'the launch website check is not awaited and never swaps a saved film in the background');
+  assert.doesNotMatch(read('app.js'), /await awakeningFilm\.prepareHosted\(hostedManifestUrl, \{/);
+  assert.match(read('awakening-film.js'), /AbortSignal\.timeout\(HOSTED_MANIFEST_TIMEOUT_MS\)/);
   assert.match(read('jukebox.css'), /body\.on-attract \.rig:has\(\.utility-drawer\[open\]\)\{\s*visibility:visible; z-index:95;/,
     'the operator tools drawer remains reachable above the opening screen');
   const promotion = read('scripts/promote-awakening.mjs');
   assert.match(promotion, /--confirm-approved/);
-  assert.match(promotion, /stylusContactFrame == null/);
-  assert.match(promotion, /productionApproval\?\.status !== 'approved'/);
+  assert.match(promotion, /--approved-by/);
+  assert.match(promotion, /-xerror/, 'promotion runs an error-fatal full decode');
+  assert.match(promotion, /productionApproval: \{ status: 'approved'/);
 });
 
 test('export and on-device benchmarks use fixed film frames and compare live/video delivery', () => {

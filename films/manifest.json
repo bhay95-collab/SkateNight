@@ -1,0 +1,78 @@
+{
+  "manifestVersion": 1,
+  "filmKind": "awakening",
+  "filmId": "skate-by-faith-song-inside-35s-native30-v1",
+  "filmVersion": 1,
+  "experimental": false,
+  "title": "Skate by Faith — The Song Inside",
+  "source": "Approved 1920x1080 native-30 production render; cinematic effects only",
+  "videoFile": "song-inside-35s-v1.mp4",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "frameCount": 1050,
+  "durationSec": 35,
+  "videoCodec": "h264",
+  "audioCodec": "aac",
+  "audioSampleRate": 48000,
+  "audioChannels": 2,
+  "audioDescription": "cinematic sound effects only; opening song remains in the jukebox player",
+  "audioOwnership": {
+    "film": "cinematic sound effects and atmosphere",
+    "openingSong": "Praise Lifted On High remains in the jukebox audio engine",
+    "trackId": "praise-lifted-on-high",
+    "songEmbedded": false
+  },
+  "cues": {
+    "coinSequenceStartFrame": 0,
+    "firstFailureFrame": 249,
+    "recoveryFrame": 276,
+    "stylusContactFrame": 948,
+    "musicHandoffFrame": 941,
+    "firstSongCueFrame": 948,
+    "registrationStartFrame": 1028,
+    "finalCinematicFrame": 1049
+  },
+  "handoff": {
+    "mode": "overlap",
+    "videoFrame": 941,
+    "openerTrackId": "praise-lifted-on-high",
+    "interactiveState": "jukebox-playing:praise-lifted-on-high",
+    "songStartSec": 31.393,
+    "record": {
+      "cx": 0.603125,
+      "cy": 0.39018517953378185,
+      "r": 0.047135416666666666,
+      "cssAngleDeg": 91.0557374652127,
+      "rpm": 45
+    }
+  },
+  "timelineSha256": "08c740321be47fcfafc04fd9391f7071fdf83b0ccea908b23fef7b490bd373d3",
+  "sha256": "cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c",
+  "sourceFilmId": "production-preview-35s-native30-v1",
+  "sourceCommit": "dcaf590",
+  "renderProvenance": [
+    {
+      "shot": "cabinet",
+      "fingerprint": "ec0a5e7c94e253e9d3249ab492f698e32f080ee11cb9993c11799a72e9b38fbc"
+    },
+    {
+      "shot": "story",
+      "fingerprint": "4e5af79fcb911f1c64b8b90c80d0006c1d3e82afc6af0c9132eb344e04c5e566"
+    },
+    {
+      "shot": "changer",
+      "fingerprint": "59b8379998184fec9ef8b1370d113821fc85a67cc24821b44f63838efc952a4a"
+    },
+    {
+      "shot": "vinyl",
+      "fingerprint": "3613c4ade6f1b0713d904522416533fa40fed1dbce277854c47348d24a663f31"
+    }
+  ],
+  "productionApproval": {
+    "status": "approved",
+    "approvedBy": "Benjamin Hay",
+    "approvedAt": "2026-11-05T22:43:05.996Z"
+  },
+  "hostedSizeBytes": 26424470
+}

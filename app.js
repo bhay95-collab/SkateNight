@@ -29,7 +29,7 @@ import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
 import { mountArch } from './arch.js';
 import { wakeAttract } from './startup.js';
-import { createAwakeningFilm, EXTENDED_PREVIEW_ID, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord, songCuePresentationTime } from './awakening-film.js';
+import { createAwakeningFilm, describeFilm, EXTENDED_PREVIEW_ID, HOSTED_AWAKENING_MANIFEST, overlapPlan, registerRecord, songCuePresentationTime } from './awakening-film.js';
 import { BENCH, benchMark, benchReport, showReport } from './bench.js';
 import { createUI, createTicker } from './ui.js';
 import {
@@ -120,13 +120,15 @@ async function main() {
   const awakeningFilm = createAwakeningFilm($('awakening-film'));
   const productionPreview = createAwakeningFilm($('production-preview-video'), 'production-preview');
   const filmStatus = $('film-status');
+  const showFilmStatus = (result, state = result.available && !result.stale ? 'ready' : 'bad') => {
+    filmStatus.textContent = result.manifest ? `${result.message} — ${describeFilm(result.manifest)}` : result.message;
+    filmStatus.dataset.state = state;
+  };
+  // Only the local copy is checked before the coin is live; the website check runs
+  // in the background (below), so a slow or dead venue network never holds up the night.
   const localFilmStatus = await awakeningFilm.prepare();
-  filmStatus.textContent = localFilmStatus.message;
-  filmStatus.dataset.state = localFilmStatus.available ? 'ready' : 'checking';
-  if (!localFilmStatus.available) filmStatus.textContent = 'CHECKING APPROVED WEBSITE FILM...';
-  const initialFilmStatus = await awakeningFilm.prepareHosted(new URL(HOSTED_AWAKENING_MANIFEST, location.href).href);
-  filmStatus.textContent = initialFilmStatus.message;
-  filmStatus.dataset.state = initialFilmStatus.available ? 'ready' : 'bad';
+  if (localFilmStatus.available) showFilmStatus(localFilmStatus);
+  else showFilmStatus({ message: 'CHECKING APPROVED WEBSITE FILM...' }, 'checking');
   const previewStatus = $('film-preview-status');
   const initialPreviewStatus = await productionPreview.prepare();
   previewStatus.textContent = initialPreviewStatus.available ? 'EXTERNAL PREVIEW VERIFIED - READY OFFLINE' : 'NO EXTERNAL PREVIEW IMPORTED';
@@ -876,7 +878,9 @@ async function main() {
       if (files.length === 0) return setOffline('off', 'NO SONGS TO SAVE');
       const s = await crateStatus(files);
       if (!s.supported) return setOffline('bad', 'OFFLINE NOT SUPPORTED');
-      if (s.saved === s.total && swOk) setOffline('ready', 'OFFLINE READY');
+      // OFFLINE READY means the whole show: shell, songs and the verified film.
+      if (s.saved === s.total && swOk && awakeningFilm.ready) setOffline('ready', 'OFFLINE READY');
+      else if (s.saved === s.total && swOk) setOffline('warn', 'SONGS SAVED - FILM NOT READY');
       else if (s.saved === s.total) setOffline('warn', 'SAVED - NEEDS HTTPS');
       else {
         const songs = await crateStatus(files.filter((f) => f.kind === 'audio'));   // covers are saved too, but only songs are counted
@@ -936,23 +940,35 @@ async function main() {
   const filmImportButton = $('btn-film-import');
   const filmFiles = $('film-files');
   const hostedFilmButton = $('btn-film-hosted');
+  const hostedManifestUrl = new URL(HOSTED_AWAKENING_MANIFEST, location.href).href;
   hostedFilmButton.addEventListener('click', async () => {
     hostedFilmButton.disabled = true;
-    filmStatus.textContent = 'CHECKING AND DOWNLOADING APPROVED WEBSITE FILM...';
-    filmStatus.dataset.state = 'checking';
+    showFilmStatus({ message: 'CHECKING AND DOWNLOADING APPROVED WEBSITE FILM...' }, 'checking');
     try {
-      const result = await awakeningFilm.prepareHosted(new URL(HOSTED_AWAKENING_MANIFEST, location.href).href);
-      filmStatus.textContent = result.message;
-      filmStatus.dataset.state = result.available ? 'ready' : 'bad';
+      const result = await awakeningFilm.prepareHosted(hostedManifestUrl);
+      showFilmStatus(result);
       if (!result.available) ui.toast('WEBSITE FILM NOT READY - LIVE CUT REMAINS AVAILABLE');
     } catch (error) {
       console.error('[hosted Awakening film]', error);
-      filmStatus.textContent = error.message || 'WEBSITE FILM CHECK FAILED';
-      filmStatus.dataset.state = 'bad';
+      showFilmStatus({ message: error.message || 'WEBSITE FILM CHECK FAILED' }, 'bad');
     } finally {
       hostedFilmButton.disabled = false;
+      refreshOfflineLed();
     }
   });
+  // Launch check against the website, never awaited by the coin. With no saved
+  // film it downloads one (the live cut covers a coin pressed meanwhile); a saved
+  // film that differs is reported, not swapped, and the operator replaces it.
+  awakeningFilm.prepareHosted(hostedManifestUrl, { replaceLocal: !awakeningFilm.ready })
+    .then((result) => {
+      showFilmStatus(result);
+      if (result.stale) ui.toast('SAVED FILM IS OUT OF DATE - TOOLS > PREPARE FOR SHOW');
+    })
+    .catch((error) => {
+      console.warn('[hosted Awakening film]', error);
+      showFilmStatus({ ...localFilmStatus, message: error.message || 'WEBSITE FILM CHECK FAILED' }, awakeningFilm.ready ? 'ready' : 'bad');
+    })
+    .finally(refreshOfflineLed);
   filmImportButton.addEventListener('click', () => {
     noteInput();
     filmFiles.value = '';
@@ -986,7 +1002,8 @@ async function main() {
         $('btn-film-preview').disabled = !result.available;
         ui.toast('EXTERNAL PREVIEW VERIFIED - READY TO TEST');
       } else {
-        ui.toast('AWAKENING FILM VERIFIED - READY FOR SHOW');
+        showFilmStatus(result);
+        ui.toast('SHOW FILM VERIFIED - READY FOR SHOW');
       }
     } catch (err) {
       console.error('[awakening film import]', err);
@@ -996,6 +1013,7 @@ async function main() {
       ui.toast('FILM IMPORT FAILED - SEE TOOLS FOR DETAILS');
     } finally {
       filmImportButton.disabled = false;
+      refreshOfflineLed();
     }
   });
   $('btn-film-preview').addEventListener('click', () => {

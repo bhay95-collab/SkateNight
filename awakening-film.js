@@ -1,14 +1,30 @@
 import { OPENER } from './rotation.js';
-import { timeline } from './startup-timing.js';
 
-export const AWAKENING_FILM_ID = 'skate-by-faith-awakening-plunge-1080p60-v1';
-export const AWAKENING_FILM_FPS = 60;
-// Opt-in external preview only. The approved hosted film keeps its 60 fps contract.
+/* The show film: "The Song Inside", 35 seconds at native 30 fps, effects only.
+   Its timing comes from cinematic/extended/cues.json (approved source dcaf590);
+   NATIVE30_CONTRACT below mirrors that file and tests/awakening-film.test.js
+   checks the two agree. A new ID makes every earlier cached cut invalid. */
+export const AWAKENING_FILM_ID = 'skate-by-faith-song-inside-35s-native30-v1';
+export const AWAKENING_FILM_FPS = 30;
+export const AWAKENING_FILM_FRAME_COUNT = 1050;
+// Opt-in external preview only (TOOLS import + ?film=extended35); same locked contract.
 export const EXTENDED_PREVIEW_ID = 'production-preview-35s-native30-v1';
+export const NATIVE30_CONTRACT = Object.freeze({
+  frameCount: 1050,
+  durationSec: 35,
+  songStartSec: 31.393,
+  stylusContactFrame: 948,
+  registrationStartFrame: 1028,
+  finalCinematicFrame: 1049,
+  record: Object.freeze({ cx: 0.603125, cy: 0.39018517953378185, r: 0.047135416666666666, cssAngleDeg: 91.0557374652127, rpm: 45 }),
+});
 export const AWAKENING_FILM_WIDTH = 1920;
 export const AWAKENING_FILM_HEIGHT = 1080;
 export const HOSTED_AWAKENING_MANIFEST = 'films/manifest.json';
 export const MAX_HOSTED_FILM_BYTES = 90 * 1024 * 1024;
+// Venue wifi often hangs rather than failing: never wait on it indefinitely.
+const HOSTED_MANIFEST_TIMEOUT_MS = 8000;
+const HOSTED_FILM_TIMEOUT_MS = 5 * 60 * 1000;
 const FILE_PREFIX = 'awakening-film-';
 const PREVIEW_PREFIX = 'cinematic-preview-';
 const PREVIEW_CUES = [
@@ -20,9 +36,6 @@ const PREVIEW_CUES = [
   'firstSongCueFrame',
   'finalCinematicFrame',
 ];
-const EXPECTED_DURATION_MS = timeline(true).BEATS.end;
-export const AWAKENING_FILM_FRAME_COUNT = Math.ceil((EXPECTED_DURATION_MS / 1000) * AWAKENING_FILM_FPS);
-
 function prefixFor(kind) {
   return kind === 'production-preview' ? PREVIEW_PREFIX : FILE_PREFIX;
 }
@@ -30,99 +43,77 @@ function prefixFor(kind) {
 export function validateAwakeningFilmManifest(manifest, expectedKind = 'awakening') {
   const kind = manifest?.filmKind || 'awakening';
   if (!manifest || kind !== expectedKind) throw new Error(`This is not a ${expectedKind} cinematic asset.`);
-  if (expectedKind === 'awakening' && manifest.filmId !== AWAKENING_FILM_ID) {
-    throw new Error('This is not the current Awakening film.');
+  const showFilm = expectedKind === 'awakening';
+  if (showFilm && manifest.filmId !== AWAKENING_FILM_ID) {
+    throw new Error('This is not the current approved show film.');
   }
-  if (expectedKind === 'awakening'
-      && (manifest.manifestVersion !== 1 || !Number.isInteger(manifest.filmVersion)
-          || manifest.filmVersion < 1 || manifest.audioSampleRate !== 48000
-          || manifest.audioChannels !== 2 || !manifest.cues || !manifest.handoff)) {
-    throw new Error('The Awakening manifest needs a versioned 1080p audio handoff contract.');
+  if (manifest.manifestVersion !== 1 || !Number.isInteger(manifest.filmVersion) || manifest.filmVersion < 1
+      || (!showFilm && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.filmId))) {
+    throw new Error('The film manifest needs a versioned film identifier.');
   }
-  if (expectedKind === 'production-preview'
-      && (manifest.manifestVersion !== 1 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.filmId)
-          || !Number.isInteger(manifest.filmVersion) || manifest.filmVersion < 1)) {
-    throw new Error('The production preview manifest needs a versioned film identifier.');
+  // The show film and the locked preview are native 30; other previews keep the legacy 60 fps path.
+  const native30 = showFilm || manifest.filmId === EXTENDED_PREVIEW_ID;
+  if (manifest.width !== AWAKENING_FILM_WIDTH || manifest.height !== AWAKENING_FILM_HEIGHT
+      || manifest.fps !== (native30 ? 30 : 60)
+      || !Number.isInteger(manifest.frameCount) || manifest.frameCount <= 1
+      || manifest.videoCodec !== 'h264' || manifest.audioCodec !== 'aac') {
+    throw new Error('The film export must be 1920x1080 H.264/AAC at its supported frame rate.');
   }
-
-  const native30 = expectedKind === 'production-preview' && manifest.filmId === EXTENDED_PREVIEW_ID;
-  const dimensionsMatch = expectedKind === 'awakening'
-    ? manifest.width === AWAKENING_FILM_WIDTH && manifest.height === AWAKENING_FILM_HEIGHT
-      && manifest.fps === AWAKENING_FILM_FPS && manifest.frameCount === AWAKENING_FILM_FRAME_COUNT
-    : Number.isInteger(manifest.width) && Number.isInteger(manifest.height)
-      && manifest.width > 0 && manifest.height > 0 && manifest.width * 9 === manifest.height * 16
-      && manifest.fps === (native30 ? 30 : AWAKENING_FILM_FPS)
-      && Number.isInteger(manifest.frameCount) && manifest.frameCount > 1;
-  if (!dimensionsMatch || manifest.videoCodec !== 'h264' || manifest.audioCodec !== 'aac') {
-    throw new Error('The film export must be 16:9 H.264/AAC at its supported frame rate.');
+  if (manifest.audioSampleRate !== 48000 || manifest.audioChannels !== 2
+      || !manifest.cues || !manifest.handoff
+      || manifest.handoff.openerTrackId !== OPENER.id
+      || manifest.handoff.interactiveState !== `jukebox-playing:${OPENER.id}`) {
+    throw new Error('The film must include the 1080p audio and jukebox handoff contract.');
   }
-  if (expectedKind === 'production-preview') {
-    if (manifest.width !== AWAKENING_FILM_WIDTH || manifest.height !== AWAKENING_FILM_HEIGHT
-        || manifest.audioSampleRate !== 48000 || manifest.audioChannels !== 2
-        || !manifest.cues || !manifest.handoff
-        || manifest.handoff.openerTrackId !== 'praise-lifted-on-high'
-        || manifest.handoff.interactiveState !== 'jukebox-playing:praise-lifted-on-high') {
-      throw new Error('The production preview must include the 1080p audio handoff contract.');
+  for (const cue of PREVIEW_CUES) {
+    const frame = manifest.cues[cue];
+    if (frame !== null && (!Number.isInteger(frame) || frame < 0 || frame >= manifest.frameCount)) {
+      throw new Error(`The film manifest has an invalid ${cue}.`);
     }
-    for (const cue of PREVIEW_CUES) {
-      const frame = manifest.cues[cue];
-      if (frame !== null && (!Number.isInteger(frame) || frame < 0 || frame >= manifest.frameCount)) {
-        throw new Error(`The production preview has an invalid ${cue}.`);
-      }
-    }
-    if (manifest.cues.finalCinematicFrame !== manifest.frameCount - 1
-        || manifest.handoff.videoFrame !== manifest.cues.musicHandoffFrame) {
-      throw new Error('The production preview final frame or handoff frame is inconsistent.');
-    }
-    overlapPlan(manifest);
-    if (native30) validateExtendedPreview(manifest);
   }
+  if (manifest.cues.finalCinematicFrame !== manifest.frameCount - 1
+      || manifest.handoff.videoFrame !== manifest.cues.musicHandoffFrame) {
+    throw new Error('The film manifest final frame or handoff frame is inconsistent.');
+  }
+  overlapPlan(manifest);
+  if (native30) validateNative30Contract(manifest, showFilm);
   if (!Number.isFinite(manifest.durationSec) || manifest.durationSec <= 0
       || Math.abs(manifest.durationSec - manifest.frameCount / manifest.fps) > 0.001
       || manifest.sha256 !== manifest.sha256?.toLowerCase()
       || !/^[0-9a-f]{64}$/.test(manifest.sha256)) {
     throw new Error('The film manifest is incomplete or has invalid duration or checksum data.');
   }
-  if (expectedKind === 'awakening'
-      && Math.abs(manifest.durationSec - AWAKENING_FILM_FRAME_COUNT / AWAKENING_FILM_FPS) > 0.001) {
-    throw new Error('The film manifest duration does not match the complete Awakening cut.');
-  }
-  if (expectedKind === 'awakening') {
-    for (const cue of ['coinSequenceStartFrame', 'firstFailureFrame', 'recoveryFrame',
-      'stylusContactFrame', 'musicHandoffFrame', 'firstSongCueFrame', 'finalCinematicFrame']) {
-      const frame = manifest.cues[cue];
-      if (frame !== null && (!Number.isInteger(frame) || frame < 0 || frame >= manifest.frameCount)) {
-        throw new Error(`The Awakening manifest has an invalid ${cue}.`);
-      }
-    }
-    if (manifest.cues.coinSequenceStartFrame !== 0
-        || manifest.cues.finalCinematicFrame !== manifest.frameCount - 1
-        || manifest.cues.musicHandoffFrame !== manifest.frameCount - 1
-        || manifest.handoff.videoFrame !== manifest.cues.musicHandoffFrame
-        || manifest.handoff.openerTrackId !== 'praise-lifted-on-high'
-        || manifest.handoff.interactiveState !== 'jukebox-playing:praise-lifted-on-high') {
-      throw new Error('The Awakening manifest final frame or jukebox handoff is inconsistent.');
-    }
-  }
 }
 
 // Keep this exception narrow: arbitrary 30 fps or song-containing review files
 // must never become a prepared show asset. The source cue manifest owns timing.
-function validateExtendedPreview(manifest) {
+// The preview stays labelled experimental; the approved show film must not be.
+function validateNative30Contract(manifest, showFilm) {
   const { cues, handoff } = manifest;
   const record = handoff.record || {};
-  if (manifest.experimental !== true || manifest.frameCount !== 1050 || manifest.durationSec !== 35
+  const locked = NATIVE30_CONTRACT;
+  if (manifest.experimental !== !showFilm
+      || manifest.frameCount !== locked.frameCount || manifest.durationSec !== locked.durationSec
       || manifest.audioOwnership?.songEmbedded !== false
       || manifest.audioOwnership?.trackId !== OPENER.id
-      || handoff.mode !== 'overlap' || handoff.songStartSec !== 31.393
-      || cues.stylusContactFrame !== 948 || cues.firstSongCueFrame !== 948
-      || cues.registrationStartFrame !== 1028 || cues.finalCinematicFrame !== 1049
-      || Math.abs(record.cx - 0.603125) > 1e-9
-      || Math.abs(record.cy - 0.39018517953378185) > 1e-9
-      || Math.abs(record.r - 0.047135416666666666) > 1e-9
-      || Math.abs(record.cssAngleDeg - 91.0557374652127) > 0.001 || record.rpm !== 45) {
-    throw new Error('The experimental native-30 preview needs the locked 35-second effects-only C1 contract.');
+      || handoff.mode !== 'overlap' || handoff.songStartSec !== locked.songStartSec
+      || cues.stylusContactFrame !== locked.stylusContactFrame || cues.firstSongCueFrame !== locked.stylusContactFrame
+      || cues.registrationStartFrame !== locked.registrationStartFrame
+      || cues.finalCinematicFrame !== locked.finalCinematicFrame
+      || Math.abs(record.cx - locked.record.cx) > 1e-9
+      || Math.abs(record.cy - locked.record.cy) > 1e-9
+      || Math.abs(record.r - locked.record.r) > 1e-9
+      || Math.abs(record.cssAngleDeg - locked.record.cssAngleDeg) > 0.001 || record.rpm !== locked.record.rpm) {
+    throw new Error(showFilm
+      ? 'The show film must match the approved 35-second native-30 effects-only C1 contract.'
+      : 'The experimental native-30 preview needs the locked 35-second effects-only C1 contract.');
   }
+}
+
+// One line for the operator: which film, how long, what size, which bytes.
+export function describeFilm(manifest) {
+  return `V${manifest.filmVersion} · ${manifest.durationSec.toFixed(1)} S · ${manifest.width}x${manifest.height} · `
+    + `${manifest.fps} FPS · SHA ${manifest.sha256.slice(0, 8).toUpperCase()}`;
 }
 
 /* A film that keeps running while the jukebox plays the opener (handoff.mode
@@ -355,23 +346,31 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     return { available: false, message: 'NO VERIFIED FILM - LIVE CUT READY' };
   }
 
-  async function prepareHosted(manifestUrl = new URL(HOSTED_AWAKENING_MANIFEST, location.href).href) {
+  /* replaceLocal false (the launch check): a saved film that differs from the
+     website's is reported, never swapped in the background, so a download can
+     never land under a coin press. The operator's button replaces it. */
+  async function prepareHosted(manifestUrl = new URL(HOSTED_AWAKENING_MANIFEST, location.href).href,
+    { replaceLocal = true } = {}) {
     const unavailable = (reason) => ({
       available: Boolean(selected && objectUrl),
       message: selected && objectUrl
-        ? `LOCAL FILM READY - WEBSITE UPDATE UNAVAILABLE (${reason})`
+        ? `SAVED FILM READY OFFLINE - WEBSITE CHECK UNAVAILABLE (${reason})`
         : `NO VERIFIED FILM - LIVE CUT READY (${reason})`,
       manifest: selected?.manifest,
     });
     try {
-      const manifestResponse = await fetch(manifestUrl, { cache: 'no-cache' });
+      const manifestResponse = await fetch(manifestUrl, { cache: 'no-cache', signal: AbortSignal.timeout(HOSTED_MANIFEST_TIMEOUT_MS) });
       if (!manifestResponse.ok) return unavailable(`WEBSITE FILM NOT FOUND: HTTP ${manifestResponse.status}`);
       const manifest = await manifestResponse.json();
       const videoUrl = validateHostedAwakeningManifest(manifest, manifestUrl);
       if (selected?.manifest.sha256 === manifest.sha256 && objectUrl) {
-        return { available: true, message: 'WEBSITE FILM VERIFIED - READY OFFLINE', manifest };
+        return { available: true, message: 'WEBSITE FILM VERIFIED - READY OFFLINE', manifest: selected.manifest };
       }
-      const response = await fetch(videoUrl.href, { cache: 'no-cache' });
+      if (!replaceLocal && selected && objectUrl) {
+        return { available: true, stale: true, manifest: selected.manifest,
+          message: 'SAVED FILM IS NOT THE CURRENT WEBSITE FILM - PRESS CHECK / DOWNLOAD' };
+      }
+      const response = await fetch(videoUrl.href, { cache: 'no-cache', signal: AbortSignal.timeout(HOSTED_FILM_TIMEOUT_MS) });
       if (!response.ok) throw new Error(`The website film download failed: HTTP ${response.status}.`);
       const contentLength = Number(response.headers.get('content-length'));
       if (Number.isFinite(contentLength) && contentLength > MAX_HOSTED_FILM_BYTES) {

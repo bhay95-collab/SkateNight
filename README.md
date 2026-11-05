@@ -553,42 +553,30 @@ film carries effects only, so nothing doubles. Over the last 44 frames the film
 is carried onto the live `#record` wherever this screen has laid it out, the
 interface fades up around it, and the CSS spin takes the film's label angle.
 This works only through the production-preview slot (TOOLS -> IMPORT FILM +
-MANIFEST, then PREVIEW EXTERNAL FILM + SONG HANDOFF); the show default is
-unchanged. `OVERLAP_SONG_OFFSET_MS` in `app.js` is the measured one-frame cost of
+MANIFEST, then PREVIEW EXTERNAL FILM + SONG HANDOFF); the show itself plays
+the approved website film below. `OVERLAP_SONG_OFFSET_MS` in `app.js` is the measured one-frame cost of
 starting the song in Chrome on the Mac mini: re-measure it on the event MacBook
 with the check above, as with `REVEAL_OFFSET_MS`.
 
 ### Website-hosted approved film
 
-The PWA checks `films/manifest.json` at launch. Only a film marked with explicit
-`productionApproval` metadata may be downloaded; the browser validates its
-versioned manifest, dimensions, 60 fps timing, H.264/AAC codecs, checksum,
-decodability, and seeks before reporting **READY OFFLINE**. It stores verified
-bytes in OPFS and rechecks them on later launches. The operator can retry the
-website download or import a local MP4 + manifest. Experimental previews use
-their separate namespace and cannot replace the show film.
+The show film is **The Song Inside** (`films/song-inside-35s-v1.mp4`: 35 s,
+1,050 frames at native 30 fps, effects only; details in `films/README.md`). The
+PWA verifies its saved OPFS copy before the coin is live, then checks
+`films/manifest.json` in the background with a timeout, so venue networking can
+never hold up the coin. Only a manifest with explicit `productionApproval`, the
+current film ID and the locked native-30 contract from
+`cinematic/extended/cues.json` is accepted; the browser also verifies SHA-256,
+decodability and seeks before reporting **READY OFFLINE**. A saved film that
+differs from the website's is reported in Prepare for Show and replaced only by
+**CHECK / DOWNLOAD**. Experimental previews use their separate namespace and
+cannot replace the show film. Without a verified film the live cut plays.
 
-No approved cinematic is currently published in `films/`: the 18.22-second
-Plunge export is a technical regression fixture, and the five-second Blender
-movie is look-development only. The live standard cut therefore remains the
-default and fallback. Never publish either prototype by simply renaming it.
-After final creative, audio, transition, and hardware review, add an approval
-record to the final render manifest:
-
-```json
-"productionApproval": {
-  "status": "approved",
-  "approvedBy": "reviewer name",
-  "approvedAt": "2026-10-31T12:00:00.000Z"
-}
-```
-
-Then run `npm run cinematic:promote -- approved-awakening.mp4
-approved-awakening.mp4.json --confirm-approved`. Promotion validates the
-complete film, measured stylus-contact frame, handoff, stream metadata and
-SHA-256, and writes an immutable `films/awakening-vN.mp4` plus the current
-`films/manifest.json`. Review before committing; only those website delivery
-files should enter Git. The MP4 limit is 50 MiB to avoid GitHub's large-file
+Promote a new reviewed assembly with `npm run cinematic:promote --
+awakening-35-effects-only.mp4 awakening-35-effects-only.mp4.json
+--confirm-approved --approved-by "Name" --source-commit <sha>`. It writes an
+immutable `films/song-inside-35s-vN.mp4` plus the current `films/manifest.json`;
+only those website delivery files should enter Git. The MP4 limit is 50 MiB to avoid GitHub's large-file
 warning (GitHub warns above 50 MiB and blocks files above 100 MiB). GitHub Pages
 limits a published site to 1 GiB and has a soft 100 GB/month bandwidth limit;
 keep the full repository and deployed site comfortably below those limits.

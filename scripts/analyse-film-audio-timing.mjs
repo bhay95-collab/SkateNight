@@ -98,7 +98,7 @@ async function main() {
   const names = (await readdir(folder)).filter((name) => name.endsWith('-samples.json')).sort();
   const manifestPath = resolve(process.argv[3] || 'build/awakening-35-production/final-preview-v1/technical-integration/awakening-35-1080-DEVELOPMENT-PROXY.mp4.json');
   const manifest = JSON.parse(await readFile(manifestPath));
-  validateAwakeningFilmManifest(manifest, 'production-preview');
+  validateAwakeningFilmManifest(manifest, manifest.filmKind || 'awakening');
   if (manifest.fps !== 30) throw new Error('PCM batch analysis requires the supported native30 preview contract.');
   const source = fileURLToPath(new URL('../audio/praise-lifted-on-high.mp3', import.meta.url));
   const referenceBytes = execFileSync(process.env.FFMPEG_PATH || 'ffmpeg', ['-v', 'error', '-i', source,
