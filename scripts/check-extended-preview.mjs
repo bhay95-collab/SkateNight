@@ -96,6 +96,18 @@ async function ready(page) {await page.waitForFunction(() => window.__skateNight
 // The launch website check runs in the background; wait for its verdict, not just the page.
 const ledShows = (page, text) => page.waitForFunction((t) => document.getElementById('offline-text').textContent === t, text, {timeout:20000})
   .then(() => true, () => false);
+// Prepare for Show: LOAD THE CRATES, then the LED must confirm the whole show offline.
+async function prepareCrates(page) {
+  await page.evaluate(async()=>{await navigator.serviceWorker.ready;document.getElementById('cabinet-tools').open=true;document.getElementById('btn-crates').click();});
+  await page.waitForFunction(()=>!document.getElementById('btn-crates').disabled && document.getElementById('offline-text').textContent!=='',null,{timeout:300000});
+  const prepared=await ledShows(page,'OFFLINE READY');
+  results.push({label:'prepare-for-show-crates',offlineReady:prepared,led:await page.locator('#offline-text').textContent()});
+  assert(prepared,'Prepare for Show: LED did not confirm OFFLINE READY with songs and film saved');
+  // Show-like state: songs were saved earlier, not seconds before the coin.
+  await page.waitForTimeout(Number(opt('--settle-sec','0'))*1000);
+  await page.evaluate(()=>{document.getElementById('cabinet-tools').open=false;sessionStorage.removeItem('sn_opened');});
+  await page.reload({waitUntil:'load'});await ready(page);await filmSettled(page);
+}
 async function filmSettled(page) {await page.waitForFunction(() => document.getElementById('film-status').dataset.state !== 'checking',null,{timeout:180000});
   return page.evaluate(() => ({state:document.getElementById('film-status').dataset.state,text:document.getElementById('film-status').textContent,
     led:document.getElementById('offline-text').textContent}));}
@@ -343,6 +355,7 @@ try {
       await writeFile(resolve(out,'integration-proof.json'),JSON.stringify({generatedSyntheticProxy:!suppliedMovie,assetQuality:manifest.qualityTier || (suppliedMovie ? 'external-preview' : 'synthetic-technical-proxy'),cinematicApproval:false,movie:proxy,manifest:manifestPath,probe,results,failures},null,2)+'\n');
       await context.close();break;
     }
+    if (hosted && args.includes('--prepare-crates')) await prepareCrates(page);
     if (!offlineOnly) {
     results.push(await play(page,`${width}x${height}`));
     // Normal controls must be released after the film, including the actual music bus.
@@ -358,15 +371,7 @@ try {
     }
     if(i===0 && (offlineOnly || !args.includes('--skip-offline'))) {
       await page.evaluate(async()=>{await navigator.serviceWorker.ready;sessionStorage.removeItem('sn_opened');});
-      if (hosted && !args.includes('--no-crates')) {
-        await page.evaluate(()=>{document.getElementById('cabinet-tools').open=true;document.getElementById('btn-crates').click();});
-        await page.waitForFunction(()=>!document.getElementById('btn-crates').disabled && document.getElementById('offline-text').textContent!=='',null,{timeout:300000});
-        const prepared=await ledShows(page,'OFFLINE READY');
-        results.push({label:'prepare-for-show-crates',offlineReady:prepared,led:await page.locator('#offline-text').textContent()});
-        assert(prepared,'Prepare for Show: LED did not confirm OFFLINE READY with songs and film saved');
-        // Show-like state: songs were saved earlier, not seconds before the coin.
-        await page.waitForTimeout(Number(opt('--settle-sec','0'))*1000);
-      }
+      if (hosted && !args.includes('--no-crates') && !args.includes('--prepare-crates')) await prepareCrates(page);
       await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
       await context.setOffline(true);
       for (let run = 0; run < offlineRuns; run++) {
