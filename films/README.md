@@ -13,12 +13,21 @@ requests, including byte ranges, remain the static host's responsibility.
 
 ## Current show film
 
-`song-inside-35s-v1.mp4` — *The Song Inside*: 35.000 s, 1,050 frames at native
-30 fps, 1920×1080 H.264 with AAC **effects only**. SHA-256
-`cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c`, rendered
-from source `dcaf590`. *Praise Lifted On High* is never in the film: the jukebox
-starts it at 31.393 s on the film's presented-frame clock so its first hit
-lands on the stylus contact (frame 948), from `cinematic/extended/cues.json`.
+`song-inside-35s-v2.mp4` — *The Song Inside* with **Sound Design V4**: 35.000 s,
+1,050 frames at native 30 fps, 1920×1080 H.264 with AAC 256k. SHA-256
+`402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9`. The H.264
+stream is copied untouched from v1 (stream SHA-256 `514f808b…`); only the
+audio changed: the original effects and the approved V4 score-and-effects
+overlay, summed once at unity with no EQ, compression or limiting
+(−24.2 LUFS integrated, 6.0 LU range, −6.6 dBTP). `manifest.json` records
+the source checksums under `soundDesign`.
+
+*Praise Lifted On High* is never in the film: the jukebox starts it at
+31.393 s on the film's presented-frame clock so its first hit lands on the
+stylus contact (frame 948), from `cinematic/extended/cues.json`.
+
+`song-inside-35s-v1.mp4` (SHA-256 `cf4befea…`, effects only, source `dcaf590`)
+stays published so a rollback is a revert of `manifest.json` and the film ID.
 
 On launch the app verifies its saved copy before the coin is live, then checks
 the website in the background (8 s manifest timeout). With nothing saved it

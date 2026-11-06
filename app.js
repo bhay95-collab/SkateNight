@@ -86,9 +86,18 @@ const OVERLAP_SONG_OFFSET_MS = 17;
 // 50 ms was set with only the opener saved offline. With the final film and the
 // whole library saved (the real show state) two ten-run offline PCM batches put
 // first-hit contact at median +20.6 / +27.8 ms, each with 2/10 outside ±33.3 ms;
-// the gate itself was on time (≤1.5 ms). 70 ms recentres that. Re-measure on the
-// event machine: node scripts/check-extended-preview.mjs --hosted (README).
-const NATIVE30_MEDIA_STARTUP_LEAD_MS = 70;
+// the gate itself was on time (≤1.5 ms). 70 ms recentred that, but part of the
+// lateness was the old synthesized vinyl surface: 21-39 ms of main-thread work
+// in the opener's 'playing' handler. Sound Design V4 plays a decoded loop
+// instead, and the same show-state batch at 70 ms then ran early (median
+// -12.6 ms, worst -34.6) while the old build measured +7.2 ms that session;
+// 50 ms: median +9.6, worst +36.7; 60 ms: median -10.4, worst -34.8. Starts
+// land on ~21 ms audio blocks and batch medians move ~±10-15 ms, so no lead
+// gave 10/10 inside ±33.3 ms on this Mac (each 9/10). 50 ms keeps the misses
+// audio-late, which audiences notice far less than audio-early (ITU-R BT.1359).
+// Re-measure on the event machine:
+// node scripts/check-extended-preview.mjs --hosted (README).
+const NATIVE30_MEDIA_STARTUP_LEAD_MS = 50;
 const PREPARE_ON_LAUNCH = (() => {
   try { return new URLSearchParams(location.search).has('prepare'); } catch { return false; }
 })();

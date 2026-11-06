@@ -1,10 +1,11 @@
 import { OPENER } from './rotation.js';
 
-/* The show film: "The Song Inside", 35 seconds at native 30 fps, effects only.
+/* The show film: "The Song Inside", 35 seconds at native 30 fps, no song.
    Its timing comes from cinematic/extended/cues.json (approved source dcaf590);
    NATIVE30_CONTRACT below mirrors that file and tests/awakening-film.test.js
-   checks the two agree. A new ID makes every earlier cached cut invalid. */
-export const AWAKENING_FILM_ID = 'skate-by-faith-song-inside-35s-native30-v1';
+   checks the two agree. A new ID makes every earlier cached cut invalid.
+   v2: the v1 picture (H.264 stream copied untouched) with Sound Design V4 mixed in. */
+export const AWAKENING_FILM_ID = 'skate-by-faith-song-inside-35s-native30-v2';
 export const AWAKENING_FILM_FPS = 30;
 export const AWAKENING_FILM_FRAME_COUNT = 1050;
 // Opt-in external preview only (TOOLS import + ?film=extended35); same locked contract.

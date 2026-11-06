@@ -131,11 +131,16 @@ test('the committed website film is the approved asset its manifest names', () =
   const manifest = JSON.parse(read('films/manifest.json'));
   const video = validateHostedAwakeningManifest(manifest, 'https://bhay95-collab.github.io/SkateNight/films/manifest.json');
   assert.equal(video.href, `https://bhay95-collab.github.io/SkateNight/films/${manifest.videoFile}`);
-  assert.equal(manifest.sha256, 'cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c');
+  // v2: the approved picture with Sound Design V4 (video stream copied from v1, untouched)
+  assert.equal(manifest.sha256, '402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9');
+  assert.equal(manifest.soundDesign.videoStreamCopiedFrom, 'cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c');
+  const rollback = readFileSync(new URL('../films/song-inside-35s-v1.mp4', import.meta.url));
+  assert.equal(createHash('sha256').update(rollback).digest('hex'), manifest.soundDesign.videoStreamCopiedFrom,
+    'the published v1 film stays in place, unchanged, for rollback');
   const file = new URL(`../films/${manifest.videoFile}`, import.meta.url);
   assert.equal(statSync(file).size, manifest.hostedSizeBytes);
   assert.equal(createHash('sha256').update(readFileSync(file)).digest('hex'), manifest.sha256);
-  assert.equal(manifest.audioOwnership.songEmbedded, false, 'the website film carries effects only');
+  assert.equal(manifest.audioOwnership.songEmbedded, false, 'the website film never carries the song');
   assert.doesNotMatch(JSON.stringify(manifest), /\/Users\//, 'no local render paths are published');
 });
 

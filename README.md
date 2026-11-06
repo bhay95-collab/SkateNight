@@ -344,8 +344,10 @@ Chrome window first; Alt+F4 / Cmd+Q to leave).
 - The coin animation and seven original mechanical sound effects accompany the
   keys, selection relay, changer, needle and page carrier. **Effects** has its own
   volume slider; custom MP3s in `sfx/` can replace individual sounds.
-- Each record crackles like a played-in 45: soft hiss, warm crackle and the
-  odd pop. When a record is changed the needle drops with a click and scrape,
+- Each record crackles like a played-in 45: the approved record-surface loop
+  (`sfx/vinyl-surface.wav`, Sound Design V4; 9 s, seamless, saved for offline
+  use with the app). On the night's opener it starts with the song at the film's
+  stylus contact and carries straight on past the film. When a record is changed the needle drops with a click and scrape,
   then the lead-in groove crackles for about **1 second** before the song
   starts. As a song fades out the crackle carries on (the run-out groove).
   **Effects** controls this texture alongside the cabinet sounds; **Music**
@@ -560,8 +562,10 @@ with the check above, as with `REVEAL_OFFSET_MS`.
 
 ### Website-hosted approved film
 
-The show film is **The Song Inside** (`films/song-inside-35s-v1.mp4`: 35 s,
-1,050 frames at native 30 fps, effects only; details in `films/README.md`). The
+The show film is **The Song Inside** (`films/song-inside-35s-v2.mp4`: 35 s,
+1,050 frames at native 30 fps, effects plus the approved Sound Design V4 score,
+no song; details in `films/README.md`). `song-inside-35s-v1.mp4`, the same
+picture with the original effects only, stays published for rollback. The
 PWA verifies its saved OPFS copy before the coin is live, then checks
 `films/manifest.json` in the background with a timeout, so venue networking can
 never hold up the coin. Only a manifest with explicit `productionApproval`, the

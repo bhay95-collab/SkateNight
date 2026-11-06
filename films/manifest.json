@@ -1,12 +1,12 @@
 {
   "manifestVersion": 1,
   "filmKind": "awakening",
-  "filmId": "skate-by-faith-song-inside-35s-native30-v1",
-  "filmVersion": 1,
+  "filmId": "skate-by-faith-song-inside-35s-native30-v2",
+  "filmVersion": 2,
   "experimental": false,
   "title": "Skate by Faith — The Song Inside",
   "source": "Approved 1920x1080 native-30 production render; cinematic effects only",
-  "videoFile": "song-inside-35s-v1.mp4",
+  "videoFile": "song-inside-35s-v2.mp4",
   "width": 1920,
   "height": 1080,
   "fps": 30,
@@ -16,9 +16,9 @@
   "audioCodec": "aac",
   "audioSampleRate": 48000,
   "audioChannels": 2,
-  "audioDescription": "cinematic sound effects only; opening song remains in the jukebox player",
+  "audioDescription": "cinematic sound effects plus the approved V4 score-and-effects overlay; opening song remains in the jukebox player",
   "audioOwnership": {
-    "film": "cinematic sound effects and atmosphere",
+    "film": "cinematic sound effects, atmosphere and V4 score overlay (no song)",
     "openingSong": "Praise Lifted On High remains in the jukebox audio engine",
     "trackId": "praise-lifted-on-high",
     "songEmbedded": false
@@ -48,7 +48,35 @@
     }
   },
   "timelineSha256": "08c740321be47fcfafc04fd9391f7071fdf83b0ccea908b23fef7b490bd373d3",
-  "sha256": "cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c",
+  "sha256": "402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9",
+  "soundDesign": {
+    "version": "V4",
+    "approved": "2026-11-06",
+    "overlay": {
+      "file": "additional_sound_design_overlay_V4_35s.wav",
+      "sha256": "ad0ef48bfcd2f467cc7429ac3a3759df4285dcc90515eb8702579faca4e126ee"
+    },
+    "effects": {
+      "file": "effects-only.wav",
+      "sha256": "440f5821bb272ebc3ef0756bc8a54842812d5641ece96b436a44259e786175c9"
+    },
+    "master": {
+      "file": "effects-plus-v4-master.wav",
+      "sha256": "6432bcdb4b6f9e2b910ba7f587ef06fee609bae2588f5c5579f0f2a5cf415055",
+      "mix": "effects + V4 overlay summed once at unity; no gain change, EQ, compression or limiting",
+      "integratedLufs": -24.2,
+      "loudnessRangeLu": 6,
+      "truePeakDbtp": -6.7,
+      "maxShortTermLufs": -20.8
+    },
+    "aac": {
+      "bitrate": "256k",
+      "integratedLufs": -24.2,
+      "truePeakDbtp": -6.6
+    },
+    "videoStreamSha256": "514f808bbf0c2792a3f4f10e3d5fb996387427a3e96e9bd18f610066f6701e6e",
+    "videoStreamCopiedFrom": "cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c"
+  },
   "sourceFilmId": "production-preview-35s-native30-v1",
   "sourceCommit": "dcaf590",
   "renderProvenance": [
@@ -72,7 +100,7 @@
   "productionApproval": {
     "status": "approved",
     "approvedBy": "Benjamin Hay",
-    "approvedAt": "2026-11-05T22:43:05.996Z"
+    "approvedAt": "2026-11-06T06:24:22.595Z"
   },
-  "hostedSizeBytes": 26424470
+  "hostedSizeBytes": 26671302
 }
