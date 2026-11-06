@@ -640,6 +640,8 @@ body.on-attract .rig:has(.utility-drawer[open]) > :not(.deck){ visibility:hidden
 .transport{ gap:.55rem; }
 .transport .btn-deck{ min-width:3.8rem; }
 .utility-drawer{ position:relative; z-index:60; }
+/* the open hatch must clear the panels' title tabs (z 3); still under toasts (30), modals (80) and the film (100) */
+.deck:has(.utility-drawer[open]){ z-index:10; }
 .utility-drawer summary{
   display:flex; align-items:center; gap:.55rem; list-style:none; cursor:pointer;
   padding:.5rem .7rem; border:1px solid var(--trim); border-radius:.5rem;
@@ -659,6 +661,9 @@ body.on-attract .rig:has(.utility-drawer[open]) > :not(.deck){ visibility:hidden
   background:linear-gradient(160deg, #1d1922, #0d0a10);
   box-shadow:0 0 0 1px #050307, 0 .8rem 1.8rem rgba(0,0,0,.75), inset 0 1px 0 rgba(236,228,244,.12);
 }
+/* one column that never grows past the hatch: long labels and film status wrap instead of spilling out */
+.utility-panel, .film-tools{ grid-template-columns:minmax(0,1fr); }
+.utility-panel .btn{ white-space:normal; line-height:1.25; text-wrap:balance; }
 .utility-panel > p{ margin:0 0 .15rem; font:700 .58rem/1.3 var(--font-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--plate); }
 .utility-panel .btn{ width:100%; min-height:2.2rem; }
 .utility-panel .crate-unit{ display:flex; }
@@ -671,7 +676,7 @@ body.on-attract .rig:has(.utility-drawer[open]) > :not(.deck){ visibility:hidden
 .utility-panel input[type="checkbox"]{ flex:none; width:1.1rem; height:1.1rem; margin:.1rem 0; accent-color:var(--cyan); }
 .film-tools{ display:grid; gap:.35rem; padding:.55rem 0; border-top:1px solid var(--trim); }
 .film-tools > strong{ color:var(--plate); font:700 .62rem/1.3 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; }
-.film-status{ color:var(--label); font:700 .62rem/1.4 var(--font-mono); letter-spacing:.06em; }
+.film-status{ color:var(--label); font:700 .62rem/1.4 var(--font-mono); letter-spacing:.06em; overflow-wrap:anywhere; }
 .film-status[data-state="ready"]{ color:var(--cyan); }
 .film-status[data-state="bad"]{ color:#ff8297; }
 .awakening-film{ position:fixed; z-index:100; inset:0; width:100%; height:100%; object-fit:cover; background:#000; visibility:hidden; pointer-events:none; }
