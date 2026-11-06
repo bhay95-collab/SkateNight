@@ -57,16 +57,18 @@ called.
 
 ## Vinyl playback texture
 
-`vinyl.js` generates an original, quiet record surface in the browser: filtered
-groove friction and sparse soft dust ticks under each song. A brief 240 ms
-needle-settling scrape accompanies actual track starts and restarts, including
-natural song changes. It is a small groove scratch, not a DJ backspin. Pausing
-and resuming or recovering from buffering does not repeat the scrape.
+The record surface is the approved Sound Design V4 loop, `sfx/vinyl-surface.wav`.
+Each interactive record change drops the needle with `sfx/needle-drop.wav`
+(0.32 s, cut from the owner's `MA_SoundCreator_Scratch_Vinyl_1.wav`): a crisp
+contact, a brief textured scrape and a natural decay under the surface - a
+touchdown, not a DJ scratch. If it cannot load, `vinyl.js` synthesizes a drop
+instead. The night's opener never drops the needle here (the film carries its
+own stylus contact), and pausing, resuming or recovering from buffering does
+not repeat it.
 
 The surface follows the deck's fades and stops on pause, buffering, end, or
-playback error. Both MUSIC and EFFECTS affect it: lower EFFECTS for less vinyl
-and quieter cabinet sounds; EFFECTS at zero removes both. MUSIC at zero also
-silences the vinyl.
+playback error. EFFECTS is its master and **Vinyl texture** trims it alone;
+MUSIC does not touch it.
 
 For independent adjustment, open **TOOLS** and use **Vinyl texture**. Its default
 **100%** preserves the authored mix; lowering it reduces the scrape, surface
@@ -81,3 +83,34 @@ against the supplied pack. Do not normalize all effects to full scale: they
 should sit below the music. Use sounds you have the right to use. Assess final
 SFX volume through the venue's speakers; browser playback alone cannot establish
 the right level for a room.
+
+## The interactive jukebox: changer and living machine
+
+Built from the owner's recordings (Motion Array and other sources, kept
+outside this repository) by `node scripts/build-jukebox-sfx.mjs <source pack>`,
+which records exactly how each component was cut, filtered, faded and
+normalised. Only the optimised results are committed (805 KiB in all, all
+precached for offline use):
+
+| File | What it holds |
+|---|---|
+| `jukebox/mechanics.mp3` | 36 short components (motor, ratchets, index lock, gripper, servos, platter drop, tonearm, record seating, sleeve return, and distant details); `jukebox-sprite.js` maps them |
+| `jukebox/bed-machine.flac` | the low machine bed, 8 s seamless loop (from the idling-machine recording) |
+| `jukebox/bed-electric.flac` | the electrical hum, 7 s seamless loop (from Electricity Loop 1) |
+| `needle-drop.wav` | the stylus touchdown above |
+
+`jukebox-sfx.js` plays them on the Effects bus. **The changer**: every eject
+and load is placed on `mechanism.js`'s move fractions, scaled with the move
+(so skips at speed 1.8 stay on the picture), each slot drawn from a shuffle bag
+with slight speed and level variation. It replaces the motor whirr while the
+recordings are available and plays on the same voice, so the next move or a
+reset releases it. A load peaks about 8 dB under a song at equal faders.
+**The living machine**: the two beds and an irregular distant detail (one at a
+time, every 6-30 s or so; steam at most every 100 s). It fades in over about 8
+s once the film has handed over (never over the dormant screen or the film),
+sits about 4.5 dB lower while music plays, and stops entirely in a hidden tab.
+Its levels are `AMBIENCE` in `jukebox-sfx.js`: about -38 LUFS idle at equal
+faders, roughly 20 dB under the music. Confirm them on the event PA.
+
+Licensing: check the Motion Array (and any other source's) terms cover public
+use at the event and these trimmed files on a public GitHub Pages site.

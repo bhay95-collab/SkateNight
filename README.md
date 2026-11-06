@@ -347,14 +347,21 @@ Chrome window first; Alt+F4 / Cmd+Q to leave).
 - Each record crackles like a played-in 45: the approved record-surface loop
   (`sfx/vinyl-surface.wav`, Sound Design V4; 9 s, seamless, saved for offline
   use with the app). On the night's opener it starts with the song at the film's
-  stylus contact and carries straight on past the film. When a record is changed the needle drops with a click and scrape,
-  then the lead-in groove crackles for about **1 second** before the song
+  stylus contact and carries straight on past the film. When a record is changed the
+  changer works audibly - motor, ratchets, the carousel locking, servos, the
+  record settling, the tonearm (recordings, varied each time) - and the needle
+  drops with a recorded touchdown, then the lead-in groove crackles for about **1 second** before the song
   starts. As a song fades out the crackle carries on (the run-out groove).
   **Effects** controls this texture alongside the cabinet sounds; **Music**
   does not touch it. The **Vinyl texture** slider in TOOLS turns down just the
   texture; **0%** removes vinyl (and the 1-second lead-in) without silencing
   cabinet sounds. Music, Effects and Vinyl texture show their current
   percentages. Resuming a paused song does not replay the needle drop.
+
+- Once the film hands over, the machine keeps working quietly around the
+  music: a low motor bed, an electrical hum and occasional distant rattles,
+  servos, sparks and relays, a little lower while a song plays (Effects
+  volume; details in `sfx/README.md`).
 
 ### The machine's hum while it waits
 
