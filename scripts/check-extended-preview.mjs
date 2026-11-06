@@ -79,7 +79,10 @@ const server = createServer(async (req,res) => {
   catch {res.writeHead(404).end();}
 });
 await new Promise((done) => server.listen(0,'127.0.0.1',done));
-const base = `http://127.0.0.1:${server.address().port}`;
+// --base URL: check a deployed site (e.g. the live GitHub Pages URL) instead of this worktree.
+// Keep the trailing slash: the service worker's scope is the site folder, and
+// the folder URL without it is outside that scope offline.
+const base = opt('--base', null)?.replace(/\/?$/, '/') || `http://127.0.0.1:${server.address().port}`;
 let playwright;
 if (process.env.PLAYWRIGHT_CORE_PATH) {
   playwright = await import(pathToFileURL(resolve(process.env.PLAYWRIGHT_CORE_PATH)).href);
