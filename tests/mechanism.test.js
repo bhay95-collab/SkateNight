@@ -9,7 +9,7 @@ const third = { id: 'third', title: 'Third record', accent: 'cyan' };
 
 // Exercise the real animation controller with a clock and the small DOM
 // surface it uses. A cancelled animation must never strand its callers.
-function mechanismScene(t, { calm = false } = {}) {
+function mechanismScene(t, { calm = false, recorded = null } = {}) {
   let now = 0;
   let nextTimer = 0;
   const timers = new Map();
@@ -81,6 +81,8 @@ function mechanismScene(t, { calm = false } = {}) {
     whirr: (seconds) => sounds.push({ kind: 'whirr', at: now, seconds }),
     thud: () => sounds.push({ kind: 'thud', at: now }),
     stop: (name) => sounds.push({ kind: 'stop', name, at: now }),
+    // recorded: the sampled changer (sound.js sfx.change); { ready } says whether its files decoded
+    ...(recorded && { change: (move, seconds) => { sounds.push({ kind: 'change', move, seconds, at: now }); return recorded.ready; } }),
   };
   const mechanism = createMechanism({ sfx });
   const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
@@ -211,4 +213,37 @@ test('reset also invalidates a swap waiting through the calm delay', async (t) =
   assert.equal(scene.get('record-label').dataset.accent, first.accent);
   assert.equal(scene.mechanism.phase, 'empty');
   assert.equal(scene.sounds.some((sound) => sound.kind === 'thud'), false);
+});
+
+for (const speed of [1, 1.8]) {
+  test(`the recorded changer follows each move at speed ${speed}`, async (t) => {
+    const scene = mechanismScene(t, { recorded: { ready: true } });
+    scene.mechanism.showPlaying(first);
+    scene.mechanism.swap(second, { speed });
+    const ejectionMs = EJECT_MS / speed;
+    await scene.tick(ejectionMs + LOAD_MS / speed);
+    assert.deepEqual(scene.sounds.filter((sound) => sound.kind === 'change'), [
+      { kind: 'change', move: 'eject', seconds: EJECT_MS / speed / 1000, at: 0 },
+      { kind: 'change', move: 'load', seconds: LOAD_MS / speed / 1000, at: ejectionMs },
+    ], 'whole-move durations, so every cue scales with the choreography');
+    assert.equal(scene.sounds.some((sound) => sound.kind === 'whirr'), false, 'never doubled with the motor');
+    assert.deepEqual(scene.sounds.filter((sound) => sound.kind === 'thud').map((sound) => sound.at), [ejectionMs + LOAD_MS / speed],
+      'the needle still lands exactly at the music start');
+  });
+}
+
+test('until the recordings are ready (or if they fail) the original motor plays', async (t) => {
+  const scene = mechanismScene(t, { recorded: { ready: false } });
+  scene.mechanism.load(first);
+  await scene.tick(LOAD_MS);
+  assert.equal(scene.sounds.filter((sound) => sound.kind === 'change').length, 1);
+  assert.equal(scene.sounds.filter((sound) => sound.kind === 'whirr').length, 1, 'missing recordings: the original motor plays');
+});
+
+test('reset releases the recorded changer through the motor voice', async (t) => {
+  const scene = mechanismScene(t, { recorded: { ready: true } });
+  scene.mechanism.load(first);
+  await scene.tick(250);
+  scene.mechanism.reset();
+  assert.deepEqual(scene.sounds.at(-1), { kind: 'stop', name: 'whirr', at: 250 });
 });

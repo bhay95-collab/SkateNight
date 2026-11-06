@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createVinylBuffers, createVinylSurface, loadVinylSurface } from '../vinyl.js';
+import { createVinylBuffers, createVinylSurface, loadNeedleDrop, loadVinylSurface } from '../vinyl.js';
 import { getLevels, setMusicLevel, setSfxLevel, setVinylLevel, unlockAudio } from '../audio.js';
 import { perceptualVolume } from '../format.js';
 
@@ -61,14 +61,20 @@ class FakeContext {
   createAnalyser() { return node(); }
   createChannelSplitter() { return node(); }
   createBiquadFilter() { return { ...node(), frequency: {} }; }
-  // the decoded sfx/vinyl-surface.wav: 9 s stereo (kept out of `buffers`, which counts synthesis)
-  async decodeAudioData() { return { numberOfChannels: 2, sampleRate: this.sampleRate, duration: 9, length: 9 * this.sampleRate }; }
+  // the decoded samples (kept out of `buffers`, which counts synthesis): the 9 s stereo
+  // sfx/vinyl-surface.wav or the 0.32 s mono sfx/needle-drop.wav, told apart by URL
+  async decodeAudioData(bytes) {
+    const needle = new TextDecoder().decode(bytes).includes('needle');
+    const duration = needle ? 0.32 : 9;
+    return { numberOfChannels: needle ? 1 : 2, sampleRate: this.sampleRate, duration, length: duration * this.sampleRate };
+  }
 }
 
 // The loop is fetched from the site; tests stand in for the network.
-globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
-// Decks begin decoding when created; wait for it before expecting the loop.
-const loopReady = async (ctx) => { await loadVinylSurface(ctx); await Promise.resolve(); };
+const site = async (url) => ({ ok: true, arrayBuffer: async () => new TextEncoder().encode(String(url)).buffer });
+globalThis.fetch = site;
+// Decks begin decoding when created; wait for both samples before expecting them.
+const loopReady = async (ctx) => { await Promise.all([loadVinylSurface(ctx), loadNeedleDrop(ctx)]); await Promise.resolve(); };
 
 // The approved loop as the browser decodes it: 24-bit stereo PCM WAV.
 function readLoop() {
@@ -187,15 +193,15 @@ test('preloading is silent, repeated starts keep one surface, and only a request
   assert.equal(ctx.sources.length, 2);
   const needle = ctx.sources[1];
   assert.equal(needle.loop, false);
-  assert.equal(needle.buffer, createVinylBuffers(ctx).scratch);
+  assert.equal(needle.buffer.duration, 0.32, 'the recorded needle drop (sfx/needle-drop.wav)');
   assert.deepEqual(needle.starts, [[ctx.currentTime, 0]], 'scratch plays once from its beginning');
   vinyl.start();
   assert.equal(ctx.sources.length, 2, 'resuming an existing surface adds no scratch');
-  assert.equal(ctx.buffers.length, 1);
+  assert.equal(ctx.buffers.length, 0, 'nothing is synthesized while the recording is available');
   const anotherDeck = createVinylSurface(ctx, node());
   await loopReady(ctx);
   anotherDeck.start();
-  assert.equal(ctx.buffers.length, 1, 'second deck reuses cached synthesis');
+  assert.equal(ctx.buffers.length, 0);
   assert.equal(ctx.sources.at(-1).buffer, surface.buffer, 'decks share one decoded loop');
   assert.notEqual(ctx.sources.at(-1), surface, 'each deck owns its playback source');
 });
@@ -227,7 +233,8 @@ test('a loop that cannot load leaves the music and needle drop alone', async () 
     vinyl.start({ needle: true });
     assert.equal(ctx.sources.length, 1, 'no surface, the needle drop still plays');
     assert.equal(ctx.sources[0].loop, false);
-    assert.equal(warnings.length, 1, 'one warning per audio context, not per deck');
+    assert.equal(ctx.sources[0].buffer, createVinylBuffers(ctx).scratch, 'the synthesized drop stands in');
+    assert.equal(warnings.length, 2, 'one warning per sample per audio context, not per deck');
   } finally {
     globalThis.fetch = savedFetch;
     console.warn = savedWarn;
@@ -414,6 +421,8 @@ test('synthesis or source failures disable optional texture without interrupting
       const warnings = [];
       console.warn = (...args) => warnings.push(args);
       try {
+        // Synthesis only runs when the recorded needle drop is unavailable.
+        if (failure === 'buffer') globalThis.fetch = async (url) => (String(url).includes('needle') ? { ok: false, status: 404 } : site(url));
         const vinyl = createVinylSurface(ctx, node());
         await loopReady(ctx);
         if (failure === 'buffer') {
@@ -434,8 +443,9 @@ test('synthesis or source failures disable optional texture without interrupting
             ctx.createBufferSource = () => { throw new Error('source unavailable'); };
           }
         }
+        const before = warnings.length;   // the 'buffer' case has already warned that the recording is missing
         assert.doesNotThrow(() => vinyl.start({ needle: true }));
-        assert.equal(warnings.length, 1, 'failure is visible for diagnosis');
+        assert.equal(warnings.length - before, 1, 'failure is visible for diagnosis');
         for (const source of ctx.sources) {
           if (failure !== 'cleanup') assert.ok(source.disconnected, 'failed source is disconnected');
           assert.ok(source.connections[0].disconnected,
@@ -448,9 +458,10 @@ test('synthesis or source failures disable optional texture without interrupting
           vinyl.scratch();
           vinyl.setLevel(0.5);
         });
-        assert.equal(warnings.length, 1, 'failed synthesis does not keep retrying during music playback');
+        assert.equal(warnings.length - before, 1, 'failed synthesis does not keep retrying during music playback');
       } finally {
         console.warn = savedWarn;
+        globalThis.fetch = site;
       }
     });
   }

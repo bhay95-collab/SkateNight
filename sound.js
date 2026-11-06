@@ -33,6 +33,7 @@
    ============================================================ */
 import { getEngine } from './audio.js';
 import { BEATS, CHUTE_CLINKS_MS, EXTENDED, PULSE, ROBOT_FIRST_MS, supplyAt } from './startup-timing.js';
+import { loadJukeboxSfx, playChange } from './jukebox-sfx.js';
 
 /* The film's beats in seconds, from the moment each sound is cued. */
 const secs = (ms) => ms / 1000;
@@ -237,6 +238,7 @@ export function preloadSfxFiles() {
 export async function decodeSfxFiles() {
   const e = getEngine();
   if (!e) return;
+  loadJukeboxSfx(e.ctx);   // the changer's recordings and the machine's ambience, decoded off the main thread
   await preloadSfxFiles();
   await Promise.all([...rawFiles].map(async ([name, candidates]) => {
     if (buffers.has(name)) return;
@@ -484,6 +486,22 @@ const effect = (name, fallback) => (...args) => {
 
 export const sfx = {
   stop(name) { activeVoices.get(name)?.release(); },
+
+  /* The record changer's recorded choreography (jukebox-sfx.js) on the motor's
+     own voice: stop('whirr') or the next move releases it. Returns false when
+     the recordings are not ready, and mechanism.js plays the whirr instead. */
+  change(move, seconds) {
+    let voice;
+    try {
+      voice = createVoice('whirr');
+      if (voice && playChange(move, seconds, voice)) return true;
+      voice?.release();
+    } catch (err) {
+      voice?.release();
+      console.warn('[sound]', err);
+    }
+    return false;
+  },
   coin: effect('coin', (voice) => {
     for (const [at, peak] of [[0, 0.12], [0.065, 0.09], [0.145, 0.10], [0.24, 0.07]]) {
       thump(voice, { freq: 2100, dur: 0.035, peak, at });

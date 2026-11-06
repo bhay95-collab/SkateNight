@@ -20,7 +20,7 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v47';
+const SHELL_CACHE = 'skatenight-shell-v48';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
@@ -37,6 +37,8 @@ const SHELL_FILES = [
   'fonts/barlow-700.woff2', 'fonts/jetbrains-mono.woff2',
   'sfx/coin.wav', 'sfx/key.wav', 'sfx/confirm.wav', 'sfx/whirr.wav',
   'sfx/thud.wav', 'sfx/buzz.wav', 'sfx/page.wav', 'sfx/vinyl-surface.wav',
+  'jukebox-sfx.js', 'jukebox-sprite.js', 'sfx/needle-drop.wav',
+  'sfx/jukebox/mechanics.mp3', 'sfx/jukebox/bed-machine.flac', 'sfx/jukebox/bed-electric.flac',
 ];
 
 self.addEventListener('install', (event) => {

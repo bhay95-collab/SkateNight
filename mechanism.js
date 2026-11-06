@@ -178,7 +178,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const lift = radius * 0.2;
 
     setPhase('playing');         // the finished layout; the animations below paint over it
-    sfx.whirr(tDown / 1000);
+    if (!sfx.change?.('load', T / 1000)) sfx.whirr(tDown / 1000);   // the recorded changer, or the motor
 
     setRing(toDeg);
     const anims = [
@@ -237,7 +237,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const lift = radius * 0.2;
     const currentArm = parseFloat(arm.style.getPropertyValue('--arm-angle')) || ARM_START;
 
-    sfx.whirr(T / 1000 * 0.8);
+    if (!sfx.change?.('eject', T / 1000)) sfx.whirr(T / 1000 * 0.8);
     const anims = [
       arm.animate(
         [{ transform: `rotate(${currentArm}deg)` }, { transform: `rotate(${ARM_PARK}deg)` }],

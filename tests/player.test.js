@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { unlockAudio, setMusicLevel, setSfxLevel } from '../audio.js';
 import { createPlayer } from '../player.js';
-import { loadVinylSurface } from '../vinyl.js';
+import { loadNeedleDrop, loadVinylSurface } from '../vinyl.js';
 
 const first = { id: 'first', file: 'first.mp3' };
 const second = { id: 'second', file: 'second.mp3' };
@@ -56,7 +56,8 @@ test('record texture follows the real media lifecycle on its own record bus', as
       return buffer;
     }
     // the decoded sfx/vinyl-surface.wav loop (kept out of `buffers`, which counts synthesis)
-    async decodeAudioData() { return { duration: 9 }; }
+    // the decoded samples: sfx/needle-drop.wav (0.32 s) or the 9 s surface loop
+    async decodeAudioData(bytes) { return { duration: new TextDecoder().decode(bytes).includes('needle') ? 0.32 : 9 }; }
     createBufferSource() {
       const source = {
         ...node(), loop: false, starts: [], stops: [], finished: false,
@@ -98,14 +99,14 @@ test('record texture follows the real media lifecycle on its own record bus', as
       return id;
     },
     clearTimeout: (id) => timers.delete(id),
-    fetch: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }),
+    fetch: async (url) => ({ ok: true, arrayBuffer: async () => new TextEncoder().encode(String(url)).buffer }),
   };
   for (const [key, value] of Object.entries(bindings)) {
     Object.defineProperty(globalThis, key, { value, configurable: true, writable: true });
   }
   const engine = unlockAudio();
   const { ctx } = engine;
-  await loadVinylSurface(ctx);   // decoded during the film in the app; decks then have it at once
+  await Promise.all([loadVinylSurface(ctx), loadNeedleDrop(ctx)]);   // decoded during the film in the app; decks then have them at once
   const finishSources = () => {
     for (const source of ctx.sources) {
       const naturalEnd = source.loop ? Infinity : source.starts[0]?.[0] + source.buffer.duration;

@@ -24,6 +24,7 @@ import { unlockAudio, getEngine, setMusicLevel, setSfxLevel, setVinylLevel } fro
 import { createDrone } from './drone.js';
 import { installCabinetKeyboard } from './keyboard.js';
 import { sfx, preloadSfxFiles, decodeSfxFiles } from './sound.js';
+import { createAmbience } from './jukebox-sfx.js';
 import { createPlayer, probeAll } from './player.js';
 import { createMechanism } from './mechanism.js';
 import { createVisualiser, buildMirrorLight } from './visualiser.js';
@@ -192,6 +193,7 @@ async function main() {
 
   let player = null;
   let visualiser = null;
+  let ambience = null;             // the living machine (jukebox-sfx.js), once the interactive jukebox is up
 
   const nextJoke = createRotator(SKATE_JOKES);
   const nextIdleJoke = createRotator(IDLE_JOKES);
@@ -250,6 +252,7 @@ async function main() {
       const playText = phase === 'playing' ? 'PAUSE' : phase === 'paused' ? 'RESUME' : phase === 'changing' ? 'PAUSE' : 'START';
       $('btn-play-text').textContent = playText;
       $('btn-play').classList.toggle('is-playing', phase === 'playing');
+      ambience?.setMusic(phase === 'playing' || phase === 'changing');   // a little lower under the music
     }, 0);
   }
 
@@ -1366,6 +1369,14 @@ async function main() {
     renderCredits();
     ensureHouseNext();
     await powerOn({ previewFilm });
+    // Only now is the interactive jukebox on screen: the dormant screen and the
+    // film have their own soundtracks. The machine fades in slowly, after C1.
+    if (engineReady) safely('ambience', () => {
+      ambience = createAmbience(getEngine());
+      ambience.setMusic(phase === 'playing' || phase === 'changing');
+      ambience.setVisible(!document.hidden);
+      ambience.start();
+    });
     keepAwake();
     ticker.start();
     if (matchMedia('(pointer:fine)').matches && innerWidth >= 1000) showLegend();
@@ -1429,6 +1440,7 @@ async function main() {
     begin();
   });
   document.addEventListener('visibilitychange', () => drone?.setVisible(!document.hidden));
+  document.addEventListener('visibilitychange', () => ambience?.setVisible(!document.hidden));   // nothing runs in a hidden tab
   // ?hum, or a remembered hum the browser has not let play yet: the first press arms the hum, not the coin
   let humFirst = new URLSearchParams(location.search).has('hum') || rememberedDrone;
   function enterPrepareMode() {

@@ -1,39 +1,45 @@
 /* A played-in 45: the approved record-surface loop (sfx/vinyl-surface.wav,
    Sound Design V4: 9 s, 48 kHz stereo, seamless end-to-start, about
-   -46 dBFS) and a synthesized needle drop (contact click, felt thump,
-   groove scrape) for song changes. The texture has its own record bus
+   -46 dBFS) and a recorded needle drop for song changes (sfx/needle-drop.wav:
+   a crisp contact, a brief scrape, a decay into the surface; cut by
+   scripts/build-jukebox-sfx.mjs). If the recording cannot load, a
+   synthesized drop stands in. The texture has its own record bus
    beside the music, so it carries on through a song's closing fade (the
    run-out groove) and plays the lead-in groove before the music. EFFECTS is
    its master, with an independent VINYL trim for the record texture alone;
-   MUSIC does not touch it. */
+   MUSIC does not touch it. The film's opener never drops the needle here:
+   the film carries its own stylus contact. */
 import { getLevels } from './audio.js';
 import { perceptualVolume } from './format.js';
 
 const surfaces = new WeakMap();
-const loops = new WeakMap();       // context -> pending load
-const decoded = new WeakMap();     // context -> loop buffer, once ready
-const SURFACE_URL = new URL('./sfx/vinyl-surface.wav', import.meta.url);
+const SAMPLES = { surface: './sfx/vinyl-surface.wav', needle: './sfx/needle-drop.wav' };
+const loads = new WeakMap();       // context -> { sample: pending load }
+const decoded = new WeakMap();     // context -> { sample: buffer, once ready }
 const SCRATCH_SECONDS = 0.32;
 
-/* Fetch and decode the surface loop once per audio context. Decoding is not
-   playback: decks start it at creation so the loop is ready long before the
+/* Fetch and decode each sample once per audio context. Decoding is not
+   playback: decks start it at creation so both are ready long before the
    film's stylus contact. Resolves null (and warns once) if it cannot load:
    the texture is optional and the music never waits for it. */
-export function loadVinylSurface(ctx) {
-  if (!loops.has(ctx)) {
-    loops.set(ctx, (async () => {
-      const response = await fetch(SURFACE_URL);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
-      decoded.set(ctx, buffer);
-      return buffer;
-    })().catch((error) => {
-      console.warn('[vinyl] surface loop unavailable; music continues', error);
-      return null;
-    }));
-  }
-  return loops.get(ctx);
+function loadSample(ctx, key) {
+  if (!loads.has(ctx)) { loads.set(ctx, {}); decoded.set(ctx, {}); }
+  const pending = loads.get(ctx);
+  pending[key] ||= (async () => {
+    const response = await fetch(new URL(SAMPLES[key], import.meta.url));
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
+    decoded.get(ctx)[key] = buffer;
+    return buffer;
+  })().catch((error) => {
+    console.warn(`[vinyl] ${key === 'surface' ? 'surface loop' : 'needle drop'} unavailable; music continues`, error);
+    return null;
+  });
+  return pending[key];
 }
+export const loadVinylSurface = (ctx) => loadSample(ctx, 'surface');
+export const loadNeedleDrop = (ctx) => loadSample(ctx, 'needle');
+const ready = (ctx, key) => decoded.get(ctx)?.[key];
 
 // A repeatable source makes level measurements and regression checks useful.
 function noise(seed) {
@@ -151,8 +157,9 @@ export function createVinylSurface(ctx, destination) {
     source.start(ctx.currentTime, looping ? Math.random() * buffer.duration : 0);
     return entry;
   }
-  const playLoop = () => { if (wanted && !surface && decoded.has(ctx)) surface = voice(decoded.get(ctx), true); };
+  const playLoop = () => { if (wanted && !surface && ready(ctx, 'surface')) surface = voice(ready(ctx, 'surface'), true); };
   loadVinylSurface(ctx).then(() => safe(playLoop));
+  loadNeedleDrop(ctx);
   function release(entry) {
     if (!entry || entry.releasing) return;
     entry.releasing = true;
@@ -163,9 +170,10 @@ export function createVinylSurface(ctx, destination) {
     entry.source.stop(t + 0.04);
   }
   function scratch() {
-    buffers ||= createVinylBuffers(ctx);
+    // The recorded drop; the synthesized one only if the recording is unavailable.
+    const needle = ready(ctx, 'needle') || (buffers ||= createVinylBuffers(ctx)).scratch;
     release(scrape);
-    scrape = voice(buffers.scratch, false);
+    scrape = voice(needle, false);
   }
   return {
     start({ needle = false } = {}) {
