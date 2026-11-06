@@ -26,6 +26,13 @@ export const OPENING_IDS = [
   'bread-of-heaven', 'there-is-a-way',
 ];
 
+/* The upbeat four: they open the night (straight after the opener when it
+   leads), in a fresh shuffled order each load, before the rest of the
+   opening. Each must also be in OPENING_IDS. Nothing on screen marks them out. */
+export const UPBEAT_IDS = [
+  'according-to-his-power', 'bread-of-heaven', 'rejoice-in-the-lord-always', 'lift-up-holy-hands',
+];
+
 /* The night's first song when the Awakening starts the music (app.js). It
    begins in the dark after the film's cut to black, on the lock's grid, and the
    jukebox is revealed on its bar 2 downbeat - the home chord - one complete
@@ -55,10 +62,12 @@ export function arrivalPlan({ autoMusic, firstBoot, nextId, openerPlayed }) {
 }
 
 /* The night's opening order: the opener first when it is going to land the
-   reveal, then the rest shuffled. */
-export function openingOrder(ids, { lead = null, rng = Math.random } = {}) {
-  if (!lead || !ids.includes(lead)) return shuffled(ids, rng);
-  return [lead, ...shuffled(ids.filter((id) => id !== lead), rng)];
+   reveal, then the upbeat songs shuffled, then the rest shuffled. */
+export function openingOrder(ids, { lead = null, first = UPBEAT_IDS, rng = Math.random } = {}) {
+  const head = lead && ids.includes(lead) ? [lead] : [];
+  const up = ids.filter((id) => first.includes(id) && !head.includes(id));
+  const rest = ids.filter((id) => !head.includes(id) && !up.includes(id));
+  return [...head, ...shuffled(up, rng), ...shuffled(rest, rng)];
 }
 
 /* A shuffled copy (Fisher-Yates). */
