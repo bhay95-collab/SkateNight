@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createVinylBuffers, createVinylSurface } from '../vinyl.js';
+import { readFileSync } from 'node:fs';
+import { createVinylBuffers, createVinylSurface, loadVinylSurface } from '../vinyl.js';
 import { getLevels, setMusicLevel, setSfxLevel, setVinylLevel, unlockAudio } from '../audio.js';
 import { perceptualVolume } from '../format.js';
 
@@ -60,6 +61,35 @@ class FakeContext {
   createAnalyser() { return node(); }
   createChannelSplitter() { return node(); }
   createBiquadFilter() { return { ...node(), frequency: {} }; }
+  // the decoded sfx/vinyl-surface.wav: 9 s stereo (kept out of `buffers`, which counts synthesis)
+  async decodeAudioData() { return { numberOfChannels: 2, sampleRate: this.sampleRate, duration: 9, length: 9 * this.sampleRate }; }
+}
+
+// The loop is fetched from the site; tests stand in for the network.
+globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+// Decks begin decoding when created; wait for it before expecting the loop.
+const loopReady = async (ctx) => { await loadVinylSurface(ctx); await Promise.resolve(); };
+
+// The approved loop as the browser decodes it: 24-bit stereo PCM WAV.
+function readLoop() {
+  const file = readFileSync(new URL('../sfx/vinyl-surface.wav', import.meta.url));
+  let at = 12;
+  let format = null;
+  while (at < file.length) {
+    const id = file.toString('ascii', at, at + 4);
+    const size = file.readUInt32LE(at + 4);
+    if (id === 'fmt ') format = { channels: file.readUInt16LE(at + 10), rate: file.readUInt32LE(at + 12), bits: file.readUInt16LE(at + 22) };
+    if (id === 'data') {
+      const frames = size / (format.channels * 3);
+      const channels = Array.from({ length: format.channels }, () => new Float32Array(frames));
+      for (let i = 0; i < frames; i++) {
+        for (let c = 0; c < format.channels; c++) channels[c][i] = file.readIntLE(at + 8 + (i * format.channels + c) * 3, 3) / 8388608;
+      }
+      return { ...format, frames, channels };
+    }
+    at += 8 + size + (size % 2);
+  }
+  throw new Error('no data chunk');
 }
 
 function measurements(buffer) {
@@ -79,24 +109,43 @@ function measurements(buffer) {
     elevatedFraction: elevated / samples.length };
 }
 
-test('vinyl is a clearly audible, clean record texture at low and high device sample rates', () => {
+test('the approved surface loop is a subtle, clean, seamless record texture', () => {
+  const loop = readLoop();
+  assert.deepEqual([loop.channels.length, loop.rate, loop.bits], [2, 48000, 24]);
+  assert.equal(loop.frames / loop.rate, 9, 'the approved 9 s loop, untouched');
+  let steps = 0;
+  for (const data of loop.channels) {
+    let squares = 0;
+    let peak = 0;
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      squares += data[i] * data[i];
+      peak = Math.max(peak, Math.abs(data[i]));
+      sum += data[i];
+      if (i) steps += Math.abs(data[i] - data[i - 1]);
+    }
+    const rms = Math.sqrt(squares / data.length);
+    // About -45 dBFS per side: heard in quiet passages and the change gap, tucked under loud music.
+    assert.ok(rms > 0.003 && rms < 0.008, `surface energy ${rms}`);
+    assert.ok(peak < 0.1, 'specks leave generous headroom under the song');
+    assert.ok(Math.abs(sum / data.length) < 0.0005, 'no material DC offset (under -66 dBFS)');
+  }
+  const meanStep = steps / (2 * (loop.frames - 1));
+  for (const data of loop.channels) {
+    assert.ok(Math.abs(data[0] - data.at(-1)) < 4 * meanStep, 'the end runs on into the start: no click at the seam');
+  }
+});
+
+test('the needle drop is a brief, clean gesture that stands out from the surface', () => {
+  const surfaceRms = 0.0045;
   for (const sampleRate of [22050, 48000]) {
     const ctx = new FakeContext(sampleRate);
-    const { surface, scratch } = createVinylBuffers(ctx);
-    for (const buffer of [surface, scratch]) {
-      assert.equal(buffer.numberOfChannels, 1, 'centered texture works with stereo and mono tracks');
-      assert.equal(buffer.sampleRate, sampleRate, 'uses the device sample rate');
-    }
-    const bed = measurements(surface);
-    assert.ok(surface.duration > 10 && surface.duration < 20, 'long loop avoids a short repeated crackle');
-    // About -45 dBFS: heard in quiet passages and the change gap, tucked under loud music.
-    assert.ok(bed.rms > 0.004 && bed.rms < 0.008, `clear surface energy at ${sampleRate} Hz`);
-    assert.ok(bed.peak > 0.06 && bed.peak < 0.2, 'pops are audible but leave generous headroom');
-    assert.ok(Math.abs(bed.mean) < 0.00001, 'no material surface DC offset');
-    assert.ok(bed.elevatedFraction > 0.1, 'texture is present, not a near-silent bed');
+    const { scratch } = createVinylBuffers(ctx);
+    assert.equal(scratch.numberOfChannels, 1, 'centered gesture works with stereo and mono tracks');
+    assert.equal(scratch.sampleRate, sampleRate, 'uses the device sample rate');
     const needle = measurements(scratch);
     assert.ok(scratch.duration >= 0.15 && scratch.duration <= 0.35, 'brief needle-drop gesture');
-    assert.ok(needle.rms > bed.rms * 3 && needle.rms < 0.05, 'needle drop stands out from the surface');
+    assert.ok(needle.rms > surfaceRms * 3 && needle.rms < 0.05, 'needle drop stands out from the surface');
     assert.ok(needle.peak < 0.25, 'needle drop leaves generous headroom');
     assert.ok(Math.abs(needle.mean) < 0.0001, 'no material scratch DC offset');
     const samples = scratch.getChannelData(0);
@@ -109,26 +158,30 @@ test('generated vinyl buffers are reused by decks in one context, never shared a
   const ctx = new FakeContext();
   const first = createVinylBuffers(ctx);
   assert.equal(createVinylBuffers(ctx), first);
-  assert.equal(ctx.buffers.length, 2, 'only one loop and one scratch allocated');
+  assert.equal(ctx.buffers.length, 1, 'only one scratch synthesized');
   const other = createVinylBuffers(new FakeContext());
-  assert.notEqual(other.surface, first.surface);
   assert.notEqual(other.scratch, first.scratch);
+  assert.equal(loadVinylSurface(ctx), loadVinylSurface(ctx), 'the loop is fetched and decoded once per context');
 });
 
-test('preloading is silent, repeated starts keep one surface, and only a requested needle cue scratches', () => {
+test('preloading is silent, repeated starts keep one surface, and only a requested needle cue scratches', async () => {
   const ctx = new FakeContext();
   const deck = node();
   const vinyl = createVinylSurface(ctx, deck);
   assert.equal(ctx.sources.length, 0);
   assert.equal(ctx.buffers.length, 0, 'creating a deck does not synthesize audio yet');
+  await loopReady(ctx);
+  assert.equal(ctx.sources.length, 0, 'decoding the loop plays nothing');
   vinyl.start();
   vinyl.start();
   assert.equal(ctx.sources.length, 1, 'one continuous surface per playing deck');
   const surface = ctx.sources[0];
   assert.equal(surface.loop, true);
+  assert.equal(surface.buffer.duration, 9, 'the approved loop, not a synthesized bed');
+  assert.equal(surface.loopStart, undefined, 'the whole file loops: no trimmed seam');
   assert.equal(surface.connections[0].connections[0], deck, 'texture follows the deck mix');
   assert.equal(surface.starts[0][0], ctx.currentTime);
-  assert.ok(surface.starts[0][1] >= surface.loopStart && surface.starts[0][1] < surface.buffer.duration,
+  assert.ok(surface.starts[0][1] >= 0 && surface.starts[0][1] < surface.buffer.duration,
     'surface begins at a valid randomized position');
   vinyl.start({ needle: true });
   assert.equal(ctx.sources.length, 2);
@@ -138,16 +191,53 @@ test('preloading is silent, repeated starts keep one surface, and only a request
   assert.deepEqual(needle.starts, [[ctx.currentTime, 0]], 'scratch plays once from its beginning');
   vinyl.start();
   assert.equal(ctx.sources.length, 2, 'resuming an existing surface adds no scratch');
-  assert.equal(ctx.buffers.length, 2);
+  assert.equal(ctx.buffers.length, 1);
   const anotherDeck = createVinylSurface(ctx, node());
+  await loopReady(ctx);
   anotherDeck.start();
-  assert.equal(ctx.buffers.length, 2, 'second deck reuses cached synthesis');
+  assert.equal(ctx.buffers.length, 1, 'second deck reuses cached synthesis');
+  assert.equal(ctx.sources.at(-1).buffer, surface.buffer, 'decks share one decoded loop');
   assert.notEqual(ctx.sources.at(-1), surface, 'each deck owns its playback source');
 });
 
-test('pausing fades both voices, resumes quietly, and ended voices release their graph', () => {
+test('a record that starts before the loop is decoded picks it up once ready, unless it stopped', async () => {
+  const ctx = new FakeContext();
+  const playing = createVinylSurface(ctx, node());
+  const stopped = createVinylSurface(ctx, node());
+  playing.start();
+  stopped.start();
+  stopped.stop();
+  assert.equal(ctx.sources.length, 0, 'nothing to play yet: the music does not wait');
+  await loopReady(ctx);
+  assert.equal(ctx.sources.length, 1, 'only the still-playing record gains its surface');
+  assert.equal(ctx.sources[0].loop, true);
+});
+
+test('a loop that cannot load leaves the music and needle drop alone', async () => {
+  const ctx = new FakeContext();
+  const savedFetch = globalThis.fetch;
+  const savedWarn = console.warn;
+  const warnings = [];
+  globalThis.fetch = async () => ({ ok: false, status: 404 });
+  console.warn = (...args) => warnings.push(args);
+  try {
+    const vinyl = createVinylSurface(ctx, node());
+    createVinylSurface(ctx, node());
+    await loopReady(ctx);
+    vinyl.start({ needle: true });
+    assert.equal(ctx.sources.length, 1, 'no surface, the needle drop still plays');
+    assert.equal(ctx.sources[0].loop, false);
+    assert.equal(warnings.length, 1, 'one warning per audio context, not per deck');
+  } finally {
+    globalThis.fetch = savedFetch;
+    console.warn = savedWarn;
+  }
+});
+
+test('pausing fades both voices, resumes quietly, and ended voices release their graph', async () => {
   const ctx = new FakeContext();
   const vinyl = createVinylSurface(ctx, node());
+  await loopReady(ctx);
   vinyl.start({ needle: true });
   const old = [...ctx.sources];
   ctx.currentTime += 0.1;
@@ -179,9 +269,10 @@ test('pausing fades both voices, resumes quietly, and ended voices release their
   assert.ok(resumed.disconnected && resumed.connections[0].disconnected);
 });
 
-test('a fresh needle gesture replaces its old tail and level changes never revive releasing voices', () => {
+test('a fresh needle gesture replaces its old tail and level changes never revive releasing voices', async () => {
   const ctx = new FakeContext();
   const vinyl = createVinylSurface(ctx, node());
+  await loopReady(ctx);
   vinyl.start({ needle: true });
   const oldNeedle = ctx.sources[1];
   ctx.currentTime += 0.01;
@@ -199,9 +290,10 @@ test('a fresh needle gesture replaces its old tail and level changes never reviv
   assert.ok(oldNeedle.disconnected && oldNeedle.connections[0].disconnected);
 });
 
-test('muting during the initial fade cancels future attack ramps for the surface and scratch', () => {
+test('muting during the initial fade cancels future attack ramps for the surface and scratch', async () => {
   const ctx = new FakeContext();
   const vinyl = createVinylSurface(ctx, node());
+  await loopReady(ctx);
   vinyl.start({ needle: true });
   ctx.currentTime += 0.005;
   const gains = ctx.sources.map((source) => source.connections[0].gain);
@@ -219,7 +311,7 @@ test('muting during the initial fade cancels future attack ramps for the surface
   }
 });
 
-test('vinyl trim is remembered before unlock, scales under effects, and leaves cabinet sounds alone', () => {
+test('vinyl trim is remembered before unlock, scales under effects, and leaves cabinet sounds alone', async () => {
   const savedWindow = globalThis.window;
   const previous = getLevels();
   try {
@@ -234,6 +326,7 @@ test('vinyl trim is remembered before unlock, scales under effects, and leaves c
     const otherVinyl = createVinylSurface(engine.ctx, engine.recordBus);
     engine.recordSurfaces.add(vinyl);
     engine.recordSurfaces.add(otherVinyl);
+    await loopReady(engine.ctx);
     vinyl.start({ needle: true });
     otherVinyl.start();
     for (const source of engine.ctx.sources) {
@@ -315,13 +408,14 @@ test('all level setters retain finite slider bounds before combining the vinyl a
 
 test('synthesis or source failures disable optional texture without interrupting playback', async (t) => {
   for (const failure of ['buffer', 'source', 'start', 'cleanup']) {
-    await t.test(failure, () => {
+    await t.test(failure, async () => {
       const ctx = new FakeContext();
       const savedWarn = console.warn;
       const warnings = [];
       console.warn = (...args) => warnings.push(args);
       try {
         const vinyl = createVinylSurface(ctx, node());
+        await loopReady(ctx);
         if (failure === 'buffer') {
           ctx.createBuffer = () => { throw new Error('allocation unavailable'); };
         } else {
