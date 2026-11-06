@@ -959,7 +959,9 @@ async function main() {
     try {
       const result = await awakeningFilm.prepareHosted(hostedManifestUrl);
       showFilmStatus(result);
+      // An up-to-date check takes a blink: say so, or the press looks ignored.
       if (!result.available) ui.toast('WEBSITE FILM NOT READY - LIVE CUT REMAINS AVAILABLE');
+      else ui.toast(result.current ? 'FILM ALREADY UP TO DATE - READY OFFLINE' : 'FILM DOWNLOADED - READY OFFLINE');
     } catch (error) {
       console.error('[hosted Awakening film]', error);
       showFilmStatus({ message: error.message || 'WEBSITE FILM CHECK FAILED' }, 'bad');

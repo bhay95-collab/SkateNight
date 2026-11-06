@@ -365,7 +365,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
       const manifest = await manifestResponse.json();
       const videoUrl = validateHostedAwakeningManifest(manifest, manifestUrl);
       if (selected?.manifest.sha256 === manifest.sha256 && objectUrl) {
-        return { available: true, message: 'WEBSITE FILM VERIFIED - READY OFFLINE', manifest: selected.manifest };
+        return { available: true, current: true, message: 'SAVED FILM IS UP TO DATE WITH THE WEBSITE - READY OFFLINE', manifest: selected.manifest };
       }
       if (!replaceLocal && selected && objectUrl) {
         return { available: true, stale: true, manifest: selected.manifest,
