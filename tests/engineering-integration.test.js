@@ -74,3 +74,11 @@ test('the service worker precaches both pages and every photorealistic runtime f
   assert.equal(shell.CRATE_CACHE,'skatenight-crates','songs and covers keep their cache across the update');
   for(const file of shell.SHELL_FILES.filter(f=>f!=='./'))assert.ok((await readFile(new URL('../'+file,import.meta.url))).length,`${file} missing`);
 });
+
+test('each keypad key owns its enlarged hit area (the area must not grow to cover the whole keypad)',async()=>{
+  const css=await readFile(new URL('../living/live.css',import.meta.url),'utf8');
+  // .key-letter::before and #key-digits .key::after are absolutely positioned hit areas: without a positioned key
+  // they size to the whole keypad and the last key takes every press (L and 0).
+  assert.match(css,/\.engineering \.key\{position:relative;/);
+  assert.match(css,/\.engineering \.key-letter::before\{content:'';position:absolute;inset:-2px 0;/);
+});

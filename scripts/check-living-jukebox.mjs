@@ -131,6 +131,13 @@ try{
     assert.equal(ch.needles,1,`${ch.id}: needle drops ${ch.needles}`);assert.ok(ch.lagMs.length===2&&ch.lagMs.every(l=>l!==null&&l<50),`${ch.id}: changer sound ${ch.lagMs} ms from its move`);
   }
   assert.ok(new Set(report.checks.changes.map(c=>c.cover)).size>=5,'labels did not change');
+  // Keypad: every on-screen key, pressed with the mouse at its centre, enters its own character.
+  report.checks.keypad=await (async()=>{const out=[];const at=(sel,t)=>p.evaluate(([sel,t])=>{const k=[...document.querySelectorAll(sel)].find(e=>e.textContent.trim()===t);const r=k.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2];},[sel,t]);
+    const keys=await p.evaluate(()=>[...document.querySelectorAll('#key-letters .key, #key-digits .key')].map(k=>k.textContent.trim()));
+    for(const k of keys){await p.mouse.click(...await at('#key-clear','CLR'));if(/\d/.test(k))await p.mouse.click(...await at('#key-letters .key','B'));await p.mouse.click(...await at('#key-letters .key, #key-digits .key',k));await p.waitForTimeout(80);
+      out.push([k,await p.evaluate(()=>document.getElementById('readout-code').textContent.trim())]);}
+    await p.mouse.click(...await at('#key-clear','CLR'));return out;})();
+  for(const [k,code] of report.checks.keypad)assert.equal(code,/\d/.test(k)?`B${k}`:`${k}_`,`keypad ${k} entered ${code}`);
   // Controls: two picks queue up, the music fader moves, BACK returns to the previous song.
   await select(p,'K1');await select(p,'G1');const queued=await p.evaluate(()=>__skateNight.state().queue.length);
   const fader=await p.evaluate(()=>{const el=document.getElementById('vol-music'),before=el.value;el.value=30;el.dispatchEvent(new Event('input',{bubbles:true}));const after=el.value;el.value=before;el.dispatchEvent(new Event('input',{bubbles:true}));return {before,after};});
