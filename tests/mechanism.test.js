@@ -247,3 +247,18 @@ test('reset releases the recorded changer through the motor voice', async (t) =>
   scene.mechanism.reset();
   assert.deepEqual(scene.sounds.at(-1), { kind: 'stop', name: 'whirr', at: 250 });
 });
+
+test('optional engineering observer follows the same swap and current groove without owning timers',async t=>{
+  const scene=mechanismScene(t,{recorded:{ready:true}}),events=[],root=scene.get('mech');
+  root.dataset.visualLayer='engineering';root.dispatchEvent=e=>events.push(e.detail);
+  scene.mechanism.showPlaying(first,{trackId:'first'});
+  scene.mechanism.setProgress(.75);
+  assert.equal(events.at(-1).action,'progress');assert.equal(events.at(-1).ratio,.75);
+  const swap=scene.mechanism.swap(second,{speed:1.8,trackId:'second'});
+  assert.equal(events.at(-1).action,'eject');assert.equal(events.at(-1).ms,1000/1.8);
+  await scene.tick(1000/1.8);
+  assert.equal(events.at(-1).action,'load');assert.equal(events.at(-1).ms,1500/1.8);assert.equal(events.at(-1).volume,second);
+  await scene.tick(1500/1.8);await swap;
+  assert.equal(events.at(-1).action,'finish');assert.equal(events.at(-1).move,'load');assert.equal(scene.mechanism.phase,'playing');
+  assert.equal(scene.timers.size,0);assert.ok(scene.animations.every(a=>a.cancelled));
+});

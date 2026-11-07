@@ -16,6 +16,8 @@ if (!Number.isInteger(offlineRuns) || offlineRuns < 1) throw new Error('--offlin
 const offlineOnly = args.includes('--offline-only');
 // --hosted: the real show path - films/manifest.json, background download, OPFS, the coin, offline reloads.
 const hosted = args.includes('--hosted');
+// --entry living-jukebox.html: the same proof against another entry page served at / (default index.html).
+const entry = opt('--entry', 'index.html');
 const filmEl = hosted ? 'awakening-film' : 'production-preview-video';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const out = resolve(opt('--out', 'build/awakening-35-development/integration'));
@@ -73,7 +75,7 @@ validateAwakeningFilmManifest(manifest,hosted ? 'awakening' : 'production-previe
 if (!suppliedMovie) await writeFile(manifestPath,JSON.stringify(manifest,null,2)+'\n');
 const mime = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.mp3':'audio/mpeg','.png':'image/png','.svg':'image/svg+xml','.wav':'audio/wav','.woff2':'font/woff2','.webmanifest':'application/manifest+json'};
 const server = createServer(async (req,res) => {
-  const url = new URL(req.url,'http://127.0.0.1'); const path = resolve(root,`.${decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname)}`);
+  const url = new URL(req.url,'http://127.0.0.1'); const path = resolve(root,`.${decodeURIComponent(url.pathname === '/' ? `/${entry}` : url.pathname)}`);
   if (!path.startsWith(root + sep)) {res.writeHead(403).end();return;}
   try {const data = await readFile(path);res.writeHead(200,{'content-type':mime[extname(path)] || 'application/octet-stream','content-length':data.length,'cache-control':'no-store'}).end(data);}
   catch {res.writeHead(404).end();}

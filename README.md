@@ -193,6 +193,11 @@ place; follow these steps only if you want to swap it for a new one.
 
 **The day before, at home or the venue, on the venue laptop:**
 
+> Use Google Chrome (or the installed app), never VS Code's built-in browser: it cannot play the
+> film's audio and silently falls back to the old live-cut awakening. The optional photorealistic
+> machine is `living-jukebox.html`; its preparation, checks and fallback are in
+> [docs/LIVING-JUKEBOX-RELEASE.md](docs/LIVING-JUKEBOX-RELEASE.md). `index.html` stays the show fallback.
+
 - [ ] Open the site in **Google Chrome** on the laptop:
       `https://bhay95-collab.github.io/SkateNight/` (the https address - the
       install below needs it).

@@ -73,6 +73,12 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
   let running = null;               // { anims, timers, resolve } of the sequence in flight
   let revision = 0;                 // a newer command invalidates any waiting swap
   let currentVolume = null;
+  // The optional rendered layer observes the controller; it never owns a music timer.
+  const notify = (action, detail = {}) => {
+    if (root.dataset.visualLayer !== 'engineering') return;
+    try { root.dispatchEvent(new CustomEvent('jukebox:mechanism', { detail: { action, at: performance.now(), ...detail } })); }
+    catch (error) { console.warn('[mechanism visual layer]', error); }
+  };
   let getRackSleeve = () => null;
 
   const setPhase = (p) => { phase = p; root.dataset.phase = p; };
@@ -103,6 +109,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     paintRing();
     setArm(ARM_PARK);
     setPhase('empty');
+    notify('reset');
   }
 
   function rects() {
@@ -154,6 +161,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const index = trackIndex.has(trackId) ? trackIndex.get(trackId) : -1;
     const fromDeg = ringDeg;
     const toDeg = carouselTarget(ringDeg, index, ringRecords.length);
+    notify('load', { volume, trackId, speed, ms: isCalm() ? CALM_SWAP_MS : LOAD_MS / speed, calm: isCalm() });
 
     if (isCalm()) {
       setRing(toDeg);
@@ -164,6 +172,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       setPhase('playing');
       sfx.thud();
       await delay(CALM_SWAP_MS);
+      notify('finish', { move: 'load' });
       return;
     }
 
@@ -218,7 +227,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     ];
     // Until the arm starts to move it stays parked; the animation's fill holds that.
     setArm(ARM_START);
-    await runSequence(anims, T, timers, () => { setArm(ARM_START); });
+    await runSequence(anims, T, timers, () => { setArm(ARM_START); notify('finish', { move: 'load' }); });
   }
 
   /* Take the record away again (arm lifts, record slides back under the
@@ -233,6 +242,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       return;
     }
     const T = EJECT_MS / speed;
+    notify('eject', { speed, ms: T, volume: currentVolume });
     const { flip, radius, pickupX, pickupY } = rects();
     const lift = radius * 0.2;
     const currentArm = parseFloat(arm.style.getPropertyValue('--arm-angle')) || ARM_START;
@@ -269,6 +279,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       gripper?.classList.remove('is-picking');
       setArm(ARM_PARK);
       setPhase('empty');
+      notify('finish', { move: 'eject' });
     });
   }
 
@@ -292,8 +303,9 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       if (phase !== 'playing' || running) return;
       const deg = ARM_START + (ARM_END - ARM_START) * Math.min(1, Math.max(0, ratio));
       setArm(deg);
+      notify('progress', { ratio });
     },
-    setPaused(paused) { root.classList.toggle('is-paused', paused); },
+    setPaused(paused) { root.classList.toggle('is-paused', paused); notify('paused', { paused }); },
 
     /* The finished picture straight away, without the changer's move. */
     showPlaying(volume, { trackId = null, paused = false } = {}) {
@@ -307,6 +319,7 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
       record.classList.add('is-spinning');
       root.classList.toggle('is-paused', paused);
       setPhase('playing');
+      notify('playing', { volume, trackId, paused });
     },
 
     /* Idle "attract" look: show a cover on the empty mechanism without a record. */
