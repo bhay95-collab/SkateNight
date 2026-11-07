@@ -92,13 +92,16 @@ try{
     root=HERE;await u.reload();
     // The worker update (v49 -> v50) installs, activates and retires the old shell; poll, as the check is asynchronous.
     for(let t=0;;t+=500){const k=await shellCaches(u);if(k.includes('skatenight-shell-v50')&&!k.includes('skatenight-shell-v49')&&await u.evaluate(()=>Boolean(window.__living?.ready)))break;if(t>120000)throw Error(`shell did not upgrade: ${k}`);await u.waitForTimeout(500);}
-    await ready(u);
+    // A changed library needs LOAD THE CRATES again (the operator step after any update); OFFLINE READY waits for it.
+    await u.evaluate(()=>document.getElementById('btn-crates').click());await ready(u);
+    const missing=await u.evaluate(async()=>{const c=await caches.open('skatenight-crates'),keys=new Set((await c.keys()).map(r=>new URL(r.url).pathname.split('/').pop()));return __skateNight.library.tracks.map(t=>t.file.split('/').pop()).filter(f=>!keys.has(f));});
+    assert.deepEqual(missing,[],'songs missing from the crates after the update');
     const after={caches:await shellCaches(u),songs:await u.evaluate(async()=>(await (await caches.open('skatenight-crates')).keys()).length),film:await u.evaluate(()=>document.getElementById('film-status').textContent),living:await u.evaluate(()=>__living.ready&&__living.offlineReady)};
     await cu.setOffline(true);await u.evaluate(()=>sessionStorage.clear());await u.reload();await u.waitForFunction(()=>window.__living?.ready&&document.getElementById('film-status').dataset.state==='ready',null,{timeout:90000});
     await film(u,'upgrade-offline-1280');
     report.checks.upgrade={before,after,offlineAfterUpgrade:true};
     assert.ok(!before.living&&after.living,'the default page did not become the photorealistic jukebox');
-    assert.equal(after.songs,before.songs,'saved songs and covers were lost in the upgrade');assert.equal(before.songs,80,'70 songs and 10 covers');
+    assert.ok(before.songs>=80&&after.songs>=before.songs,'saved songs and covers were lost in the upgrade');
     assert.match(after.film,/SHA 2A2FCA5B/,'saved film was lost in the upgrade');
     assert.deepEqual(after.caches,['skatenight-crates','skatenight-shell-v50']);
     assert.deepEqual(u.errors,[]);await cu.close();
