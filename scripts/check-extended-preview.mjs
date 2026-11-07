@@ -104,8 +104,14 @@ async function prepareCrates(page) {
   await page.evaluate(async()=>{await navigator.serviceWorker.ready;document.getElementById('cabinet-tools').open=true;document.getElementById('btn-crates').click();});
   await page.waitForFunction(()=>!document.getElementById('btn-crates').disabled && document.getElementById('offline-text').textContent!=='',null,{timeout:300000});
   const prepared=await ledShows(page,'OFFLINE READY');
-  results.push({label:'prepare-for-show-crates',offlineReady:prepared,led:await page.locator('#offline-text').textContent()});
+  const library=await page.evaluate(async()=>{
+    const {listCrateFiles,crateStatus}=await import('./crates.js');
+    const library=window.__skateNight.library;
+    return {tracks:library.tracks.length,...await crateStatus(listCrateFiles(library))};
+  });
+  results.push({label:'prepare-for-show-crates',offlineReady:prepared,library,led:await page.locator('#offline-text').textContent()});
   assert(prepared,'Prepare for Show: LED did not confirm OFFLINE READY with songs and film saved');
+  assert(library.saved===library.total && library.tracks>0,'Prepare for Show: not every library asset is saved');
   // Show-like state: songs were saved earlier, not seconds before the coin.
   await page.waitForTimeout(Number(opt('--settle-sec','0'))*1000);
   await page.evaluate(()=>{document.getElementById('cabinet-tools').open=false;sessionStorage.removeItem('sn_opened');});
@@ -358,7 +364,8 @@ try {
       await writeFile(resolve(out,'integration-proof.json'),JSON.stringify({generatedSyntheticProxy:!suppliedMovie,assetQuality:manifest.qualityTier || (suppliedMovie ? 'external-preview' : 'synthetic-technical-proxy'),cinematicApproval:false,movie:proxy,manifest:manifestPath,probe,results,failures},null,2)+'\n');
       await context.close();break;
     }
-    if (hosted && args.includes('--prepare-crates')) await prepareCrates(page);
+    // An imported audio audition must also be tested with the entire library saved.
+    if (args.includes('--prepare-crates')) await prepareCrates(page);
     if (!offlineOnly) {
     results.push(await play(page,`${width}x${height}`));
     // Normal controls must be released after the film, including the actual music bus.
@@ -418,7 +425,9 @@ try {
       }
       const storage=await page.evaluate(async(prefix)=>{
         const dir=await navigator.storage.getDirectory();const names=[];for await(const [name] of dir.entries()) names.push(name);
-        for(const name of names) if(name.startsWith(prefix)) await dir.removeEntry(name);
+        // A full-crates preview run can also have the approved production film.
+        // Remove both in this disposable context to exercise the no-film fallback.
+        for(const name of names) if(name.startsWith(prefix) || name.startsWith('awakening-film-')) await dir.removeEntry(name);
         sessionStorage.removeItem('sn_opened');return names;
       },prefix);
       await page.reload({waitUntil:'load'});await ready(page);
@@ -431,10 +440,11 @@ try {
         usedLive:!window.__awakeningFilmStats && !window.__overlapStats,
         filmStopped:document.getElementById(window.__filmEl).paused,
         controlsReleased:!document.getElementById('btn-play').closest('[inert]')}));
-      assert(fallback.usedLive && fallback.filmStopped && fallback.controlsReleased && fallback.state.nowId===cue.opener.track_id,'Missing film failed to use the normal live cut and opener');
+      const fallbackPassed=fallback.usedLive && fallback.filmStopped && fallback.controlsReleased && fallback.state.nowId===cue.opener.track_id;
+      assert(fallbackPassed,'Missing film failed to use the normal live cut and opener');
       await page.evaluate(()=>document.getElementById('btn-play').click());
       await page.waitForFunction(()=>window.__skateNight.state().phase==='paused');
-      results.push({label:'offline-missing-film-fallback',passed:true,storedNames:storage,...fallback});
+      results.push({label:'offline-missing-film-fallback',passed:fallbackPassed,storedNames:storage,...fallback});
       await page.screenshot({path:resolve(out,'offline-live-fallback.png')});
       if (hosted) {
         // Back online with nothing saved: the launch check downloads and verifies the website film again.

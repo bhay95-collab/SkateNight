@@ -90,11 +90,11 @@ const manifest = {
   filmId: AWAKENING_FILM_ID,
   experimental: false,
   title: 'Skate by Faith — The Song Inside',
-  source: 'Approved 1920x1080 native-30 production render; cinematic effects only',
+  source: 'Approved 1920x1080 native-30 production render; approved cinematic soundtrack; opening song remains in the PWA',
   sourceFilmId: source.filmId,
   sourceCommit,
   // Fingerprints only: local render paths stay on the render machine.
-  renderProvenance: renderProvenance.map(({ shot, fingerprint_sha256: fingerprint }) => ({ shot, fingerprint })),
+  renderProvenance: renderProvenance.map(({ shot, fingerprint_sha256, fingerprint }) => ({ shot, fingerprint: fingerprint_sha256 || fingerprint })),
   productionApproval: { status: 'approved', approvedBy, approvedAt: new Date().toISOString() },
   videoFile: movieName,
   hostedSizeBytes: size,

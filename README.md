@@ -569,10 +569,11 @@ with the check above, as with `REVEAL_OFFSET_MS`.
 
 ### Website-hosted approved film
 
-The show film is **The Song Inside** (`films/song-inside-35s-v2.mp4`: 35 s,
-1,050 frames at native 30 fps, effects plus the approved Sound Design V4 score,
-no song; details in `films/README.md`). `song-inside-35s-v1.mp4`, the same
-picture with the original effects only, stays published for rollback. The
+The show film is **The Song Inside** (`films/song-inside-35s-v3.mp4`: 35 s,
+1,050 frames at native 30 fps, approved Sound Design V5-B4 with two startup
+quotations and the travelling laugh, no Praise opener; details in
+`films/README.md`). Both V4 (`song-inside-35s-v2.mp4`) and the original
+`v1` film stay published for rollback. The
 PWA verifies its saved OPFS copy before the coin is live, then checks
 `films/manifest.json` in the background with a timeout, so venue networking can
 never hold up the coin. Only a manifest with explicit `productionApproval`, the
@@ -580,7 +581,9 @@ current film ID and the locked native-30 contract from
 `cinematic/extended/cues.json` is accepted; the browser also verifies SHA-256,
 decodability and seeks before reporting **READY OFFLINE**. A saved film that
 differs from the website's is reported in Prepare for Show and replaced only by
-**CHECK / DOWNLOAD**. Experimental previews use their separate namespace and
+**CHECK / DOWNLOAD**. An older V4 ID is marked **OUT OF DATE** and cannot play
+as the new show film; explicit download and verification restore readiness.
+Experimental previews use their separate namespace and
 cannot replace the show film. Without a verified film the live cut plays.
 
 Promote a new reviewed assembly with `npm run cinematic:promote --

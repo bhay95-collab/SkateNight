@@ -13,27 +13,33 @@ requests, including byte ranges, remain the static host's responsibility.
 
 ## Current show film
 
-`song-inside-35s-v2.mp4` — *The Song Inside* with **Sound Design V4**: 35.000 s,
-1,050 frames at native 30 fps, 1920×1080 H.264 with AAC 256k. SHA-256
-`402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9`. The H.264
-stream is copied untouched from v1 (stream SHA-256 `514f808b…`); only the
-audio changed: the original effects and the approved V4 score-and-effects
-overlay, summed once at unity with no EQ, compression or limiting
-(−24.2 LUFS integrated, 6.0 LU range, −6.6 dBTP). `manifest.json` records
-the source checksums under `soundDesign`.
+`song-inside-35s-v3.mp4` — *The Song Inside* with **Sound Design V5-B4**:
+35.000 s, 1,050 frames at native 30 fps, 1920×1080 H.264 with AAC 256k.
+SHA-256 `2a2fca5bededb3751e51c5779b1e24a893e7bcba060bcccd42633bbd2d627b61`.
+This is the approved effects-only B4 MP4 from `b68773b`, copied byte for byte;
+the H.264 packet stream is identical to V4 (`514f808b…`). Its approved audio
+contains We Have Come at 6.030–8.300 s, According to His Power from 9.140 s
+(silent by 12.033333 s), the unchanged B3 travelling laugh and the established
+cinematic bed. AAC measurements: −22.1 LUFS integrated, 10.1 LU range,
+−4.2 dBTP. There is no new mix or encode during promotion.
 
 *Praise Lifted On High* is never in the film: the jukebox starts it at
 31.393 s on the film's presented-frame clock so its first hit lands on the
 stylus contact (frame 948), from `cinematic/extended/cues.json`.
 
+`song-inside-35s-v2.mp4` (V4, SHA-256 `402b2ca8…`) and
 `song-inside-35s-v1.mp4` (SHA-256 `cf4befea…`, effects only, source `dcaf590`)
-stays published so a rollback is a revert of `manifest.json` and the film ID.
+stay published for rollback. Restore the matching manifest, runtime film ID
+and service-worker version together; keep the crate cache intact.
 
 On launch the app verifies its saved copy before the coin is live, then checks
 the website in the background (8 s manifest timeout). With nothing saved it
 downloads and verifies the film; a saved film that differs from the website's
 is reported in **TOOLS → Prepare for Show** and replaced only by **CHECK /
-DOWNLOAD**. Earlier cuts carry a different film ID and are never selected.
+DOWNLOAD**. An older saved V4 film is explicitly marked **OUT OF DATE** and cannot play
+as V5. It is replaced only when the operator presses **CHECK / DOWNLOAD**;
+the new SHA-256 and playback checks must pass before readiness is restored.
+Earlier cuts carry a different film ID and are never selected.
 OFFLINE READY on the deck LED means shell, songs and this film. Without a
 verified film the coin plays the live cut.
 

@@ -140,7 +140,7 @@ async function main() {
   // Only the local copy is checked before the coin is live; the website check runs
   // in the background (below), so a slow or dead venue network never holds up the night.
   const localFilmStatus = await awakeningFilm.prepare();
-  if (localFilmStatus.available) showFilmStatus(localFilmStatus);
+  if (localFilmStatus.available || localFilmStatus.stale) showFilmStatus(localFilmStatus);
   else showFilmStatus({ message: 'CHECKING APPROVED WEBSITE FILM...' }, 'checking');
   const previewStatus = $('film-preview-status');
   const initialPreviewStatus = await productionPreview.prepare();
@@ -976,7 +976,7 @@ async function main() {
   // Launch check against the website, never awaited by the coin. With no saved
   // film it downloads one (the live cut covers a coin pressed meanwhile); a saved
   // film that differs is reported, not swapped, and the operator replaces it.
-  awakeningFilm.prepareHosted(hostedManifestUrl, { replaceLocal: !awakeningFilm.ready })
+  awakeningFilm.prepareHosted(hostedManifestUrl, { replaceLocal: !awakeningFilm.ready && !localFilmStatus.requiresDownload })
     .then((result) => {
       showFilmStatus(result);
       if (result.stale) ui.toast('SAVED FILM IS OUT OF DATE - TOOLS > PREPARE FOR SHOW');

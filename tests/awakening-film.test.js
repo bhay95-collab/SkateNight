@@ -9,6 +9,7 @@ import {
   AWAKENING_FILM_ID,
   AWAKENING_FILM_WIDTH,
   describeFilm,
+  createAwakeningFilm,
   NATIVE30_CONTRACT,
   validateAwakeningFilmManifest,
   validateHostedAwakeningManifest,
@@ -103,6 +104,7 @@ test('accepts only the approved 35-second 1080p30 effects-only show film', () =>
   assert.doesNotThrow(() => validateAwakeningFilmManifest(validManifest()));
   const base = validManifest();
   for (const change of [
+    { filmId: 'skate-by-faith-song-inside-35s-native30-v2' },
     { filmId: 'skate-by-faith-awakening-plunge-1080p60-v1' },   // the earlier 19.25 s cut can never be selected
     { width: 1280 },
     { height: 720 },
@@ -131,16 +133,23 @@ test('the committed website film is the approved asset its manifest names', () =
   const manifest = JSON.parse(read('films/manifest.json'));
   const video = validateHostedAwakeningManifest(manifest, 'https://bhay95-collab.github.io/SkateNight/films/manifest.json');
   assert.equal(video.href, `https://bhay95-collab.github.io/SkateNight/films/${manifest.videoFile}`);
-  // v2: the approved picture with Sound Design V4 (video stream copied from v1, untouched)
-  assert.equal(manifest.sha256, '402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9');
-  assert.equal(manifest.soundDesign.videoStreamCopiedFrom, 'cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c');
-  const rollback = readFileSync(new URL('../films/song-inside-35s-v1.mp4', import.meta.url));
-  assert.equal(createHash('sha256').update(rollback).digest('hex'), manifest.soundDesign.videoStreamCopiedFrom,
-    'the published v1 film stays in place, unchanged, for rollback');
+  assert.equal(manifest.sha256, '2a2fca5bededb3751e51c5779b1e24a893e7bcba060bcccd42633bbd2d627b61');
+  assert.equal(manifest.filmVersion, 3);
+  assert.equal(manifest.soundDesign.version, 'V5-B4');
+  assert.equal(manifest.sourceCommit, 'b68773b');
+  assert.equal(manifest.soundDesign.videoStreamSha256, '514f808bbf0c2792a3f4f10e3d5fb996387427a3e96e9bd18f610066f6701e6e');
+  assert.equal(manifest.renderProvenance.length, 4);
+  assert.ok(manifest.renderProvenance.every(({ fingerprint }) => /^[a-f0-9]{64}$/.test(fingerprint)));
+  assert.deepEqual(manifest.soundDesign.startupQuotes.map(({ trackId }) => trackId), ['we-have-come', 'according-to-his-power']);
+  for (const [version, sha] of [[1, 'cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c'],
+    [2, '402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9']]) {
+    const rollback = readFileSync(new URL(`../films/song-inside-35s-v${version}.mp4`, import.meta.url));
+    assert.equal(createHash('sha256').update(rollback).digest('hex'), sha, `published v${version} remains unchanged`);
+  }
   const file = new URL(`../films/${manifest.videoFile}`, import.meta.url);
   assert.equal(statSync(file).size, manifest.hostedSizeBytes);
   assert.equal(createHash('sha256').update(readFileSync(file)).digest('hex'), manifest.sha256);
-  assert.equal(manifest.audioOwnership.songEmbedded, false, 'the website film never carries the song');
+  assert.equal(manifest.audioOwnership.songEmbedded, false, 'the website film never carries the Praise opener');
   assert.doesNotMatch(JSON.stringify(manifest), /\/Users\//, 'no local render paths are published');
 });
 
@@ -229,7 +238,7 @@ test('operator import UI is available from TOOLS and uses OPFS-backed verificati
   assert.match(module, /const FILE_PREFIX = 'awakening-film-'/);
   assert.match(module, /const PREVIEW_PREFIX = 'cinematic-preview-'/);
   assert.match(read('app.js'), /startNight\(\{ previewFilm: true \}\)/);
-  assert.match(read('app.js'), /^  awakeningFilm\.prepareHosted\(hostedManifestUrl, \{ replaceLocal: !awakeningFilm\.ready \}\)/m,
+  assert.match(read('app.js'), /^  awakeningFilm\.prepareHosted\(hostedManifestUrl, \{ replaceLocal: !awakeningFilm\.ready && !localFilmStatus\.requiresDownload \}\)/m,
     'the launch website check is not awaited and never swaps a saved film in the background');
   assert.doesNotMatch(read('app.js'), /await awakeningFilm\.prepareHosted\(hostedManifestUrl, \{/);
   assert.match(read('awakening-film.js'), /AbortSignal\.timeout\(HOSTED_MANIFEST_TIMEOUT_MS\)/);
@@ -257,4 +266,33 @@ test('export and on-device benchmarks use fixed film frames and compare live/vid
   assert.match(blender, /^VINYL_RPM = 45$/m);
   assert.match(blender, /CAM - Impossible pullback/);
   assert.match(blender, /CAM - Precision match cut/);
+});
+
+
+test('an old approved saved film requires explicit download and cannot play as the new show film', async (t) => {
+  const old = { ...validManifest(), filmId: 'skate-by-faith-song-inside-35s-native30-v2',
+    productionApproval: { status: 'approved' } };
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {
+    storage: { getDirectory: async () => ({ async *entries() {
+      yield ['awakening-film-old.json', { kind: 'file', getFile: async () => new Blob([JSON.stringify(old)]) }];
+    } }) },
+  } });
+  t.after(() => Object.defineProperty(globalThis, 'navigator', navigatorDescriptor));
+  let requests = 0;
+  t.mock.method(globalThis, 'fetch', async () => { requests++; return { ok: false, status: 503 }; });
+  const film = createAwakeningFilm({ removeAttribute() {}, load() {} });
+  const status = await film.prepare();
+  assert.equal(status.available, false);
+  assert.equal(status.requiresDownload, true);
+  assert.match(status.message, /OUT OF DATE.*CHECK \/ DOWNLOAD/);
+  assert.equal(film.ready, false);
+  await assert.rejects(film.play(), /No verified Awakening film/);
+  assert.deepEqual(await film.prepareHosted('https://example.invalid/films/manifest.json', { replaceLocal: false }), status);
+  assert.equal(requests, 0, 'launch never silently downloads a replacement for the old saved show');
+  const failedDownload = await film.prepareHosted('https://example.invalid/films/manifest.json');
+  assert.equal(requests, 1, 'operator explicitly checks/downloads');
+  assert.equal(failedDownload.stale, true);
+  assert.equal(failedDownload.available, false);
+  assert.match(failedDownload.message, /OUT OF DATE.*503/);
 });

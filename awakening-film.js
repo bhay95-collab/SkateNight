@@ -1,11 +1,11 @@
 import { OPENER } from './rotation.js';
 
-/* The show film: "The Song Inside", 35 seconds at native 30 fps, no song.
+/* The show film: "The Song Inside", 35 seconds at native 30 fps, no Praise opener.
    Its timing comes from cinematic/extended/cues.json (approved source dcaf590);
    NATIVE30_CONTRACT below mirrors that file and tests/awakening-film.test.js
    checks the two agree. A new ID makes every earlier cached cut invalid.
-   v2: the v1 picture (H.264 stream copied untouched) with Sound Design V4 mixed in. */
-export const AWAKENING_FILM_ID = 'skate-by-faith-song-inside-35s-native30-v2';
+   v3: the unchanged v1/v2 picture with the approved V5-B4 cinematic soundtrack. */
+export const AWAKENING_FILM_ID = 'skate-by-faith-song-inside-35s-native30-v3';
 export const AWAKENING_FILM_FPS = 30;
 export const AWAKENING_FILM_FRAME_COUNT = 1050;
 // Opt-in external preview only (TOOLS import + ?film=extended35); same locked contract.
@@ -286,6 +286,9 @@ export function createAwakeningFilm(video, kind = 'awakening') {
   const filePrefix = prefixFor(kind);
   let objectUrl = null;
   let selected = null;
+  let outdatedSavedFilm = false;
+  const outdatedStatus = () => ({ available: false, stale: true, requiresDownload: true,
+    message: 'SAVED FILM IS OUT OF DATE - PRESS CHECK / DOWNLOAD - LIVE CUT READY' });
 
   const replaceSource = (blob) => {
     if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -294,6 +297,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
 
   async function prepare() {
     selected = null;
+    outdatedSavedFilm = false;
     if (!video) return { available: false, message: 'Film player is missing.' };
     let directory;
     try {
@@ -307,6 +311,12 @@ export function createAwakeningFilm(video, kind = 'awakening') {
       if (handle.kind !== 'file' || !name.startsWith(filePrefix) || !name.endsWith('.json')) continue;
       try {
         const manifest = JSON.parse(await (await handle.getFile()).text());
+        if (kind === 'awakening' && manifest.filmKind === 'awakening'
+            && /^skate-by-faith-song-inside-35s-native30-v\d+$/.test(manifest.filmId)
+            && manifest.filmId !== AWAKENING_FILM_ID && manifest.productionApproval?.status === 'approved') {
+          outdatedSavedFilm = true;
+          continue;
+        }
         validateAwakeningFilmManifest(manifest, kind);
         candidates.push({ name, manifest });
       } catch (error) {
@@ -330,6 +340,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
           throw error;
         }
         selected = { manifest: candidate.manifest, fileName, manifestName: candidate.name };
+        outdatedSavedFilm = false;
         const persistent = await navigator.storage.persisted?.();
         return {
           available: true,
@@ -344,7 +355,7 @@ export function createAwakeningFilm(video, kind = 'awakening') {
     }
     video.removeAttribute('src');
     video.load();
-    return { available: false, message: 'NO VERIFIED FILM - LIVE CUT READY' };
+    return outdatedSavedFilm ? outdatedStatus() : { available: false, message: 'NO VERIFIED FILM - LIVE CUT READY' };
   }
 
   /* replaceLocal false (the launch check): a saved film that differs from the
@@ -352,11 +363,14 @@ export function createAwakeningFilm(video, kind = 'awakening') {
      never land under a coin press. The operator's button replaces it. */
   async function prepareHosted(manifestUrl = new URL(HOSTED_AWAKENING_MANIFEST, location.href).href,
     { replaceLocal = true } = {}) {
+    if (outdatedSavedFilm && !replaceLocal) return outdatedStatus();
     const unavailable = (reason) => ({
+      ...(outdatedSavedFilm ? outdatedStatus() : {}),
       available: Boolean(selected && objectUrl),
       message: selected && objectUrl
         ? `SAVED FILM READY OFFLINE - WEBSITE CHECK UNAVAILABLE (${reason})`
-        : `NO VERIFIED FILM - LIVE CUT READY (${reason})`,
+        : outdatedSavedFilm ? `${outdatedStatus().message} (${reason})`
+          : `NO VERIFIED FILM - LIVE CUT READY (${reason})`,
       manifest: selected?.manifest,
     });
     try {

@@ -1,12 +1,12 @@
 {
   "manifestVersion": 1,
   "filmKind": "awakening",
-  "filmId": "skate-by-faith-song-inside-35s-native30-v2",
-  "filmVersion": 2,
+  "filmId": "skate-by-faith-song-inside-35s-native30-v3",
+  "filmVersion": 3,
   "experimental": false,
   "title": "Skate by Faith — The Song Inside",
-  "source": "Approved 1920x1080 native-30 production render; cinematic effects only",
-  "videoFile": "song-inside-35s-v2.mp4",
+  "source": "Approved 1920x1080 native-30 production render; approved cinematic soundtrack; opening song remains in the PWA",
+  "videoFile": "song-inside-35s-v3.mp4",
   "width": 1920,
   "height": 1080,
   "fps": 30,
@@ -16,9 +16,9 @@
   "audioCodec": "aac",
   "audioSampleRate": 48000,
   "audioChannels": 2,
-  "audioDescription": "cinematic sound effects plus the approved V4 score-and-effects overlay; opening song remains in the jukebox player",
+  "audioDescription": "Approved V5-B4 cinematic soundscape, two startup song quotations and travelling laugh; no Praise opener",
   "audioOwnership": {
-    "film": "cinematic sound effects, atmosphere and V4 score overlay (no song)",
+    "film": "Approved B3 soundscape and laugh with We Have Come / According to His Power startup quotations. No God Be Thanked or Praise opener.",
     "openingSong": "Praise Lifted On High remains in the jukebox audio engine",
     "trackId": "praise-lifted-on-high",
     "songEmbedded": false
@@ -48,37 +48,43 @@
     }
   },
   "timelineSha256": "08c740321be47fcfafc04fd9391f7071fdf83b0ccea908b23fef7b490bd373d3",
-  "sha256": "402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9",
+  "sha256": "2a2fca5bededb3751e51c5779b1e24a893e7bcba060bcccd42633bbd2d627b61",
   "soundDesign": {
-    "version": "V4",
-    "approved": "2026-11-06",
-    "overlay": {
-      "file": "additional_sound_design_overlay_V4_35s.wav",
-      "sha256": "ad0ef48bfcd2f467cc7429ac3a3759df4285dcc90515eb8702579faca4e126ee"
-    },
-    "effects": {
-      "file": "effects-only.wav",
-      "sha256": "440f5821bb272ebc3ef0756bc8a54842812d5641ece96b436a44259e786175c9"
-    },
-    "master": {
-      "file": "effects-plus-v4-master.wav",
-      "sha256": "6432bcdb4b6f9e2b910ba7f587ef06fee609bae2588f5c5579f0f2a5cf415055",
-      "mix": "effects + V4 overlay summed once at unity; no gain change, EQ, compression or limiting",
-      "integratedLufs": -24.2,
-      "loudnessRangeLu": 6,
-      "truePeakDbtp": -6.7,
-      "maxShortTermLufs": -20.8
-    },
+    "version": "V5-B4",
+    "variant": "B4",
+    "approval": "approved",
+    "assetIdentity": "song-inside-35s-sound-v5-b4-production",
+    "baselineV4MasterSha256": "6432bcdb4b6f9e2b910ba7f587ef06fee609bae2588f5c5579f0f2a5cf415055",
+    "allAdditionsEndSample": 1440000,
+    "videoStreamSha256": "514f808bbf0c2792a3f4f10e3d5fb996387427a3e96e9bd18f610066f6701e6e",
+    "openerEmbedded": false,
+    "foundationCommit": "751a106",
+    "allMusicEndSample": 577600,
+    "approvedSourceCommit": "b68773b",
     "aac": {
       "bitrate": "256k",
-      "integratedLufs": -24.2,
-      "truePeakDbtp": -6.6
+      "integratedLufs": -22.1,
+      "loudnessRangeLu": 10.1,
+      "truePeakDbtp": -4.2
     },
-    "videoStreamSha256": "514f808bbf0c2792a3f4f10e3d5fb996387427a3e96e9bd18f610066f6701e6e",
-    "videoStreamCopiedFrom": "cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c"
+    "videoStreamCopiedFrom": "402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9",
+    "laughSha256": "12277344eaa8ba288d222f78bcb6394e89c3729f089470b1f69c4d3e7e164b80",
+    "startupQuotes": [
+      {
+        "trackId": "we-have-come",
+        "startSec": 6.03,
+        "silentFromSec": 8.3
+      },
+      {
+        "trackId": "according-to-his-power",
+        "startSec": 9.14,
+        "silentFromSec": 12.033333333333333
+      }
+    ]
   },
   "sourceFilmId": "production-preview-35s-native30-v1",
-  "sourceCommit": "dcaf590",
+  "sourceCommit": "b68773b",
+  "hostedSizeBytes": 26666888,
   "renderProvenance": [
     {
       "shot": "cabinet",
@@ -100,7 +106,6 @@
   "productionApproval": {
     "status": "approved",
     "approvedBy": "Benjamin Hay",
-    "approvedAt": "2026-11-06T06:24:22.595Z"
-  },
-  "hostedSizeBytes": 26671302
+    "approvedAt": "2026-11-07T02:43:48.709Z"
+  }
 }
