@@ -2,21 +2,26 @@
 
 **Not by Sight - An 80s Rollerskate Night**
 
-An 80s arcade jukebox, presented by RFAI, that plays your playlist at the
-roller-skate night.
-It is a website that runs on **one laptop** plugged into the projector. No
-accounts, no server, no database. You add songs by editing one file and uploading
-MP3s.
+An 80s arcade jukebox, presented by RFAI, that plays the playlist at the
+roller-skate night. It is a website (an installable, offline PWA) that runs on
+**one laptop** plugged into the projector. No accounts, no server, no database.
 
-Live address once switched on (see step 6). The repository is still named
-`SkateNight`, so the address keeps that name; to change it, GitHub -> Settings ->
-Repository name (the address changes with it):
-`https://bhay95-collab.github.io/SkateNight/`
+- Show: `https://bhay95-collab.github.io/SkateNight/` - a dormant arcade cabinet;
+  insert the coin and the 35-second film **The Song Inside** (Sound Design V5-B4)
+  carries straight into the photorealistic jukebox, already playing, its record
+  driven by turning gears and changed by a mechanical record changer.
+- Fallback: `https://bhay95-collab.github.io/SkateNight/classic-jukebox.html` -
+  the same application in its classic presentation.
 
-![The jukebox playing](docs/screenshots/04-now-playing.jpg)
+Use **Google Chrome** (or the installed app), never VS Code's built-in browser.
 
-*(Screenshots in `docs/screenshots/` use stand-in covers and test tones, not your
-real artwork or songs: power-on, INSERT COIN, choosing a song, now playing.)*
+| Document | For |
+|---|---|
+| [docs/SHOW-OPERATIONS.md](docs/SHOW-OPERATIONS.md) | Preparing and running the night, offline, fallback, troubleshooting |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the application, film, audio, visuals and offline storage work |
+| [docs/RELEASE.md](docs/RELEASE.md) | Validation, deployment and rollback |
+| [docs/ASSET-PROVENANCE.md](docs/ASSET-PROVENANCE.md) | Where the film, sound, artwork and renders come from; checksums; licensing |
+| `DESIGN.md` | Material system, palette, motion and safety rules |
 
 ---
 
@@ -27,11 +32,15 @@ real artwork or songs: power-on, INSERT COIN, choosing a song, now playing.)*
 | `tracks.js` | The list of albums (volumes) and songs | **Yes - the only file you edit** |
 | `audio/` | The MP3 files | **Yes - upload songs here** |
 | `covers/` | The album cover pictures | **Yes - upload covers here** |
-| `sfx/` | Original mechanical effects; optional custom replacements | Only to swap a sound |
+| `sfx/` | Mechanical effects, ambience and vinyl recordings; optional custom replacements | Only to swap a sound |
 | `rfai-logo.png` | The RFAI headphone-robot logo | Only to swap it |
+| `index.html`, `living/` | The photorealistic jukebox (default page) and its rendered visuals | No |
+| `classic-jukebox.html` | The classic presentation (fallback) | No |
+| `films/` | The approved film and its manifest | Only through `npm run cinematic:promote` |
+| `cinematic/`, `scripts/`, `tests/` | Film pipeline sources, tools and tests | Maintainers |
 | everything else | The machine itself | No |
 
-Each of `audio/`, `covers/` and `sfx/` has its own short README.
+`audio/`, `covers/`, `sfx/` and `films/` each have a short README.
 
 ---
 
@@ -189,487 +198,14 @@ place; follow these steps only if you want to swap it for a new one.
 
 > The repository must be **public** for free GitHub Pages.
 
-## 7. Night-of checklist
+## Running the night
 
-**The day before, at home or the venue, on the venue laptop:**
+Follow [docs/SHOW-OPERATIONS.md](docs/SHOW-OPERATIONS.md): install the app in
+Chrome, press **LOAD THE CRATES** and wait for **OFFLINE READY** (every song,
+the verified film and the jukebox visuals), test offline, then insert the coin.
+If the photorealistic machine misbehaves, open `classic-jukebox.html`.
 
-> Use Google Chrome (or the installed app), never VS Code's built-in browser: it cannot play the
-> film's audio and silently falls back to the old live-cut awakening. The optional photorealistic
-> machine is `living-jukebox.html`; its preparation, checks and fallback are in
-> [docs/LIVING-JUKEBOX-RELEASE.md](docs/LIVING-JUKEBOX-RELEASE.md). `index.html` stays the show fallback.
-
-- [ ] Open the site in **Google Chrome** on the laptop:
-      `https://bhay95-collab.github.io/SkateNight/` (the https address - the
-      install below needs it).
-- [ ] **Install it as an app (once per laptop):** Chrome's menu (the three
-      dots, top right) -> **Cast, save and share** -> **Install page as app**
-      (older Chrome: **Install Skate by Faith** or *Save and share* ->
-      *Install*, or the small install icon at the right of the address bar).
-      You get a **Skate by Faith** icon on the desktop / in the dock or Start
-      menu, and the jukebox opens in its own window with no tabs or address bar.
-- [ ] Open it from the new **Skate by Faith** icon. The dark cabinet appears;
-      in the installed app Chrome normally allows the low hum to start by
-      itself (no click needed). If the room stays silent, that is fine - the
-      first click wakes it as usual.
-- [ ] Click the dark cabinet (or press any key) - there is no button on purpose.
-- [ ] Open **TOOLS** (bottom right), then press **LOAD THE CRATES**. The thin strip along the bottom of that button fills and the little
-      light at the top right changes to **OFFLINE READY**. This saves every
-      song on the laptop so the night runs even if the venue wifi dies. Press it
-      again after you add songs. Then **test it offline**: turn the laptop's
-      wifi off, close the app, open it from its icon again, and play a song.
-- [ ] Press **START** and listen to a few songs.
-
-**On the night:**
-
-- [ ] Plug the laptop into **power** (important - it will run for hours).
-- [ ] **Plug in the projector** and set the displays to **Duplicate / Mirror**
-      (Windows: Windows key + **P** -> *Duplicate*. Mac: System Settings ->
-      Displays -> *Mirror*). The one app window is both your controls and
-      the room's picture.
-- [ ] Turn off notifications on the laptop (so a pop-up never covers the screen).
-- [ ] Open **Skate by Faith** from its icon. If the window still has a title
-      bar, press **F** (or TOOLS -> **FULLSCREEN**) **before the audience
-      arrives** - press **Esc** to leave. (On a dedicated event laptop a
-      kiosk shortcut can launch it borderless: see *Fullscreen* below.)
-- [ ] Click the dark cabinet (or press any key) to put the coin in. The
-      machine wakes, goes dark, and the night's first song (**Praise Lifted On
-      High**) starts in the dark; the jukebox appears on its second bar. Nobody
-      presses START. Make sure that song is saved (**OFFLINE READY**) first.
-- [ ] **Test volume beforehand**, not on the night (the music starts by itself): move the **MUSIC** slider (or tap the up/down arrow keys
-      with the cabinet background focused)
-      while someone stands at the back of the rink. The laptop's own volume
-      should be about three-quarters up; use the jukebox slider to fine-tune.
-
-**If the app is closed or reloaded by accident:** open it again from its icon
-and click the dark cabinet (or press any key). The machine wakes again and the
-next song starts by itself (the opening song isn't repeated in the same
-window). The queue starts empty (the house rotation fills the gap).
-
-**To hold the music** (for example to test the volume first, or for a rehearsal):
-untick TOOLS -> **The Awakening starts the music**. The next time the page is
-opened, the Awakening hands over to the old power-on screen and the jukebox
-waits for **START**, exactly as before. Tick it again for the night.
-
-**Picture and sound at the venue:** the jukebox appears when the song itself
-reaches its second bar, allowing for the delay Chrome reports. Projectors and
-sound desks add their own delays. If the picture lands visibly before or after
-the beat in the room, the fix is one number (`REVEAL_OFFSET_MS` in app.js).
-
-**Fullscreen:** the app asks Chrome for fullscreen, but desktop Chrome usually
-opens installed apps in an ordinary app window with a title bar. Use **F** or
-TOOLS -> FULLSCREEN before the audience arrives (it is not switched on by
-itself mid-film, so the coin sequence never jumps). For a truly borderless
-start on a dedicated machine, make a shortcut that runs Chrome with
-`--kiosk https://bhay95-collab.github.io/SkateNight/` (close every other
-Chrome window first; Alt+F4 / Cmd+Q to leave).
-
-## How it behaves
-
-- The site opens on the dormant cabinet: the jukebox standing almost
-  invisible in a dark basement, its old picture tube the only light, and on
-  it the little RFAI robot, faint and slowly breathing in the static. There
-  are no instructions on purpose. Click, tap or press any key and everything
-  goes still: the hum stops and the robot holds its breath, then looks toward
-  the coin slot. The camera follows its look, the slot lamp catches and a
-  small coin rises into the light and drops through the slot; you hear it
-  fall for a long way, deep inside, while the camera tilts up the machine. A
-  relay thumps, the machine tries to start, nearly makes it, dies, and sits
-  dark. Then the robot lights up first, alone in the black screen, and the
-  machine follows it: a heartbeat, quickening into the first song's tempo,
-  and from a low angle, towering, the machine lights up and thumps in time
-  for two bars - then cuts to black on the beat (about
-  fifteen and a half seconds in all). A held breath, and the night's first
-  song begins in the dark, on the same beat; one bar later, on the home chord,
-  the jukebox is there, already playing. (With TOOLS -> *The Awakening starts
-  the music* unticked, the old 6.5-second power-on screen plays instead and
-  the jukebox waits for START.)
-- **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
-  trim, an optional click-to-fill setting and *The Awakening starts the music*. Click it
-  or use Enter/Space; Escape or a click outside closes it. Music, effects,
-  shuffle and lights stay directly available on the deck.
-- The music starts by itself after the Awakening (see above). **START** /
-  **PAUSE** works as always; with the TOOLS setting unticked, START begins the
-  house rotation by hand.
-- **Pick a song by its code**, like a real jukebox. The left column is
-  **PICK A SONG**: one album at a time, with a flexible sleeve above its complete
-  track list. The selector sits beneath **UP NEXT** in the right column.
-  Flip albums with the **arrow buttons** either side of the album name,
-  or press a **letter key** (on screen or keyboard) - the rack jumps to that
-  album. Then press the number and **SELECT** (or type it, for example `B`,
-  `1`, `Enter`). The readout names the resolved song and prompts the next step
-  before it is added. By default the title strips are for reading. In **TOOLS**,
-  enable **Click a song to fill its code** to prefill a strip's code by clicking
-  it or pressing Enter/Space while it is focused. This moves focus to **SELECT**;
-  you still confirm the request with SELECT or Enter. The choice is remembered
-  on that laptop. All current album tracks are visible together. A longer future album
-  can be scrolled within its list. The chosen song joins **UP NEXT** above the
-  selector, with confirmation of its position or that it is starting.
-- **Smaller screens keep readable text.** The cabinet uses two columns on narrow
-  windows and one column on phones, with page scrolling to reach every control.
-  Normal laptop and projector windows retain the three-column cabinet. Album
-  artwork still uses the space left after its complete track list.
-- The scrolling LED strip under the sign rolls **one joke at a time**: skating,
-  church and youth-group life, snacks and retro comedy. It draws from 234 lines
-  (no repeats until every one has had a turn), with a separate set of 40 for
-  when the music is stopped or paused. To add or
-  change jokes, edit the `SKATE_JOKES` list in `copy.js`: ALL CAPS, 64
-  characters at most, one per line in quote marks with a comma after.
-- UP NEXT plays **first in, first out**. Its count includes every request, up to
-  30. Scroll within the queue to inspect them all; a continuation cue appears
-  when more remain below. Use the arrows to move a song up and the cross to
-  remove one. Keyboard focus and the scroll position are retained while editing.
-  The note says **Your picks play first. We'll keep the records turning.**
-- When UP NEXT is empty, the **house rotation** picks the next song itself, so the
-  rink is never silent. The **SHUFFLE** button chooses how:
-  - **SHUFFLE: ON** (the default): a shuffled deck. **Every song plays once before
-    any song repeats**, and a song never comes round again within 5 plays, even
-    when the deck is reshuffled. Songs you pick yourself count as played.
-  - **SHUFFLE: OFF**: plays in the order the songs are listed in `tracks.js`,
-    then starts again at the top.
-
-  Any spare rows in UP NEXT show the house's plan, greyed out under **IF NOBODY
-  PICKS** - exactly the songs that will play, in order, if nobody chooses one.
-  Pick one of those songs yourself and it moves up into your list instead.
-  SHUFFLE is on every time the page loads.
-- **SKIP** (or **N** / the right arrow) plays the next song straight away.
-- **BACK** (or **P** / the left arrow): more than 3 seconds into a song it starts
-  that song again; press it within the first 3 seconds (or twice) to go to the
-  song that played before. The song you left goes to the **top of UP NEXT**, so
-  SKIP brings you straight back to it. The machine remembers the last 50 songs.
-- **Credits** are for show. A persistent **FREE PLAY** reminder confirms that
-  requesting a song needs no payment, and the credits readout says FREE PLAY
-  when the decorative credits run out.
-- The **offline status** at the top is a button: press it to open TOOLS with
-  **LOAD THE CRATES** focused. Saving starts only when you press LOAD THE CRATES.
-- After **60 seconds** with nobody touching anything, the machine runs a light
-  show. Touch any key to stop it.
-- Switching songs fades out and in. You hear no hard cuts. The precision changer
-  slows into its pickup position, lifts and transfers each record, then lowers
-  the needle. The visible record spins at **45 rpm**.
-- The coin animation and seven original mechanical sound effects accompany the
-  keys, selection relay, changer, needle and page carrier. **Effects** has its own
-  volume slider; custom MP3s in `sfx/` can replace individual sounds.
-- Each record crackles like a played-in 45: the approved record-surface loop
-  (`sfx/vinyl-surface.wav`, Sound Design V4; 9 s, seamless, saved for offline
-  use with the app). On the night's opener it starts with the song at the film's
-  stylus contact and carries straight on past the film. When a record is changed the
-  changer works audibly - motor, ratchets, the carousel locking, servos, the
-  record settling, the tonearm (recordings, varied each time) - and the needle
-  drops with a recorded touchdown, then the lead-in groove crackles for about **1 second** before the song
-  starts. As a song fades out the crackle carries on (the run-out groove).
-  **Effects** controls this texture alongside the cabinet sounds; **Music**
-  does not touch it. The **Vinyl texture** slider in TOOLS turns down just the
-  texture; **0%** removes vinyl (and the 1-second lead-in) without silencing
-  cabinet sounds. Music, Effects and Vinyl texture show their current
-  percentages. Resuming a paused song does not replay the needle drop.
-
-- Once the film hands over, the machine keeps working quietly around the
-  music: a low motor bed, an electrical hum and occasional distant rattles,
-  servos, sparks and relays, a little lower while a song plays (Effects
-  volume; details in `sfx/README.md`).
-
-### The machine's hum while it waits
-
-In the **installed app** the hum starts by itself when the app opens, if
-Chrome allows it (it normally does for installed apps). To keep the room
-silent, press **Alt+Shift+D** (Option+Shift+D on a Mac) while the hum plays:
-it stops, and stays off on later launches until you press it again.
-
-In an ordinary browser tab it is optional:
-
-Before the night, open the site with **?hum** on the end of the address
-(for example `.../SkateNight/?hum`). The first tap, click or key press then
-switches the hum on instead of putting the coin in: nothing appears on
-screen, and within a few seconds a low electrical drone rises out of the
-speakers and breathes with the little robot on the tube. The next press
-wakes the machine as usual. This works on a phone or tablet too. Once
-armed, the device remembers: next time, if the browser has not yet allowed
-sound, the first press switches the hum on again rather than putting the
-coin in. On a laptop you can instead press **Alt+Shift+D**
-(on a Mac: Option+Shift+D) at any time before the coin; press it again to
-switch it off. The laptop remembers, so after a reload (or next time, if
-the browser allows this site sound) it hums by itself. Without it the
-waiting screen is silent, as browsers require. Either way, when someone
-touches the machine the hum stops dead - it holds its breath - and the
-film's own power-up takes over. It follows the EFFECTS volume.
-
-### Prepare a pre-rendered Awakening (proof of concept)
-
-The editable real-time animation remains the production source and the
-standard live cut remains the fallback. For a show, the experimental Plunge
-sequence can instead be rendered into a local MP4 and imported into Chrome's
-origin-private file system (OPFS); the film itself is not added to Git.
-
-On the Mac used to prepare the show, install Node dependencies and ensure
-FFmpeg is on `PATH` and Google Chrome is installed. Then render the film:
-
-```sh
-npm install
-npm run render:awakening
-```
-
-The exporter opens the source sequence in installed Chrome at 1920 x 1080,
-advances the browser's virtual animation clock in fixed 1/60-second steps, and
-captures one frame per step; it does not record a real-time screen capture.
-The cabinet's cinematic sound effects are rendered with `OfflineAudioContext`.
-FFmpeg encodes H.264/AAC MP4, verifies its dimensions, frame rate and frame
-count, and writes a matching SHA-256 JSON manifest. The default output is
-`build/awakening-film.mp4` and `build/awakening-film.mp4.json`; `build/` is
-ignored by Git. Set `CHROME_PATH`, `FFMPEG_PATH`, or `FFPROBE_PATH` if the
-installed tools are elsewhere.
-
-On the waiting INSERT COIN screen, press **Alt+Shift+P** to enter show
-preparation without spending a coin; `?prepare` opens the same mode directly.
-Then open **TOOLS** -> **Prepare for Show** and import both generated files
-together. The PWA checks the manifest, checksum, codec
-playability, duration, dimensions and decodability at multiple points before
-reporting **FILM VERIFIED - READY OFFLINE**. It stores the video locally, not
-in the service-worker cache. Do this before the event; on each launch the PWA
-re-verifies and preloads the local copy before enabling the coin interaction.
-Reload the normal PWA address after preparation to return to INSERT COIN.
-If the film is missing, invalid, cannot play, or reduced motion is enabled, the
-existing live standard cut runs instead. The Effects fader also controls the
-film's sound-effects track. At the film's cut, the opener starts on its first
-grid beat; the cabinet is revealed on the opener's first accent. The song is
-normal jukebox playback under the existing transport and Music controls. Live
-cuts retain their existing reveal timing.
-
-This is a proof of concept: render and test on the actual show Mac, projector
-and PA before choosing it as the event default. The exporter requires an
-installed Chrome, FFmpeg and FFprobe; the exported MP4 and manifest are
-machine-local deliverables and should be transferred/imported directly rather
-than committed.
-
-For an on-device comparison, launch the ready PWA with `?bench` to measure
-the film or `?bench&cut=plunge&live=1` to measure the live Plunge source. The
-benchmark report adds video-frame callbacks, decoded frame counts, dropped
-frames, 95th-percentile frame interval and long video-frame gaps beside the
-live renderer's missed-frame, long-task and GPU-time measurements. Run both
-cuts on the same display, Chrome profile and power mode.
-
-Reference measurement (2026-10-31): on the M2 Pro Mac mini, visible Chrome
-156/ANGLE Metal at device scale 1, the full offline run at 1440 x 900 delivered
-1,051 video-frame callbacks over 18.282 seconds (57.49 effective fps), with
-1,089 of 1,093 media frames and 0 dropped frames reported. In the direct
-visible `?bench` comparison at 1200 x 1146, the film delivered 1,062 callbacks
-(58.10 effective fps; 0 dropped); the page missed 2 of 1,636 animation
-intervals (0.1%, 15.2 ms p95). The live Plunge run on the same Chrome window
-missed 4 of 1,619 intervals (0.2%, 15.0 ms p95), with one 85 ms long task and
-1.74 ms p95 WebGL GPU time. The measured song hit was 43 ms behind the opener
-grid, and the jukebox reveal was 17 ms after the song accent. Headless Chrome
-produced inconsistent video callback counts, so these comparison figures use
-the visible browser; this still is not acceptance on the event MacBook Pro,
-projector, or PA, and the event laptop is unconfirmed.
-
-### Blender cinematic look-development (Mac mini)
-
-The production workstation is the confirmed Mac mini Mac14,12 (M2 Pro, 16-core
-GPU, 16 GB unified memory). Install Blender with Cycles/Metal and FFmpeg; the
-builder explicitly selects the Metal GPU and stops if Blender cannot find it.
-The editable scenes are generated without external assets, keep repeated
-mechanical detailing in combined geometry, and live under ignored `build/`:
-
-```sh
-"/Applications/Blender.app/Contents/MacOS/Blender" -b \
-  --python cinematic/build_cinematic.py -- --mode build
-"/Applications/Blender.app/Contents/MacOS/Blender" -b \
-  build/cinematic-development/skate-by-faith-lookdev.blend \
-  --python cinematic/build_cinematic.py -- --mode stills --shot stylus-contact \
-  --samples 24 --width 1920 --height 1080
-"/Applications/Blender.app/Contents/MacOS/Blender" -b \
-  build/cinematic-development/skate-by-faith-lookdev.blend \
-  --python cinematic/build_cinematic.py -- --mode preview --shot groove-journey \
-  --preview-seconds 5 --samples 8
-```
-
-The generated project separates the retro-industrial mechanism and the
-vinyl/stylus scene. The platter now turns at 45 RPM to match the real PWA
-jukebox. Alongside the groove journey, the scene has two competing camera
-paths: **giant-pullback** ends on the world-sized record; **precision-match-cut**
-ends with the record framed at the live UI platter's approximate position and
-scale. Render native-rate comparison clips with:
-
-```sh
-"/Applications/Blender.app/Contents/MacOS/Blender" -b \
-  build/cinematic-development/skate-by-faith-lookdev.blend \
-  --python cinematic/build_cinematic.py -- --mode preview \
-  --shot giant-pullback --preview-seconds 5 --samples 4 --width 384 --height 216
-"/Applications/Blender.app/Contents/MacOS/Blender" -b \
-  build/cinematic-development/skate-by-faith-lookdev.blend \
-  --python cinematic/build_cinematic.py -- --mode preview \
-  --shot precision-match-cut --preview-seconds 5 --samples 4 --width 384 --height 216
-```
-
-Animation curves preserve their authored timing while rendering at a native
-60 fps. Each five-second preview is 300 distinct frames and is checked with
-FFprobe; no 24 fps frames are duplicated. These are look-development
-comparisons, not the finished Awakening. Package a selected preview with a
-versioned manifest, then import the MP4 and JSON together using **TOOLS** ->
-**Prepare for Show**:
-
-```sh
-npm run cinematic:package -- \
-  build/cinematic-development/motion/groove-journey-motion-preview.mp4 \
-  build/cinematic-development/skate-by-faith-groove-lookdev.mp4 \
-  --id skate-by-faith-groove-lookdev --title "Vinyl groove look-development" \
-  --audio-description "silent look-development preview; opening song remains in the jukebox"
-```
-
-Use **PREVIEW EXTERNAL FILM + SONG HANDOFF** to test OPFS import, local video
-playback, and the real jukebox opener without replacing the show film. Previews
-are stored separately and remain local. The Blender preview has a silent audio
-track; it does not demonstrate final cinematic sound design. The event MacBook
-Pro's exact configuration is still unknown, so playback, projector, and PA
-acceptance on that actual machine remains a separate milestone.
-
-### Phase 4 hero shots
-
-`cinematic/hero_megastructure.py` (the platter drive: a planetary gearbox whose
-teeth mesh in motion) and `cinematic/hero_groove.py` (the record at x4000,
-groove pitch 0.4 m, laid out from the live changer's measured geometry) build
-their scenes from scratch and render to `build/cinematic-phase4/`. The groove
-scene needs `build/cinematic-phase4/ui-plate.png`, a 1920x1080 screenshot of the
-jukebox playing; its pullback pins the stylus tip to the UI's arm-head pixel.
-
-```sh
-blender -b --python cinematic/hero_megastructure.py -- --shot all --w 1920 --h 1080 --samples 192
-blender -b --python cinematic/hero_groove.py -- --shot stills --w 1920 --h 1080 --samples 128
-blender -b --python cinematic/hero_groove.py -- --shot pullback --frame 1 --w 1280 --h 720 --samples 20
-blender -b --python cinematic/hero_megastructure.py -- --shot motion --w 1280 --h 720 --samples 16
-python3 cinematic/assemble_review.py
-```
-
-### The director's cut: one cue manifest, film and song overlapping
-
-`cinematic/cues.json` is the timing for everything: Blender's story beats, the
-effects bed and the film manifest. The stylus touches the groove on the opener's
-first hit (frame 951), the song starts 0.207 s before that (15.643 s), and the
-film's last frame is the opener's reveal (frame 1154). The machine's power curve
-is the live cut's `SUPPLY`, so film and live cut fail and recover identically.
-
-```sh
-blender -b --python cinematic/story_megastructure.py -- --w 480 --h 270 --samples 8
-blender -b --python cinematic/hero_groove.py -- --shot wideseq --w 480 --h 270 --samples 8
-blender -b --python cinematic/hero_groove.py -- --shot pullback --frame 175 --w 1280 --h 720 --samples 20
-python3 cinematic/sound_bed.py && python3 cinematic/assemble_animatic.py
-node scripts/package-cinematic.mjs build/cinematic-phase4/animatic/animatic.mp4 \
-  build/cinematic-phase4/animatic/director-cut-animatic.mp4 \
-  --id skate-by-faith-directors-cut-animatic --title "Director's cut animatic" \
-  --coin-frame 0 --failure-frame 453 --recovery-frame 584 --stylus-frame 951 --song-frame 951 \
-  --song-start 15.643 --registration-frame 1110 --record build/cinematic-phase4/groove/handoff.json
-node scripts/check-film-overlap.mjs build/cinematic-phase4/animatic/director-cut-animatic.mp4 \
-  build/cinematic-phase4/animatic/director-cut-animatic.mp4.json [--headed]
-```
-
-A film whose manifest says `handoff.mode: "overlap"` keeps running while the
-jukebox plays the opener. The song starts from the film's own frame clock; the
-film carries effects only, so nothing doubles. Over the last 44 frames the film
-is carried onto the live `#record` wherever this screen has laid it out, the
-interface fades up around it, and the CSS spin takes the film's label angle.
-This works only through the production-preview slot (TOOLS -> IMPORT FILM +
-MANIFEST, then PREVIEW EXTERNAL FILM + SONG HANDOFF); the show itself plays
-the approved website film below. `OVERLAP_SONG_OFFSET_MS` in `app.js` is the measured one-frame cost of
-starting the song in Chrome on the Mac mini: re-measure it on the event MacBook
-with the check above, as with `REVEAL_OFFSET_MS`.
-
-### Website-hosted approved film
-
-The show film is **The Song Inside** (`films/song-inside-35s-v3.mp4`: 35 s,
-1,050 frames at native 30 fps, approved Sound Design V5-B4 with two startup
-quotations and the travelling laugh, no Praise opener; details in
-`films/README.md`). Both V4 (`song-inside-35s-v2.mp4`) and the original
-`v1` film stay published for rollback. The
-PWA verifies its saved OPFS copy before the coin is live, then checks
-`films/manifest.json` in the background with a timeout, so venue networking can
-never hold up the coin. Only a manifest with explicit `productionApproval`, the
-current film ID and the locked native-30 contract from
-`cinematic/extended/cues.json` is accepted; the browser also verifies SHA-256,
-decodability and seeks before reporting **READY OFFLINE**. A saved film that
-differs from the website's is reported in Prepare for Show and replaced only by
-**CHECK / DOWNLOAD**. An older V4 ID is marked **OUT OF DATE** and cannot play
-as the new show film; explicit download and verification restore readiness.
-Experimental previews use their separate namespace and
-cannot replace the show film. Without a verified film the live cut plays.
-
-Promote a new reviewed assembly with `npm run cinematic:promote --
-awakening-35-effects-only.mp4 awakening-35-effects-only.mp4.json
---confirm-approved --approved-by "Name" --source-commit <sha>`. It writes an
-immutable `films/song-inside-35s-vN.mp4` plus the current `films/manifest.json`;
-only those website delivery files should enter Git. The MP4 limit is 50 MiB to avoid GitHub's large-file
-warning (GitHub warns above 50 MiB and blocks files above 100 MiB). GitHub Pages
-limits a published site to 1 GiB and has a soft 100 GB/month bandwidth limit;
-keep the full repository and deployed site comfortably below those limits.
-
-The application downloads the complete MP4 with a same-origin `fetch`, checks
-its SHA-256, and writes it to OPFS before enabling film playback. Playback is
-from the verified local Blob, so pause/seek and offline playback do not depend
-on the server implementing HTTP byte ranges. Direct `/films/*.mp4` requests
-are left untouched by the service worker, preserving normal static-server
-range semantics. Test the deployment server's range behavior separately if a
-future player streams the remote URL directly.
-
-The show plays the standard opening. An experimental **extended cut
-(Bigger on the Inside)** is under development and not approved for the
-show; to look at the current version, add `?cut=extended` to the address.
-It can't be switched on any other way.
-
-To compare the opening with and without its old decoration (the coin's
-spin and shine, falling dust, chrome glints, flickering dead neon letters),
-open the site with **?ornament=all** on the end of the address; without it
-they are left out. You can combine it with the hum: `?hum&ornament=all`.
-
-### Keyboard
-
-| Key | Does |
-|---|---|
-| **Space** | Play / pause |
-| **N** or **Right arrow** | Next song |
-| **P** or **Left arrow** | Back: restart this song, or press again for the previous one |
-| **S** | Shuffle on / off |
-| **F** | Fullscreen on / off |
-| **Up / Down arrows** | Music volume up / down |
-| **A-Z, 0-9, Enter** | Type a selection code, e.g. `B` `1` `Enter` |
-| **Backspace / Esc** | Delete / clear the typed code |
-| **?** | Show the key list again (it hides after a few seconds) |
-
-These shortcuts respect the focused control. Enter/Space activate a focused
-button or TOOLS disclosure, even with a song code pending. Up/Down scroll the
-focused album list or queue. Left/Right inside the album rack browse albums;
-transport arrows work on the cabinet background. Sliders, editing controls and
-browser shortcuts retain their native keys. The diagnostic dialog contains
-focus, blocks cabinet shortcuts, and returns focus to CHECK TRACKS.JS on closing.
-
-Laptop **media keys** (play / pause / next / previous) work too.
-
-### Lights
-
-The machine is full of moving lights, always at full. The whole screen gently
-swells with cyan/magenta edge light in time with the bass beat, and settles
-when the music stops.
-
-The effects are built to stay safe for people who are sensitive to flashing:
-nothing flashes faster than three times a second, and music-driven lights swell
-smoothly instead of strobing. Details are in `DESIGN.md`.
-
----
-
-## If something goes wrong
-
-| What you see | What to do |
-|---|---|
-| No sound at all | Click anywhere on the page (browsers need one click first). Check the MUSIC slider, the laptop volume, and that the tab is not muted. |
-| A song says **OUT OF ORDER** | Its file is missing or the name in `tracks.js` does not match. Check the exact spelling and capitals. |
-| Red **CHECK TRACKS.JS** button | Click it for a plain-English list. Usually a missing comma or quote. |
-| **START-UP PROBLEM - PRESS F5** | Reload the page. If it keeps happening, tell whoever maintains the site. |
-| New song does not appear | GitHub can take a minute or two to publish. Reload, then press LOAD THE CRATES again. |
-| Light says **NOT OFFLINE YET** | Press the status, then **LOAD THE CRATES** while you have internet. |
-| Light says **SAVED - NEEDS HTTPS** | The page was opened from a plain `http://` address. Use the GitHub Pages `https://` address. |
-| No hum when the app opens | Chrome is holding sound back. It is fine: the first click wakes the machine with sound. To hear the hum before the night, see *The machine's hum while it waits*. |
-| No **Install** option in Chrome's menu | Use the `https://` GitHub Pages address (not a saved file), and wait for the page to finish loading once. |
-
----
-
-## For whoever maintains the code
+## Local development and maintenance
 
 - Static site: plain HTML + CSS + ES modules, no build step.
 - Tests: `npm test` (uses Node's built-in test runner, nothing to install).
@@ -694,43 +230,10 @@ smoothly instead of strobing. Details are in `DESIGN.md`.
 - `DESIGN.md` records the material system, palette, motion rules, safety rules
   and the reasoning behind the reliability design (including why songs are played
   from Blob URLs instead of through the service worker).
-- `docs/UI-REVIEW.md` records the UI review, the implemented usability changes,
-  historical measurements and the tradeoffs behind the chosen layouts.
 - The page exposes `window.__skateNight` (state + player) for tests and for
   debugging in the console. The night does not depend on it.
-
-### What was tested, and what was not
-
-The following records the earlier playback and venue preparation checks.
-The UI review documents the subsequent usability pass; the optional browser
-regression script checks its keyboard, queue, settings and responsive behavior.
-
-Tested (headless Chromium via Playwright, 1280x720 plus 1920x1080, 1440x900,
-1366x768 and 1024x768; served like GitHub Pages including from a `/SkateNight/`
-sub-path):
-
-- `npm test` covers the queue, codes, `tracks.js` validation,
-  house rotation and shuffle deck, in-order mode, copy pools, audio maths,
-  CSS safety rules, unskippable arrival, and sound assets/fallbacks.
-- Boot, INSERT COIN, selection by keyboard / keypad code, UP NEXT, house
-  rotation, record changer frames, now-playing readouts, idle attract mode.
-- Natural song change: about 40 ms between songs. Skip: about 1.2-1.4 s (the
-  record changer working). Pause / resume, volume keys.
-- CALM lights from the OS setting and from the switch (no animations running
-  at all; choice remembered across reload).
-- A missing MP3 (OUT OF ORDER, skipped, house rotation avoids it) and a broken
-  `tracks.js` (red CHECK TRACKS.JS button, site still alive).
-- LOAD THE CRATES, then the network switched off: the page reloads and songs
-  play from the saved copy.
-- Soak: 14 minutes of continuous play including about 70 skips and queue
-  changes: JavaScript memory flat at 2-3 MB, page elements and running
-  animations constant, console clean.
-- No horizontal scrolling at any of the sizes above.
-
-**Not tested (needs a real laptop and projector):** real speakers (sound was
-checked through the machine's own level meters, not by ear), the laptop's
-media keys, real fullscreen and screen-sleep prevention (the headless browser
-refuses the wake lock), a three-hour run, Safari and Firefox, and performance on
-a genuinely slow laptop (the headless browser draws in software, so it is a
-pessimistic stand-in). Please do a 10-minute run-through on the venue laptop a
-day before.
+- On-device benchmark: launch the ready PWA with `?bench` to measure the film, or
+  `?bench&cut=plunge&live=1` to measure the live Plunge source (video-frame callbacks,
+  dropped frames, p95 frame interval, long tasks, GPU time). Compare on the same display,
+  Chrome profile and power mode.
+- Release gates, deployment and rollback: `docs/RELEASE.md`.
