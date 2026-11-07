@@ -119,7 +119,8 @@ export function createMechanism({ sfx, tracks = [], volumeById = new Map() }) {
     const rackEl = currentVolume ? getRackSleeve(currentVolume.id) : null;
     const rackRect = rackEl ? rackEl.getBoundingClientRect() : null;
     let flip;
-    if (rackRect && rackRect.width > 0) {
+    // A slot with no size (the rendered changer hides it) would make scale Infinity: use the plain flight instead.
+    if (rackRect && rackRect.width > 0 && slotRect.width > 0) {
       flip = {
         x: rackRect.left - slotRect.left,
         y: rackRect.top - slotRect.top,

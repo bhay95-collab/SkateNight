@@ -5,7 +5,9 @@ Branch `release/living-jukebox-rc`, based on production `main` `bb9e0df`. **Not 
 ## What changes
 
 - **New, optional:** `living-jukebox.html` plus `living/` (runtime code and its visuals). The approved Living Jukebox is Codex's photorealistic cabinet and changer, with Claude's operating platter drive.
-- **`mechanism.js`:** an observer that does nothing unless the living page enables it. It sends the changer's existing events and owns no timers.
+- **`mechanism.js`:**
+  - an observer that does nothing unless the living page enables it. It sends the changer's existing events and owns no timers.
+  - a guard that uses the plain sleeve flight when the sleeve slot has no size. On the living page the old sleeve is hidden, and dividing by its zero width produced `scale(Infinity)` keyframe warnings. Production's slot always has a size, so `index.html` is unaffected.
 - **`index.html` is byte-identical to production and remains the show fallback.** So are:
   - the app, player, audio engine, sound effects and ambience
   - the film, its manifest and SHA-256
@@ -130,4 +132,25 @@ Workstation results are not a substitute for these.
 
 ## Soak
 
-Pending: the 120-minute run is in progress.
+`scripts/soak-living-jukebox.mjs --minutes 120`, at 1920×1080 in headless Chrome (the full log is `build/living-jukebox/soak/soak.json`). The run covered:
+
+- the film
+- 120 minutes of continuous playback with 34 song changes (natural ends and 17 skips)
+- 30 rounds of picks
+- 10 pauses of 20 s each
+
+**Passed:**
+
+- **Audio:** 0 stalls, never more than one song playing, and buffer sources peaked at 10.
+- **Drive:** stayed locked to the record throughout (largest spread 5×10⁻¹⁰°).
+- **Frames:** 127 of 431,423 (0.03%) took longer than 33 ms.
+- **Memory:**
+  - the JavaScript heap went from 3.7 MB (minute 5) to 4.15 MB (minute 120) after garbage collection;
+  - Chrome's resident memory ranged from 1.1 to 1.8 GB with no upward trend (1.27 GB at minute 5, 1.22 GB at the end);
+  - DOM nodes went from 1,768 to 2,031 and event listeners from 239 to 285.
+- **CPU:** about 158 ms of main-thread time per second on average.
+- **Errors:** 0 page errors and no layer failures. The only 404s were the optional custom effect MP3s (`sfx/*.mp3`), which production also requests.
+
+**Fixed after the soak:** 102 `scale(Infinity)` warnings from the hidden sleeve slot. With the `mechanism.js` guard there are none on either page. Tests, the motion check and the Chrome acceptance were re-run.
+
+**Limits:** this ran headless on the Mac mini. It does not measure GPU load, projector cadence or audio-device behaviour over a full night on the event MacBook Pro.

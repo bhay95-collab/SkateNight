@@ -10,8 +10,8 @@
   },
   {
    "path": "mechanism.js",
-   "bytes": 14470,
-   "sha256": "72a933947c12a6c20c890efa27977c09ece7bcda265e052e88d1c0da421db4d7"
+   "bytes": 14608,
+   "sha256": "a276a7e6bf083d0a53f5aa4b0273fdb94915056ae2f25df25fa122ba8cf87afd"
   },
   {
    "path": "living/drive.js",
@@ -219,7 +219,7 @@
    "sha256": "48a822d088958ae05fd701c07229235e7aadb12875c8fa7cbe4e567fd842b1ff"
   }
  ],
- "totalBytes": 10328366,
+ "totalBytes": 10328504,
  "decodedImageMiB": {
   "changeSheets": 131.8,
   "driveLayers": 39.2,
