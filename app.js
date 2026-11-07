@@ -887,14 +887,22 @@ async function main() {
     volumes: library.volumes,
   });
 
+  // The photorealistic page (index.html loads living/live.js) needs its rendered visuals saved too; the classic page,
+  // or a living layer that has fallen back to the classic look, does not.
+  const visualsSaved = () => {
+    if (!document.querySelector('script[src$="living/live.js"]')) return true;
+    const living = window.__living;
+    return Boolean(living && (living.ready === false || living.offlineReady));
+  };
   async function refreshOfflineLed() {
     try {
       const files = crateFiles();
       if (files.length === 0) return setOffline('off', 'NO SONGS TO SAVE');
       const s = await crateStatus(files);
       if (!s.supported) return setOffline('bad', 'OFFLINE NOT SUPPORTED');
-      // OFFLINE READY means the whole show: shell, songs and the verified film.
-      if (s.saved === s.total && swOk && awakeningFilm.ready) setOffline('ready', 'OFFLINE READY');
+      // OFFLINE READY means the whole show: shell, songs, the verified film and (photorealistic page) its visuals.
+      if (s.saved === s.total && swOk && awakeningFilm.ready && visualsSaved()) setOffline('ready', 'OFFLINE READY');
+      else if (s.saved === s.total && swOk && awakeningFilm.ready) setOffline('warn', 'SAVING JUKEBOX VISUALS');
       else if (s.saved === s.total && swOk) setOffline('warn', 'SONGS SAVED - FILM NOT READY');
       else if (s.saved === s.total) setOffline('warn', 'SAVED - NEEDS HTTPS');
       else {
@@ -906,6 +914,7 @@ async function main() {
     }
   }
 
+  addEventListener('living:offline', refreshOfflineLed);   // the photorealistic layer finished checking its saved visuals
   swRegistration.then(async (reg) => {
     if (!reg) return;
     try {

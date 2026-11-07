@@ -37,7 +37,7 @@ function paintPlate(kind,index){px.drawImage(sheets[kind][Math.floor(index/10)],
 function idle(){stop();move=null;delete root.dataset.moving;plate.style.display=phase==='playing'?'none':'block';arm.style.display=phase==='playing'?'block':'none';if(phase!=='playing'){ctx.clearRect(0,0,768,432);paintPlate('eject',59);drive?.paint('eject',59,driveClock.drive);return;}
  drawArm(armAngle(progress));drawLabel();paintDrive();let previous=0;const tick=now=>{if(document.hidden)return;paintDrive();if(now-previous>=1000/30){previous=now;drawLabel();}if(!isCalm())raf=requestAnimationFrame(tick);};if(!document.hidden&&!isCalm()&&!root.classList.contains('is-paused'))raf=requestAnimationFrame(tick);}
 function paintMove(time){if(!move)return;const i=frameIndex(time,tracks[move.kind].length),p=tracks[move.kind][i];paintPlate(move.kind,i);drawLabel(p,i);drive?.paint(move.kind,i,driveClock.moveTo(p.spinDeg));stats.driveFrame=[move.kind,i];stats.frames++;stats.maxQuantizationMs=Math.max(stats.maxQuantizationMs,Math.abs(i/60-Math.min(time,(tracks[move.kind].length-1)/60))*1000);if(move.kind==='eject'&&p.timeMs<=160){arm.style.display='block';drawArm(armAngle(progress,p.timeMs));}else arm.style.display='none';}
-function fail(error){stats.failures.push(String(error));console.warn('[engineering layer]',error);stop();for(const e of [plate,canvas,arm,lamp,drive?.canvas])e?.remove();drive=null;document.querySelector('.cover-tabs')?.remove();root.dataset.visualLayer='';document.documentElement.classList.remove('engineering');window.__living.ready=false;window.__living.error=String(error);}
+function fail(error){stats.failures.push(String(error));console.warn('[engineering layer]',error);stop();for(const e of [plate,canvas,arm,lamp,drive?.canvas])e?.remove();drive=null;document.querySelector('.cover-tabs')?.remove();root.dataset.visualLayer='';document.documentElement.classList.remove('engineering');window.__living.ready=false;window.__living.error=String(error);dispatchEvent(new Event('living:offline'));}
 function animateMove(){const token=move?.token;if(!move||document.hidden)return;const tick=now=>{if(!move||move.token!==token||document.hidden)return;stats.maxPaintDelayMs=Math.max(stats.maxPaintDelayMs,Math.max(0,performance.now()-now));const paintStart=performance.now();paintMove(Math.max(0,now-move.at)*move.speed/1000);stats.maxFramePaintMs=Math.max(stats.maxFramePaintMs||0,performance.now()-paintStart);if(now-move.at<move.ms)raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);}
 function run(detail){stop();if(driveClock.engaged)driveClock.play(recordAngle());driveClock.startMove();const token=++generation;spinBase=detail.action==='eject'?recordAngle():0;sourceAngle=NaN;move={kind:detail.action,at:detail.at,speed:detail.speed,ms:detail.ms,token};root.dataset.moving=move.kind;phase=move.kind==='load'?'playing':'empty';
  if(detail.volume){volume=detail.volume;sourceAngle=NaN;}if(detail.action==='load'){progress=0;trackId=detail.trackId;spinAnimation=null;labelOffset=0;}
@@ -77,11 +77,11 @@ try{
   const urls=OFFLINE_FILES.map(x=>new URL(x,import.meta.url));
   await Promise.all(urls.map(async x=>{try{const r=await fetch(x);if(!r.ok)throw Error(`HTTP ${r.status}`);await r.arrayBuffer();}catch(e){throw Error(`${x.pathname}: ${e.message}`);}}));
   for(let attempt=0;attempt<50;attempt++){
-   if((await Promise.all(urls.map(x=>caches.match(x)))).every(Boolean)){window.__living.offlineReady=true;offline.textContent='Jukebox visuals saved offline.';return;}
+   if((await Promise.all(urls.map(x=>caches.match(x)))).every(Boolean)){window.__living.offlineReady=true;offline.textContent='Jukebox visuals saved offline.';dispatchEvent(new Event('living:offline'));return;}
    await new Promise(r=>setTimeout(r,100));
   }
   throw Error('Visual cache did not finish writing');
- }).catch(e=>{window.__living.offlineError=String(e);offline.textContent='Jukebox visuals could not be saved. Reload online before the show.';});
+ }).catch(e=>{window.__living.offlineError=String(e);dispatchEvent(new Event('living:offline'));offline.textContent='Jukebox visuals could not be saved. Reload online before the show.';});
  if(params.has('inspect')){const wait=setInterval(()=>{if(!window.__skateNight)return;clearInterval(wait);document.body.classList.remove('on-attract');$('attract').classList.add('is-revealed');$('boot').hidden=true;},25);}
 }catch(error){window.__living={filmCheck,ready:false,error:String(error)};fail(error);}
 addEventListener('pagehide',stop);

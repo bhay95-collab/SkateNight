@@ -20,13 +20,14 @@
    dependable way to play audio offline: browsers are fussy about audio
    that arrives through a service worker.
    ============================================================ */
-const SHELL_CACHE = 'skatenight-shell-v49';
+const SHELL_CACHE = 'skatenight-shell-v50';
 const CRATE_CACHE = 'skatenight-crates';
 const NETWORK_TIMEOUT_MS = 3500;
 
 const SHELL_FILES = [
   './',
   'index.html',
+  'classic-jukebox.html',   // the classic presentation: the emergency fallback, same app and engine
   'cabinet.js',
   'styles.css', 'jukebox.css', 'changer.css',
   'app.js', 'audio.js', 'codes.js', 'copy.js', 'crates.js', 'dsp.js', 'format.js',
@@ -39,6 +40,18 @@ const SHELL_FILES = [
   'sfx/thud.wav', 'sfx/buzz.wav', 'sfx/page.wav', 'sfx/vinyl-surface.wav',
   'jukebox-sfx.js', 'jukebox-sprite.js', 'sfx/needle-drop.wav',
   'sfx/jukebox/mechanics.mp3', 'sfx/jukebox/bed-machine.flac', 'sfx/jukebox/bed-electric.flac',
+  // The photorealistic jukebox (index.html): the same list as living/offline.js (tests keep them equal).
+  'living/live.js', 'living/live.css', 'living/math.js', 'living/drive.js', 'living/film-check.js', 'living/offline.js',
+  'living/assets/hero.webp', 'living/assets/changer.webp', 'living/assets/catalog.json', 'living/assets/load-mask.png',
+  'living/assets/eject-mask.png', 'living/assets/load-tracking.json', 'living/assets/eject-tracking.json',
+  'living/assets/arm.webp', 'living/assets/arm.json', 'living/assets/drive.json', 'living/assets/load-0.webp',
+  'living/assets/load-1.webp', 'living/assets/load-2.webp', 'living/assets/load-3.webp', 'living/assets/load-4.webp',
+  'living/assets/load-5.webp', 'living/assets/load-6.webp', 'living/assets/load-7.webp', 'living/assets/load-8.webp',
+  'living/assets/eject-0.webp', 'living/assets/eject-1.webp', 'living/assets/eject-2.webp', 'living/assets/eject-3.webp',
+  'living/assets/eject-4.webp', 'living/assets/eject-5.webp', 'living/assets/drive-play.webp', 'living/assets/drive-play-over.webp',
+  'living/assets/drive-load.webp', 'living/assets/drive-load-over.webp', 'living/assets/drive-eject.webp',
+  'living/assets/drive-eject-over.webp', 'living/assets/drive-gear-26.webp', 'living/assets/drive-gear-32.webp',
+  'living/assets/drive-gear-28.webp', 'living/assets/drive-gear-40.webp',
 ];
 
 self.addEventListener('install', (event) => {
