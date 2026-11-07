@@ -24,7 +24,7 @@ test('label frames and current-groove arm lift remain bounded at either speed',(
   }
 });
 test('integration retains current production audio, playback clocks, cinematic and worker',async()=>{
-  for(const name of ['app.js','audio.js','player.js','jukebox-sfx.js','jukebox-sprite.js','vinyl.js','sound.js','awakening-film.js','sw.js','films/manifest.json']){
+  for(const name of ['audio.js','player.js','jukebox-sfx.js','jukebox-sprite.js','vinyl.js','sound.js','awakening-film.js','films/manifest.json']){
     const baseline=execFileSync('git',['show',`a5b70a1:${name}`]);
     assert.deepEqual(await readFile(new URL('../'+name,import.meta.url)),baseline,`${name} changed`);
   }
@@ -46,10 +46,31 @@ test('offline manifest lists exactly the shipped runtime files, with bounded mot
   const {OFFLINE_FILES}=await import('../living/offline.js');
   const {readdir}=await import('node:fs/promises');
   for(const file of OFFLINE_FILES)assert.ok((await readFile(new URL('../living/'+file,import.meta.url))).length,file);
-  for(const name of ['live.js','live.css','math.js','offline.js','drive.js','film-check.js','../living-jukebox.html'])assert.ok(OFFLINE_FILES.includes(name));
+  for(const name of ['live.js','live.css','math.js','offline.js','drive.js','film-check.js','../index.html'])assert.ok(OFFLINE_FILES.includes(name));
   // Nothing development-only ships: every file under living/ is a listed runtime file.
   const shipped=[...(await readdir(new URL('../living/',import.meta.url))).filter(n=>n!=='assets'),...(await readdir(new URL('../living/assets/',import.meta.url))).map(n=>`assets/${n}`)];
   assert.deepEqual(shipped.filter(n=>!OFFLINE_FILES.includes(n)),[]);
   let decoded=0;for(const [kind,rows] of [['load',9],['eject',6]])for(let n=0;n<rows;n++){const [w,h]=webpSize(await readFile(new URL(`../living/assets/${kind}-${n}.webp`,import.meta.url)));assert.equal(h,360);decoded+=w*h*4;}
   assert.ok(decoded<140*1024*1024,`${decoded}`);
+});
+
+test('index.html is the photorealistic jukebox; classic-jukebox.html is the previous page, unchanged',async()=>{
+  const classic=await readFile(new URL('../classic-jukebox.html',import.meta.url),'utf8'),index=await readFile(new URL('../index.html',import.meta.url),'utf8');
+  assert.equal(classic,execFileSync('git',['show','a5b70a1:index.html'],{encoding:'utf8'}),'the classic fallback must stay the approved page');
+  // One application: the default page is the classic document plus the living layer, nothing else.
+  const extra=['<base href="./">','<link rel="stylesheet" href="living/live.css">','<script type="module" src="living/live.js"></script>'];
+  const lines=index.split('\n');assert.deepEqual(lines.filter(l=>extra.includes(l)),extra);
+  assert.equal(lines.filter(l=>!extra.includes(l)).join('\n'),classic);
+  const manifest=JSON.parse(await readFile(new URL('../manifest.webmanifest',import.meta.url),'utf8'));
+  assert.equal(manifest.start_url,'./');assert.equal(manifest.scope,'./');
+});
+test('the service worker precaches both pages and every photorealistic runtime file',async()=>{
+  const sw=await readFile(new URL('../sw.js',import.meta.url),'utf8');
+  const shell=new Function('self',sw.replace(/self\.addEventListener[\s\S]*$/,'')+';return {SHELL_FILES,SHELL_CACHE,CRATE_CACHE};')({});
+  const {OFFLINE_FILES}=await import('../living/offline.js');
+  for(const file of OFFLINE_FILES){const path=new URL(file,'http://x/living/').pathname.slice(1);assert.ok(shell.SHELL_FILES.includes(path),`${path} not precached`);}
+  for(const file of ['./','index.html','classic-jukebox.html'])assert.ok(shell.SHELL_FILES.includes(file));
+  assert.match(shell.SHELL_CACHE,/^skatenight-shell-v\d+$/);assert.ok(Number(shell.SHELL_CACHE.split('-v')[1])>49,'the shell version moved with the default page');
+  assert.equal(shell.CRATE_CACHE,'skatenight-crates','songs and covers keep their cache across the update');
+  for(const file of shell.SHELL_FILES.filter(f=>f!=='./'))assert.ok((await readFile(new URL('../'+file,import.meta.url))).length,`${file} missing`);
 });

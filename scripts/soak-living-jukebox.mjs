@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Event-length soak of living-jukebox.html in real Google Chrome, written to disk every minute.
+/* Event-length soak of the default photorealistic jukebox (index.html) in real Google Chrome, written to disk every minute.
      node scripts/soak-living-jukebox.mjs [--minutes 120] [--base http://127.0.0.1:8099] [--out build/living-jukebox/soak]
    Film, then continuous playback: songs end naturally, picks every 4 min, a skip every 7 min, a 20 s pause every 11 min.
    Each minute: JS heap after GC, Chrome resident memory, main-thread time, slow frames, audio stalls and duplicate decks,
@@ -29,7 +29,7 @@ const resident=async()=>{const ids=(await system.send('SystemInfo.getProcessInfo
 const metrics=async()=>Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(x=>[x.name,x.value]));
 const event=(kind,detail={})=>report.events.push({t:Date.now(),kind,...detail});
 try{
-  await p.goto(`${BASE}/living-jukebox.html`);
+  await p.goto(`${BASE}/`);
   await p.waitForFunction(()=>window.__living?.ready&&document.getElementById('film-status').dataset.state==='ready',null,{timeout:120000});
   await p.click('#attract');await p.waitForFunction(()=>window.__overlapStats?.revealMs,null,{timeout:60000});event('film');
   // In-page monitor: frame intervals, drive lock per engaged run, audio progress and concurrent decks, changes.

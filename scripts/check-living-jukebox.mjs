@@ -1,16 +1,26 @@
 #!/usr/bin/env node
-/* Release acceptance for living-jukebox.html in real Google Chrome (needs playwright-core and a local server).
-     python3 -m http.server 8099 --bind 127.0.0.1 &
-     node scripts/check-living-jukebox.mjs [--base http://127.0.0.1:8099] [--out build/living-jukebox/acceptance]
-   Film at 1280x720 and 1920x1080, drive phase lock, pause, normal and 1.8x changes with different labels, changer
+/* Release acceptance for the default photorealistic jukebox (index.html) and the classic fallback, in real Google Chrome.
+     node scripts/check-living-jukebox.mjs [--previous ../SkateNight-release] [--base URL] [--out build/living-jukebox/acceptance]
+   Serves this worktree itself (or tests --base, e.g. the live site, without the upgrade step). --previous is a checkout of
+   the build being replaced: it is installed first (songs and film saved), then the same address switches to this build.
+   Upgrade, installability, film at 1280x720 and 1920x1080, drive phase lock, pause, normal and 1.8x changes with different labels, changer
    sound alignment, queue/transport/volume, ambience and vinyl, offline reload, missing/corrupt visual assets, and
    main-thread cost with and without the drive. Writes acceptance.json and screenshots; exits 1 on failure. */
 import {chromium} from 'playwright-core';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {extname,resolve,sep} from 'node:path';
+import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
 const args=process.argv.slice(2),opt=(n,f)=>args.includes(n)?args[args.indexOf(n)+1]:f;
-const BASE=opt('--base','http://127.0.0.1:8099'),OUT=resolve(opt('--out','build/living-jukebox/acceptance'));await mkdir(OUT,{recursive:true});
+// A static server whose root can be switched: the previous build, then this one, on the same origin (same caches, same OPFS).
+const HERE=resolve(new URL('..',import.meta.url).pathname);let root=resolve(opt('--previous',HERE));
+const MIME={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.json':'application/json','.webmanifest':'application/manifest+json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.mp3':'audio/mpeg','.wav':'audio/wav','.flac':'audio/flac','.mp4':'video/mp4','.woff2':'font/woff2'};
+let BASE=opt('--base',null),server=null;
+if(!BASE){server=createServer(async(req,res)=>{const u=new URL(req.url,'http://x'),path=resolve(root,'.'+decodeURIComponent(u.pathname.endsWith('/')?u.pathname+'index.html':u.pathname));
+  if(!path.startsWith(root+sep)){res.writeHead(403).end();return;}
+  try{const data=await readFile(path);res.writeHead(200,{'content-type':MIME[extname(path)]||'application/octet-stream','content-length':data.length,'cache-control':'no-store'}).end(data);}catch{res.writeHead(404).end();}});
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));BASE=`http://127.0.0.1:${server.address().port}`;}
+const OUT=resolve(opt('--out','build/living-jukebox/acceptance'));await mkdir(OUT,{recursive:true});
 const manifest=JSON.parse(await readFile(new URL('../films/manifest.json',import.meta.url)));
 const POSES=Object.fromEntries(await Promise.all(['load','eject'].map(async k=>[k,JSON.parse(await readFile(new URL(`../living/assets/${k}-tracking.json`,import.meta.url)))])));
 const report={base:BASE,started:new Date().toISOString(),film:{},checks:{}};
@@ -33,9 +43,9 @@ function analyse(trace){
   for(const s of trace){if(s.engaged&&!s.move&&s.record!==null&&s.running&&!s.paused)run.push(s.drive-s.record);else close();}close();
   return {samples:trace.length,lockSpreadDeg:spread,poseChecks,poseErrDeg:poseErr,driveTravelDeg:Math.max(...trace.map(s=>s.drive))-Math.min(...trace.map(s=>s.drive)),moves:[...new Set(trace.map(s=>s.move).filter(Boolean))]};
 }
-async function open(c,query=''){
+async function open(c,query='',page=''){
   const p=await c.newPage();p.errors=[];p.on('pageerror',e=>p.errors.push(String(e)));
-  await p.goto(`${BASE}/living-jukebox.html${query}`);
+  await p.goto(`${BASE}/${page}${query}`);
   await p.waitForFunction(()=>window.__skateNight&&document.getElementById('film-status').dataset.state!=='checking',null,{timeout:90000});
   // The living layer reports ready or failed; with its module missing it never appears and production controls remain.
   await p.waitForFunction(()=>window.__living&&'ready' in window.__living,null,{timeout:20000}).catch(()=>{});
@@ -71,7 +81,34 @@ async function change(p,code,kind){
     return {cover:__living.state.volume,lagMs:__moves.map(m=>{const f=src.find(x=>x.kind==='sprite'&&x.t>=m.t-5);return f?+(f.t-m.t).toFixed(1):null;}),needles:src.filter(x=>x.kind==='needle').length};});
   return {kind,id,...t,...s};
 }
+const shellCaches=p=>p.evaluate(async()=>(await caches.keys()).filter(k=>k.startsWith('skatenight-')).sort());
+const ready=p=>p.waitForFunction(()=>document.getElementById('offline-text').textContent==='OFFLINE READY',null,{timeout:300000});
 try{
+  // 0. Upgrade: the build being replaced is installed with songs and film saved; the same address then serves this build.
+  if(server&&opt('--previous',null)){
+    const cu=await b.newContext({viewport:{width:1280,height:720}});await cu.addInitScript(probe);let u=await open(cu);
+    await u.evaluate(()=>document.getElementById('btn-crates').click());await ready(u);
+    const before={caches:await shellCaches(u),songs:await u.evaluate(async()=>(await (await caches.open('skatenight-crates')).keys()).length),film:await u.evaluate(()=>document.getElementById('film-status').textContent),living:await u.evaluate(()=>Boolean(window.__living))};
+    root=HERE;await u.reload();
+    // The worker update (v49 -> v50) installs, activates and retires the old shell; poll, as the check is asynchronous.
+    for(let t=0;;t+=500){const k=await shellCaches(u);if(k.includes('skatenight-shell-v50')&&!k.includes('skatenight-shell-v49')&&await u.evaluate(()=>Boolean(window.__living?.ready)))break;if(t>120000)throw Error(`shell did not upgrade: ${k}`);await u.waitForTimeout(500);}
+    await ready(u);
+    const after={caches:await shellCaches(u),songs:await u.evaluate(async()=>(await (await caches.open('skatenight-crates')).keys()).length),film:await u.evaluate(()=>document.getElementById('film-status').textContent),living:await u.evaluate(()=>__living.ready&&__living.offlineReady)};
+    await cu.setOffline(true);await u.evaluate(()=>sessionStorage.clear());await u.reload();await u.waitForFunction(()=>window.__living?.ready&&document.getElementById('film-status').dataset.state==='ready',null,{timeout:90000});
+    await film(u,'upgrade-offline-1280');
+    report.checks.upgrade={before,after,offlineAfterUpgrade:true};
+    assert.ok(!before.living&&after.living,'the default page did not become the photorealistic jukebox');
+    assert.equal(after.songs,before.songs,'saved songs and covers were lost in the upgrade');assert.equal(before.songs,80,'70 songs and 10 covers');
+    assert.match(after.film,/SHA 2A2FCA5B/,'saved film was lost in the upgrade');
+    assert.deepEqual(after.caches,['skatenight-crates','skatenight-shell-v50']);
+    assert.deepEqual(u.errors,[]);await cu.close();
+  }
+  // Installability of the default page (Chrome's own check).
+  {const {mkdtemp,rm}=await import('node:fs/promises'),dir=await mkdtemp('/tmp/sn-install-');   // a real profile: incognito contexts are never installable
+   const ci=await chromium.launchPersistentContext(dir,{channel:'chrome',headless:true});const pi=await open(ci);await pi.waitForFunction(()=>navigator.serviceWorker.controller,null,{timeout:60000}).catch(()=>{});
+   const cdp=await ci.newCDPSession(pi);report.checks.installability=(await cdp.send('Page.getInstallabilityErrors')).installabilityErrors;
+   report.checks.manifest=await pi.evaluate(async()=>{const m=await (await fetch(document.querySelector('link[rel=manifest]').href)).json();return {start_url:m.start_url,scope:m.scope,display:m.display};});
+   await ci.close();await rm(dir,{recursive:true,force:true});assert.deepEqual(report.checks.installability,[],'not installable');}
   // 1. Show state at 1920x1080: crates saved, film verified, visuals saved; film, drive, pause, changes, controls.
   const c=await b.newContext({viewport:{width:1920,height:1080}});await c.addInitScript(probe);let p=await open(c);
   await p.evaluate(()=>document.getElementById('btn-crates').click());
@@ -106,10 +143,20 @@ try{
   // 3. 1280x720: film, drive and a change.
   const c7=await b.newContext({viewport:{width:1280,height:720}});await c7.addInitScript(probe);p=await open(c7);await film(p,'1280');await p.screenshot({path:`${OUT}/playing-1280.png`});
   await p.evaluate(sampler);report.checks.change1280=await change(p,'C1','skip');assert.ok(report.checks.change1280.poseErrDeg<1e-6&&report.checks.change1280.needles===1);assert.deepEqual(p.errors,[]);await c7.close();
+  // 3b. The classic fallback: same app, film, music and changer, no photorealistic layer, online and offline.
+  {const cc=await b.newContext({viewport:{width:1280,height:720}});await cc.addInitScript(probe);const q=await open(cc,'','classic-jukebox.html');
+   await q.evaluate(()=>document.getElementById('btn-crates').click());await ready(q);
+   assert.equal(await q.evaluate(()=>Boolean(window.__living)),false);
+   await q.click('#attract');await q.waitForFunction(()=>window.__overlapStats?.revealMs,null,{timeout:60000});await q.waitForTimeout(1500);
+   const id=await select(q,'E2');await q.click('#btn-skip');await q.waitForFunction(id=>__skateNight.state().nowId===id&&__skateNight.state().phase==='playing'&&__skateNight.player.currentTime>.5,id,{timeout:25000});
+   await cc.setOffline(true);await q.evaluate(()=>sessionStorage.clear());await q.reload();await q.waitForFunction(()=>window.__skateNight&&document.getElementById('film-status').dataset.state==='ready',null,{timeout:90000});
+   await q.click('#attract');await q.waitForFunction(()=>window.__overlapStats?.revealMs,null,{timeout:60000});
+   report.checks.classic={film:await q.evaluate(()=>document.getElementById('film-status').textContent.slice(-20)),fit:await q.evaluate(()=>__overlapStats.fit),offlineReplay:true,playing:await q.evaluate(()=>__skateNight.player.isPlaying),errors:q.errors};
+   assert.ok(report.checks.classic.playing);assert.deepEqual(q.errors,[]);await cc.close();}
   // 4. Missing and corrupt visual assets: the music and the production changer carry on.
   report.checks.fallback={};
   for(const [name,route] of [['missing drive layers',r=>r.request().url().includes('/living/assets/drive')?r.abort():r.continue()],['corrupt motion sheet',r=>r.request().url().endsWith('/living/assets/load-3.webp')?r.fulfill({status:200,contentType:'image/webp',body:Buffer.from('not a webp')}):r.continue()],['missing drive module',r=>r.request().url().endsWith('/living/drive.js')?r.abort():r.continue()]]){
-    const cf=await b.newContext({viewport:{width:1280,height:720}});await cf.addInitScript(probe);await cf.route('**/*',route);const q=await open(cf);
+    const cf=await b.newContext({viewport:{width:1280,height:720},serviceWorkers:'block'});/* the injected failure reaches the page, not a cached copy */await cf.addInitScript(probe);await cf.route('**/*',route);const q=await open(cf);
     await q.click('#attract');await q.waitForFunction(()=>window.__overlapStats?.revealMs,null,{timeout:60000});await q.waitForTimeout(1500);   // input is held until the reveal
     const id=await select(q,'B2');await q.click('#btn-skip');await q.waitForFunction(id=>__skateNight.state().nowId===id&&__skateNight.state().phase==='playing'&&__skateNight.player.currentTime>.5,id,{timeout:25000});await q.waitForTimeout(1500);
     const st=await q.evaluate(()=>({playing:__skateNight.player.isPlaying,t:__skateNight.player.currentTime,living:window.__living?{ready:__living.ready,driveReady:__living.state?.driveReady??null,error:__living.error||null,failures:__living.stats?.failures||[]}:'module not loaded'}));
@@ -123,6 +170,6 @@ try{
     report.checks.cost[`${w}x${h} ${q?'static':'drive'}`]={taskMsPerSec:+((z.TaskDuration-a.TaskDuration)/15*1000).toFixed(1),scriptMsPerSec:+((z.ScriptDuration-a.ScriptDuration)/15*1000).toFixed(1),heapMB:+(z.JSHeapUsedSize/2**20).toFixed(1)};await cc.close();}
   report.passed=true;
 }catch(e){report.passed=false;report.error=String(e.stack||e);process.exitCode=1;}
-finally{await b.close();}
+finally{await b.close();server?.close();}
 await writeFile(`${OUT}/acceptance.json`,JSON.stringify(report,null,1)+'\n');
 console.log(JSON.stringify({passed:report.passed,error:report.error?.slice(0,900),film:Object.fromEntries(Object.entries(report.film).map(([k,v])=>[k,{presented:v.presented,last:v.lastMediaTime,decks:v.maxConcurrentDecks}])),cost:report.checks.cost},null,1));
