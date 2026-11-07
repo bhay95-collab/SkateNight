@@ -141,8 +141,8 @@ test('the committed website film is the approved asset its manifest names', () =
   assert.equal(manifest.renderProvenance.length, 4);
   assert.ok(manifest.renderProvenance.every(({ fingerprint }) => /^[a-f0-9]{64}$/.test(fingerprint)));
   assert.deepEqual(manifest.soundDesign.startupQuotes.map(({ trackId }) => trackId), ['we-have-come', 'according-to-his-power']);
-  for (const [version, sha] of [[1, 'cf4befeae5eb1f13eb142a73bfa080ae3137172d9ce5fdcb909428611f834d6c'],
-    [2, '402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9']]) {
+  // V4 stays published as the rollback film; v1 lives in Git history and the verified archive.
+  for (const [version, sha] of [[2, '402b2ca892d26dd56a9762429e2fbc2a4461d020065fc57ea299adbd12983cc9']]) {
     const rollback = readFileSync(new URL(`../films/song-inside-35s-v${version}.mp4`, import.meta.url));
     assert.equal(createHash('sha256').update(rollback).digest('hex'), sha, `published v${version} remains unchanged`);
   }

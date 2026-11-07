@@ -27,10 +27,14 @@ cinematic bed. AAC measurements: −22.1 LUFS integrated, 10.1 LU range,
 31.393 s on the film's presented-frame clock so its first hit lands on the
 stylus contact (frame 948), from `cinematic/extended/cues.json`.
 
-`song-inside-35s-v2.mp4` (V4, SHA-256 `402b2ca8…`) and
-`song-inside-35s-v1.mp4` (SHA-256 `cf4befea…`, effects only, source `dcaf590`)
-stay published for rollback. Restore the matching manifest, runtime film ID
-and service-worker version together; keep the crate cache intact.
+`song-inside-35s-v2.mp4` (V4, SHA-256 `402b2ca8…`) stays published as the
+rollback film. `song-inside-35s-v1.mp4` (SHA-256 `cf4befea…`) is no longer
+published: it is in Git history with its manifest (`rollback/pre-v4-sound`),
+and checksum-verified copies of every film and manifest are in
+`/Users/benjaminhay/SkateNight-Archive/cinematic/films/`. To return to an
+earlier film, restore the matching manifest, runtime film ID and
+service-worker version together (see `docs/RELEASE.md`); keep the crate cache
+intact.
 
 On launch the app verifies its saved copy before the coin is live, then checks
 the website in the background (8 s manifest timeout). With nothing saved it
