@@ -263,7 +263,7 @@ export const tracks = [
   // ---- Songs 57-61: a sixth song on Vol. VII - X, then a seventh on Vol. I ----
 
   // H6 - Vol. VII
-  { id: 'see-your-goodness',    title: 'See Your Goodness',    volume: 'vol-vii',  file: 'audio/see-your-goodness.mp3' },
+  { id: 'it-is-for-freedom',    title: 'It Is for Freedom',    volume: 'vol-vii',  file: 'audio/it-is-for-freedom.mp3' },
 
   // J6 - Vol. VIII
   { id: 'fully-convinced',      title: 'Fully Convinced',      volume: 'vol-viii', file: 'audio/fully-convinced.mp3' },

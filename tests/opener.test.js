@@ -43,21 +43,21 @@ test('the opening order: the opener first when it will land the reveal, the rest
   assert.deepEqual(openingOrder(OPENING_IDS, { lead: 'not-a-song', rng: seeded(3) }), plain, 'an unknown lead changes nothing');
 });
 
-test('the upbeat four come next, shuffled, then the rest shuffled', () => {
-  assert.equal(UPBEAT_IDS.length, 4);
+test('the upbeat five come next, shuffled, then the rest shuffled', () => {
+  assert.equal(UPBEAT_IDS.length, 5);
   for (const id of UPBEAT_IDS) assert.ok(OPENING_IDS.includes(id), `${id} is an opening song`);
   const firsts = new Set();
   for (let s = 1; s < 60; s++) {
     const led = openingOrder(OPENING_IDS, { lead: OPENER.id, rng: seeded(s) });
     assert.equal(led[0], OPENER.id);
-    assert.deepEqual(led.slice(1, 5).sort(), [...UPBEAT_IDS].sort(), 'songs 2-5 are the upbeat four');
+    assert.deepEqual(led.slice(1, 6).sort(), [...UPBEAT_IDS].sort(), 'songs 2-6 are the upbeat five');
     assert.deepEqual([...led].sort(), [...OPENING_IDS].sort(), 'every opening song, once');
     const plain = openingOrder(OPENING_IDS, { rng: seeded(s) });
-    assert.deepEqual(plain.slice(0, 4).sort(), [...UPBEAT_IDS].sort(), 'no opener: songs 1-4 are the upbeat four');
+    assert.deepEqual(plain.slice(0, 5).sort(), [...UPBEAT_IDS].sort(), 'no opener: songs 1-5 are the upbeat five');
     assert.deepEqual([...plain].sort(), [...OPENING_IDS].sort());
   }
   for (let i = 0; i < 400; i++) firsts.add(openingOrder(OPENING_IDS, { lead: OPENER.id })[1]);
-  assert.equal(firsts.size, 4, 'each upbeat song gets a turn straight after the opener');
+  assert.equal(firsts.size, 5, 'each upbeat song gets a turn straight after the opener');
 });
 
 test('wired in: cued at the press, started in the dark, revealed by the song\'s own clock', () => {

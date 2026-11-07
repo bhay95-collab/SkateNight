@@ -78,7 +78,7 @@ The production files are listed below.
 |---|---|---|
 | `living/assets/arm.json` | 475 | `934a152b40dae5143246f68ca017e9626ceb505ee255118239ac6fc3cbdfb5d4` |
 | `living/assets/arm.webp` | 371,270 | `1578fa260bd6c07da46e3ffb2e1e2486b2dceeec29ec451114b4011733b74192` |
-| `living/assets/catalog.json` | 16,744 | `7b9741067e67c91cfa33ed844d096ffe48d80d37ce942c55095aaabb24018725` |
+| `living/assets/catalog.json` | 16,744 | `6f2b7cf8d2372ee776d42b993fc0d80e68fe8a1a9c10179e9d0cc4da834c8e0b` |
 | `living/assets/changer.webp` | 316,804 | `8ecb584bcff6577825cbda8737402697c56985694eaf186dc4193183473d454b` |
 | `living/assets/drive-eject-over.webp` | 30,008 | `21ebd532d46bd00e64183bee4bc0fe464f6cabc09991b11b58e176aea7553a9a` |
 | `living/assets/drive-eject.webp` | 525,102 | `acffc3023af859a80305697cc17e58ad7978eeb8404b49f55d26a89f02762fe3` |

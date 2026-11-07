@@ -23,14 +23,15 @@ export const OPENING_IDS = [
   'doing-away-with-my-religion', 'come-unto-me', 'rejoice-in-the-lord-always',
   'lift-up-holy-hands', 'you-are-worthy-o-lord', 'according-to-his-power',
   'praise-lifted-on-high', 'the-way-of-salvation', 'pray-without-ceasing',
-  'bread-of-heaven', 'there-is-a-way',
+  'bread-of-heaven', 'there-is-a-way', 'it-is-for-freedom',
 ];
 
-/* The upbeat four: they open the night (straight after the opener when it
+/* The upbeat five: they open the night (straight after the opener when it
    leads), in a fresh shuffled order each load, before the rest of the
    opening. Each must also be in OPENING_IDS. Nothing on screen marks them out. */
 export const UPBEAT_IDS = [
   'according-to-his-power', 'bread-of-heaven', 'rejoice-in-the-lord-always', 'lift-up-holy-hands',
+  'it-is-for-freedom',
 ];
 
 /* The night's first song when the Awakening starts the music (app.js). It
