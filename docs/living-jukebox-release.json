@@ -1,6 +1,6 @@
 {
  "release": "release/living-jukebox-rc",
- "base": "bb9e0df (production main)",
+ "base": "a5b70a1 (production main, V5-B4)",
  "entry": "living-jukebox.html (optional; index.html unchanged)",
  "files": [
   {

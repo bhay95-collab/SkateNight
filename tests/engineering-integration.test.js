@@ -25,7 +25,7 @@ test('label frames and current-groove arm lift remain bounded at either speed',(
 });
 test('integration retains current production audio, playback clocks, cinematic and worker',async()=>{
   for(const name of ['app.js','audio.js','player.js','jukebox-sfx.js','jukebox-sprite.js','vinyl.js','sound.js','awakening-film.js','sw.js','films/manifest.json']){
-    const baseline=execFileSync('git',['show',`bb9e0df:${name}`]);
+    const baseline=execFileSync('git',['show',`a5b70a1:${name}`]);
     assert.deepEqual(await readFile(new URL('../'+name,import.meta.url)),baseline,`${name} changed`);
   }
 });
