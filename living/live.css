@@ -24,8 +24,8 @@ html.engineering{--chrome:#a29c91;--chrome-lo:#34322e;--trim:#4a443a;--label:#c8
 .engineering #rack-count{position:absolute;left:531px;top:430px;width:92px;text-align:center;font:18px/1 var(--font-mono)}
 .engineering .rack-nav{position:absolute;top:380px;left:535px;width:41px;height:37px;min-width:0;min-height:0;border:1px solid #736c5c;border-radius:2px;background:#151512;font:24px/1 var(--font-body);padding:0;box-shadow:inset 0 1px 2px #d8cda833,0 2px 4px #000b}
 .engineering #rack-next{left:587px}
-.engineering #strips{position:absolute;left:177px;top:620px;width:466px;height:252px;display:flex;flex-direction:column;gap:0;overflow:auto;padding:0;margin:0;border:0;background:transparent;scrollbar-width:thin;scrollbar-color:#74634b #090a0d}
-.engineering .strip{min-height:36.4px;height:36.4px;flex:0 0 36.4px;display:flex;align-items:center;gap:10px;padding:0 7px;background:transparent;border:0;box-shadow:none;color:#211a12;font:700 24px/1 var(--font-body)}
+.engineering #strips{position:absolute;left:177px;top:617px;width:466px;height:252px;display:flex;flex-direction:column;gap:0;overflow:auto;padding:0;margin:0;border:0;background:transparent;scrollbar-width:thin;scrollbar-color:#74634b #090a0d}
+.engineering .strip{min-height:36.4px;height:36.4px;flex:0 0 36.4px;display:flex;align-items:center;gap:10px;padding:0 7px 4px;background:transparent;border:0;box-shadow:none;color:#211a12;font:700 24px/1 var(--font-body)}
 .engineering .strip-code{font:20px/1 var(--font-mono);flex:0 0 36px}.engineering .strip-title{font-size:24px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.engineering .strip-aside{font:700 12px/1 var(--font-mono);color:#292111;flex-shrink:0;margin-left:auto}
 .engineering .strip.is-now{background:#806c302b}.engineering .strip.is-queued{background:#78662b30}.engineering .strip.is-missing{opacity:.65}
 .engineering .strip::before,.engineering .strip::after{display:none}
@@ -46,10 +46,11 @@ html.engineering{--chrome:#a29c91;--chrome-lo:#34322e;--trim:#4a443a;--label:#c8
 .engineering .np-meta{font:17px/1 var(--font-mono);color:#81dad4}
 .engineering #np-volume{position:absolute;left:1020px;top:744px;min-width:65px;height:20px;font:16px/1 var(--font-mono)}
 .engineering #np-code{position:absolute;left:956px;top:742px;width:55px;height:22px;font:19px/1 var(--font-mono);text-align:right}
-.engineering #np-elapsed{position:absolute;left:974px;top:793px;width:90px;height:28px;text-align:center;font:23px/1 var(--font-mono)}
-.engineering #np-remaining{position:absolute;left:972px;top:825px;width:94px;font:13px/1 var(--font-mono);text-align:center;color:#c4b698}
-.engineering #np-tube{position:absolute;left:979px;top:857px;width:80px;height:5px;margin:0;border:0;background:#29251e}
-.engineering #spectrum{position:absolute;left:979px;top:872px;width:80px;height:24px;border:0;border-radius:0}
+/* Time block centred in the middle window (glass 974-1069 x 791-900); min-width:0 undoes the classic 5.4rem clock box that pushed the digits right. */
+.engineering #np-elapsed{position:absolute;left:974px;top:816px;width:95px;min-width:0;height:23px;text-align:center;font:23px/1 var(--font-mono)}
+.engineering #np-remaining{position:absolute;left:974px;top:845px;width:95px;min-width:0;font:13px/1 var(--font-mono);text-align:center;color:#c4b698}
+.engineering #np-tube{position:absolute;left:981.5px;top:870px;width:80px;height:5px;margin:0;border:0;background:#29251e}
+.engineering #spectrum{display:none}
 .engineering .vu{position:absolute;left:740px;top:800px;width:202px;height:94px;border:0;border-radius:0;box-shadow:none;filter:brightness(.86)}
 .engineering #vu-r{left:1098px;width:201px}
 .engineering #queue-screen{position:absolute;left:1381px;top:303px;width:365px;height:258px;min-height:0;padding:0 4px;border:0;background:transparent;box-shadow:none;overflow:auto;container-type:normal}

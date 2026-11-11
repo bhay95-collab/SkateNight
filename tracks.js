@@ -216,7 +216,7 @@ export const tracks = [
   { id: 'living-in-your-will', title: 'Living in Your Will', volume: 'vol-v',   file: 'audio/living-in-your-will.mp3' },
 
   // G5 - Vol. VI
-  { id: 'love-abiding',        title: 'Love Abiding',        volume: 'vol-vi',  file: 'audio/love-abiding.mp3' },
+  { id: 'consider-it-all-joy', title: 'Consider It All Joy', volume: 'vol-vi',  file: 'audio/consider-it-all-joy.mp3' },
 
   // H5 - Vol. VII
   { id: 'this-is-the-message', title: 'This Is the Message', volume: 'vol-vii', file: 'audio/this-is-the-message.mp3' },
