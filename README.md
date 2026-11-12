@@ -135,8 +135,8 @@ Vol. II is the second volume in the list.
 |---|---|---|---|---|---|---|---|---|---|---|
 | Letter | A | B | C | D | E | **G** | **H** | **J** | **K** | **L** |
 
-Notice the skipped letters: F, N, P and S are keyboard shortcuts (fullscreen,
-next, previous, shuffle), and I and O are never used (they look like 1 and 0), so
+Notice the skipped letters: F, N and P are keyboard shortcuts (fullscreen,
+next, previous), S is kept free, and I and O are never used (they look like 1 and 0), so
 Vol. VI is **G**, not F. This table is also written at the top of
 `tracks.js`. Moving a song up or down the list changes its code.
 

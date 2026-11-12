@@ -58,6 +58,7 @@ def close_tools(page):
 
 def keyboard_checks(page, tracks):
     phase = state(page)["phase"]
+    open_tools(page)  # SHUFFLE lives in Cabinet Tools.
     toggle = page.locator("#btn-shuffle")
     previous = toggle.get_attribute("aria-pressed")
     toggle.focus()
@@ -75,6 +76,7 @@ def keyboard_checks(page, tracks):
     require(page.locator("#readout-code").text_content() == pending, "Native activation discarded the pending code")
     require(state(page)["phase"] == phase, "Enter on SHUFFLE changed playback")
     page.keyboard.press("Space")
+    close_tools(page)
     page.locator("#key-clear").click()
 
     volume = page.locator("#vol-music").input_value()

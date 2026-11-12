@@ -139,8 +139,8 @@ song, the verified film and (photorealistic page) the confirmed visuals.
   Without a verified film the old live cut plays instead.
 - **TOOLS** holds FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, a Vinyl texture
   trim, an optional click-to-fill setting and *The Awakening starts the music*. Click it
-  or use Enter/Space; Escape or a click outside closes it. Music, effects,
-  shuffle and lights stay directly available on the deck.
+  or use Enter/Space; Escape or a click outside closes it. Music, effects
+  and lights stay directly available on the deck; SHUFFLE sits in TOOLS (it stays on).
 - The music starts by itself after the Awakening (see above). **START** /
   **PAUSE** works as always; with the TOOLS setting unticked, START begins the
   house rotation by hand.
@@ -174,7 +174,7 @@ song, the verified film and (photorealistic page) the confirmed visuals.
   remove one. Keyboard focus and the scroll position are retained while editing.
   The note says **Your picks play first. We'll keep the records turning.**
 - When UP NEXT is empty, the **house rotation** picks the next song itself, so the
-  rink is never silent. The **SHUFFLE** button chooses how:
+  rink is never silent. The **SHUFFLE** button (inside TOOLS on the photorealistic page; no keyboard key) chooses how:
   - **SHUFFLE: ON** (the default): a shuffled deck. **Every song plays once before
     any song repeats**, and a song never comes round again within 5 plays, even
     when the deck is reshuffled. Songs you pick yourself count as played.

@@ -237,8 +237,8 @@ worker.
   A newly typed complete code reveals its row within this list and outlines it
   in cyan, without scrolling the surrounding cabinet. The current ten albums
   need no scrolling at the supported laptop sizes.
-- Transport, music/effects faders, SHUFFLE and LIGHTS remain on the
-  deck. TOOLS groups FULLSCREEN, LOAD THE CRATES, KEYBOARD SHORTCUTS, the Vinyl
+- Transport, music/effects faders and LIGHTS remain on the
+  deck. TOOLS groups FULLSCREEN, SHUFFLE (always left on; no key), LOAD THE CRATES, KEYBOARD SHORTCUTS, the Vinyl
   texture trim and optional click-to-fill. Faders display their percentages. The native
   disclosure supports mouse, Enter and Space, closes on Escape or an outside
   click, and never submits a pending song code or changes playback. Offline
@@ -797,8 +797,8 @@ checks 500 random bursts, patch by patch.
   history: after 3 s it restarts the song, before that it goes to the previous
   song and puts the song it left at the top of UP NEXT (`enqueueFront`), so Skip
   returns to it. Both are ignored while the record changer is mid-swap.
-- Shortcuts: Left / P back, Right / N next, S shuffle, F fullscreen, Space play /
-  pause. These letters (F N P S) are therefore never used as volume letters. The
+- Shortcuts: Left / P back, Right / N next, F fullscreen, Space play /
+  pause. These letters (F N P, and S, once shuffle) are therefore never used as volume letters. The
   laptop's previous-track media key is wired to Back.
 - `keyboard.js` routes shortcuts after native control behavior: focused buttons,
   links and disclosures keep Enter/Space even when a song code is pending.

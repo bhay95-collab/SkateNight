@@ -33,7 +33,6 @@ function cabinet({ started = true, code = '', modal = false } = {}) {
     onTogglePlay: action('play'),
     onBack: action('back'),
     onSkip: action('skip'),
-    onShuffle: action('shuffle'),
     onFullscreen: action('fullscreen'),
     onVolume: action('volume'),
     onHelp: action('help'),
@@ -166,9 +165,10 @@ test('code entry, submission and clearing share the selector actions', () => {
 
 test('documented letter commands and help work once per key press', () => {
   const scene = cabinet();
-  for (const key of ['n', 'P', 's', 'F', '?']) {
+  for (const key of ['n', 'P', 'F', '?']) {
     assert.equal(scene.press(key).defaultPrevented, true);
     scene.press(key, { repeat: true });
   }
-  assert.deepEqual(scene.calls, [['skip'], ['back'], ['shuffle'], ['fullscreen'], ['help']]);
+  assert.deepEqual(scene.calls, [['skip'], ['back'], ['fullscreen'], ['help']]);
+  assert.equal(scene.press('s').defaultPrevented, false, 'S no longer toggles shuffle: it lives only in Cabinet Tools');
 });

@@ -162,7 +162,6 @@ film's own power-up takes over. It follows the EFFECTS volume.
 | **Space** | Play / pause |
 | **N** or **Right arrow** | Next song |
 | **P** or **Left arrow** | Back: restart this song, or press again for the previous one |
-| **S** | Shuffle on / off |
 | **F** | Fullscreen on / off |
 | **Up / Down arrows** | Music volume up / down |
 | **A-Z, 0-9, Enter** | Type a selection code, e.g. `B` `1` `Enter` |

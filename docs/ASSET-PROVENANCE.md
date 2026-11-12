@@ -99,7 +99,7 @@ The production files are listed below.
 | `living/assets/eject-5.webp` | 468,512 | `5d625260e710cf8bf0f679c1cdac28c67694a240befa5be5869b80e4913d0ed9` |
 | `living/assets/eject-mask.png` | 74,921 | `11bdb3c9f9c2bddf27dc0cdd41de8a785900d5a6cd8b464ba6484b33721ff034` |
 | `living/assets/eject-tracking.json` | 12,865 | `ff1365d37c3b70056928c96a68e264ddea85138fd59a449f3ff5c6822009ae63` |
-| `living/assets/hero.webp` | 320,070 | `91909e729f7317ef0b3e93155288769e725813a99755fb40d58bab7a12b40e1e` |
+| `living/assets/hero.webp` | 311,782 | `4a296b29057e5221a5600d9fd35ef180aa38127b2608232a71fa887342101a4f` |
 | `living/assets/load-0.webp` | 478,042 | `d5b4867160f4fe8c66ceefe5beaecf9e04f9b0a69a4e196ccd3f26f6ab69809d` |
 | `living/assets/load-1.webp` | 470,408 | `8ca38b748600cb7e523d986d11b6dd9eed55f1bc670f8d2e2c1e826b93c065d7` |
 | `living/assets/load-2.webp` | 472,112 | `08e0076d5a271770d0d23d6ec697753847315555ffc82894d4eb37c6b1fc33c8` |

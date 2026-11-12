@@ -72,9 +72,9 @@ html.engineering{--chrome:#a29c91;--chrome-lo:#34322e;--trim:#4a443a;--label:#c8
 .engineering #key-clear,.engineering #key-del,.engineering #btn-select,.engineering #btn-coin{position:absolute;top:853px;height:30px;min-height:0;padding:0;border:1px solid #574e3b;border-radius:1px;background:#18150f;box-shadow:inset 0 1px 1px #d7c8a52c;font:23px/1 var(--font-body);color:#f1d7ac}
 .engineering #key-clear{left:1388px;width:49px}.engineering #key-del{left:1446px;width:49px}.engineering #btn-select{left:1509px;width:137px}.engineering #btn-coin{left:1662px;width:78px}
 .engineering #btn-select.is-ready{background:#564520;border-color:#e0be73}
-.engineering #btn-back,.engineering #btn-play,.engineering #btn-skip,.engineering #btn-shuffle,.engineering .utility-drawer>summary{position:absolute;left:185px;top:960px;width:124px;height:46px;min-height:0;padding:0;border:1px solid #786b53;border-radius:2px;background:linear-gradient(160deg,#27241d,#090c0d 70%);box-shadow:inset 0 1px 1px #e4cf9f2b;white-space:nowrap;font:700 25px/1 var(--font-body);color:#f1d7ac}
+.engineering #btn-back,.engineering #btn-play,.engineering #btn-skip,.engineering .utility-drawer>summary{position:absolute;left:185px;top:960px;width:124px;height:46px;min-height:0;padding:0;border:1px solid #786b53;border-radius:2px;background:linear-gradient(160deg,#27241d,#090c0d 70%);box-shadow:inset 0 1px 1px #e4cf9f2b;white-space:nowrap;font:700 25px/1 var(--font-body);color:#f1d7ac}
 .engineering #btn-play{left:330px;width:174px;border-color:#b38b44;background:linear-gradient(160deg,#513817,#21170c)}
-.engineering #btn-skip{left:530px;width:116px}.engineering #btn-shuffle{left:1364px;width:167px;font-size:21px;color:#8fdfd7}
+.engineering #btn-skip{left:530px;width:116px}
 .engineering .utility-drawer{position:static;display:contents}
 .engineering .utility-drawer>summary{left:1568px;width:145px;display:flex;align-items:center;justify-content:center;font-size:25px}
 .engineering .utility-drawer>summary::after{display:none}.engineering .utility-drawer>summary::marker{content:''}

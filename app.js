@@ -795,6 +795,9 @@ async function main() {
   });
 
   /* ---------------- legend ---------------- */
+  // S no longer toggles shuffle (it stays on all night), so its entry leaves the fixed legend markup.
+  [...$('legend').querySelectorAll('span')].find((s) => s.textContent.trim() === 'S shuffle')?.remove();
+  $('btn-shuffle').title = 'Shuffle: every song plays once before any repeats. Off = play in the order of tracks.js';
   let legendTimer = 0;
   function showLegend(ms = 9000) {
     const legend = $('legend');
@@ -865,7 +868,6 @@ async function main() {
     onTogglePlay: togglePlay,
     onBack: back,
     onSkip: skip,
-    onShuffle: () => setShuffle(!shuffle),
     onFullscreen: toggleFullscreen,
     onVolume: nudgeVolume,
     onHelp: showLegend,

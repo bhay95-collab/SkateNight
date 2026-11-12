@@ -8,7 +8,6 @@ export function installCabinetKeyboard({
   onTogglePlay,
   onBack,
   onSkip,
-  onShuffle,
   onFullscreen,
   onVolume,
   onHelp,
@@ -63,7 +62,7 @@ export function installCabinetKeyboard({
     if (key === '?') { consume(onHelp); return; }
 
     const upper = key.length === 1 ? key.toUpperCase() : '';
-    const commands = { N: onSkip, P: onBack, S: onShuffle, F: onFullscreen };
+    const commands = { N: onSkip, P: onBack, F: onFullscreen };
     if (Object.hasOwn(commands, upper)) { consume(commands[upper]); return; }
     if (letters.has(upper) || /^\d$/.test(upper)) consume(() => onKey(upper));
   }
