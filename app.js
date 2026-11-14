@@ -1269,6 +1269,9 @@ async function main() {
       lift: () => { play('lift'); safely('drone', wakeDrone); }, contact: later('contact'), chute: later('chute'), relay: later('relay'),
       power: later('power'), tube: later('tube'),
     };
+    // The waiting screen is the tube alone, filling the screen: step back to
+    // the whole cabinet first, the frame the film and the live cut open on.
+    await safely('pull back', () => cabinetStart?.pullBack?.());
     let playedFilm = false;
     let overlapLanded = false;
     const forceLiveCut = new URLSearchParams(location.search).has('live');
