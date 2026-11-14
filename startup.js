@@ -9,7 +9,10 @@
    tube draws the robot as faint phosphor that gathers and loses its light,
    and the static, the tube's light on the cabinet and the odd rolling band
    move with it, as one tired signal (planBreath in lights.js). It returns
-   { insert, breath } (breath is for the dormant drone, drone.js).
+   { insert, pullBack, breath } (breath is for the dormant drone, drone.js).
+   While it waits the camera is in close on the tube (closeUp): the glass
+   fills the whole screen, the way it is found in the dark room. pullBack()
+   steps back to the cabinet at the press, before the film or insert().
 
    insert(sound) plays the film. Everything is scheduled at the press on the
    document timeline, from startup-timing.js:
@@ -304,9 +307,11 @@ export function wakeAttract(attract) {
   el.fault = gatherFault(attract);
   const dormant = startDormant(el);
   const faults = startDormantFaults(el.fault, dormant);
+  const close = closeUp(el);
 
   async function insert(sound = {}) {
     const cue = (name) => { try { sound[name]?.(); } catch (err) { console.warn('[startup]', err); } };
+    await close.pullBack();                // normally already done by the caller; never film from the close-up
     faults.stop();                         // the dormant contact goes quiet; the film has its own
     attract.classList.add('is-inserting');
     const film = clock(attract);
@@ -320,7 +325,55 @@ export function wakeAttract(attract) {
 
   // breath: the robot's breathing plan and where in it the screen is now
   // (ms into the loop; null when the robot is still), for drone.js to breathe with.
-  return { insert, breath: { plan: dormant.plan, phase: dormant.phase } };
+  // pullBack: the camera steps back from the tube to the whole cabinet (the
+  // film's first frame); the caller awaits it before the film plays.
+  return { insert, pullBack: close.pullBack, breath: { plan: dormant.plan, phase: dormant.phase } };
+}
+
+/* ---------------- close-up: the tube is the whole screen ---------------- */
+/* The jukebox stands in a dark room on a projector: the first thing anyone
+   finds is its dull picture tube. So while it waits, the whole world is
+   framed on the tube's glass - robot, static, rolling bands, scanlines, the
+   dark curved corners - filling the screen edge to edge. At the press the
+   camera steps back to the cabinet, landing on the film's first frame.
+   Transform only (on .attract-world), measured from the tube's own box. */
+const CLOSE_UP = { overscan: 1.04, pullMs: 1000, easing: 'cubic-bezier(.5,0,.2,1)' };
+
+function closeUp(el) {
+  const { world, crt, attract } = el;
+  let on = Boolean(world && crt);
+  let pulled = null;
+  const fit = () => {
+    if (!on) return;
+    world.style.transform = 'none';
+    const tv = crt.getBoundingClientRect();
+    const view = attract.getBoundingClientRect();
+    if (!tv.width || !tv.height || !view.width || !view.height) { world.style.transform = ''; return; }
+    const s = Math.max(view.width / tv.width, view.height / tv.height) * CLOSE_UP.overscan;
+    // .attract-world scales about its centre (the screen's): the tube's centre lands there
+    const tx = (view.left + view.width / 2 - (tv.left + tv.width / 2)) * s;
+    const ty = (view.top + view.height / 2 - (tv.top + tv.height / 2)) * s;
+    world.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${s.toFixed(4)})`;
+  };
+  if (on) {
+    attract.classList.add('is-close');
+    fit();
+    addEventListener('resize', fit);
+  }
+  function pullBack() {
+    if (pulled) return pulled;
+    if (!on) return (pulled = Promise.resolve());
+    on = false;
+    removeEventListener('resize', fit);
+    attract.classList.remove('is-close');
+    const from = world.style.transform;
+    world.style.transform = '';
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return (pulled = Promise.resolve());   // a cut, not a move
+    const move = world.animate([{ transform: from }, { transform: 'none' }], { duration: CLOSE_UP.pullMs, easing: CLOSE_UP.easing });
+    pulled = move.finished.then(() => {}, () => {});
+    return pulled;
+  }
+  return { pullBack };
 }
 
 /* One clock for the whole film: the document timeline. at() runs a step on
